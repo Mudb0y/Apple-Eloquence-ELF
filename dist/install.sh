@@ -124,40 +124,14 @@ fi
 run install -m 0755 "$here/sd_eloquence" "${DESTDIR}${MODULEBINDIR}/sd_eloquence"
 
 # eloquence.conf -- only drop on a fresh install so we don't clobber
-# the user's tuning.
+# the user's tuning. Speech-dispatcher auto-discovers the module from
+# this directory + the module binary in modulebindir; do not edit
+# speechd.conf.
 if [ -e "${DESTDIR}${CONF_DIR}/eloquence.conf" ]; then
     echo "note: ${CONF_DIR}/eloquence.conf already present; leaving it alone."
     echo "      The new template is at ${here}/eloquence.conf if you want to diff."
 else
     run install -m 0644 "$here/eloquence.conf" "${DESTDIR}${CONF_DIR}/eloquence.conf"
-fi
-
-# Register the module with speech-dispatcher.  Without an AddModule
-# line in speechd.conf the daemon never discovers sd_eloquence and any
-# `spd-say -o eloquence` returns an opaque "module not loaded" error.
-SPEECHD_CONF="${DESTDIR}${SYSCONFDIR}/speech-dispatcher/speechd.conf"
-SD_BEGIN="# >>> apple-eloquence-elf >>>"
-SD_END="# <<< apple-eloquence-elf <<<"
-if [ -f "$SPEECHD_CONF" ]; then
-    if grep -qF "$SD_BEGIN" "$SPEECHD_CONF"; then
-        echo "note: AddModule \"eloquence\" already registered in $SPEECHD_CONF."
-    else
-        if [ "$DRY_RUN" -eq 1 ]; then
-            printf '  [dry-run] append AddModule block to %s\n' "$SPEECHD_CONF"
-        else
-            {
-                echo ""
-                echo "$SD_BEGIN"
-                echo "AddModule \"eloquence\" \"sd_eloquence\" \"eloquence.conf\""
-                echo "$SD_END"
-            } >> "$SPEECHD_CONF"
-        fi
-        echo "Registered \"eloquence\" in $SPEECHD_CONF."
-    fi
-else
-    echo "warning: $SPEECHD_CONF not found; you'll need to register the module"
-    echo "         manually by adding this line to your speechd.conf:" >&2
-    echo "             AddModule \"eloquence\" \"sd_eloquence\" \"eloquence.conf\"" >&2
 fi
 
 cat <<EOF

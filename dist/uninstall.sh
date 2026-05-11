@@ -63,18 +63,6 @@ for cand in "${MODULEBINDIR_CANDIDATES[@]}"; do
     run rm -f "${DESTDIR}${cand}/sd_eloquence"
 done
 
-# Strip the AddModule block install.sh added to speechd.conf.
-SPEECHD_CONF="${DESTDIR}${SYSCONFDIR}/speech-dispatcher/speechd.conf"
-if [ -f "$SPEECHD_CONF" ] \
-        && grep -qF "# >>> apple-eloquence-elf >>>" "$SPEECHD_CONF"; then
-    if [ "$DRY_RUN" -eq 1 ]; then
-        printf '  [dry-run] strip AddModule block from %s\n' "$SPEECHD_CONF"
-    else
-        sed -i '/# >>> apple-eloquence-elf >>>/,/# <<< apple-eloquence-elf <<</d' \
-            "$SPEECHD_CONF"
-    fi
-fi
-
 if [ "$PURGE" -eq 1 ]; then
     run rm -f "${DESTDIR}${SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf"
 fi
