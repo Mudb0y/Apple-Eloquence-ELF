@@ -370,12 +370,18 @@ int module_init(char **msg) {
         return -1;
     }
 
-    /* Apply default sample rate (param 5 per SDK). */
-    int prev = eci.SetParam(h_engine, eciSampleRate, g_default_sample_rate);
-    if (prev < 0) {
-        DBG("setParam(eciSampleRate=%d) rejected; falling back to default 11025",
+    /* Apply default sample rate (param 5 per SDK). eciSetParam returns the
+     * previous value on success and -1 on rejection. If the engine rejects
+     * the requested rate (Apple's eci.dylib 6.1 refuses 22050), fall back
+     * to 11025 and re-issue SetParam so the engine state matches what we
+     * report downstream. */
+    if (eci.SetParam(h_engine, eciSampleRate, g_default_sample_rate) < 0) {
+        DBG("setParam(eciSampleRate=%d) rejected; falling back to 11025 Hz",
             g_default_sample_rate);
         g_default_sample_rate = 1;
+        if (eci.SetParam(h_engine, eciSampleRate, g_default_sample_rate) < 0) {
+            DBG("setParam(eciSampleRate=1) also rejected; engine is in an unknown state");
+        }
     }
     switch (g_default_sample_rate) {
         case 0: h_engine_sample_rate_hz = 8000;  break;
@@ -403,8 +409,10 @@ int module_init(char **msg) {
     eci.Version(ver);
     if (msg) {
         char *out = malloc(128);
-        snprintf(out, 128, "ETI Eloquence %s -- ready (rate=%d Hz)",
-                 ver, h_engine_sample_rate_hz);
+        if (out) {
+            snprintf(out, 128, "ETI Eloquence %s -- ready (rate=%d Hz)",
+                     ver, h_engine_sample_rate_hz);
+        }
         *msg = out;
     }
     return 0;
@@ -427,13 +435,17 @@ int module_close(void) {
 SPDVoice **module_list_voices(void) {
     int n = (int)N_LANGS * ECI_PRESET_VOICES;
     SPDVoice **list = calloc(n + 1, sizeof(SPDVoice *));
+    if (!list) return NULL;
     int idx = 0;
     for (size_t li = 0; li < N_LANGS; li++) {
         for (int vi = 0; vi < ECI_PRESET_VOICES; vi++) {
             SPDVoice *v = calloc(1, sizeof(SPDVoice));
+            if (!v) continue;  /* OOM: skip this voice rather than abort */
             char name[64];
-            snprintf(name, sizeof(name), "%s (%s, %s)",
-                     g_voice_names[vi], g_langs[li].human, g_voice_names[vi]);
+            /* Format: "Wade (American English)". The voice name alone isn't
+             * unique across the 14*8 grid -- the language disambiguates. */
+            snprintf(name, sizeof(name), "%s (%s)",
+                     g_voice_names[vi], g_langs[li].human);
             v->name     = strdup(name);
             v->language = strdup(g_langs[li].language);
             v->variant  = strdup(g_langs[li].variant);
@@ -693,7 +705,11 @@ void module_speak_sync(const char *data, size_t bytes, SPDMessageType msgtype) {
         eci.SetParam(h_engine, eciTextMode, 0);   /* normal */
     }
 
-    eci.AddText(h_engine, text);
+    /* eciAddText returns nonzero on success, 0 on failure. */
+    if (!eci.AddText(h_engine, text)) {
+        DBG("eciAddText rejected the input (engine error %#x)",
+            eci.ProgStatus(h_engine));
+    }
     free(text);
 
     eci.Synthesize(h_engine);
