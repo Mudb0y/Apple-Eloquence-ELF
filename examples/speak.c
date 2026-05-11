@@ -24,9 +24,8 @@
 
 typedef int (*ECICallback)(void *hEngine, int msg, long lParam, void *pData);
 
-/* Engine writes into g_pcm_chunk; the callback appends each chunk into a
- * growing g_pcm buffer so we capture the whole utterance, not just the last
- * chunk. */
+/* The engine fills g_pcm_chunk; the callback appends each chunk into a
+ * growing g_pcm so we capture the whole utterance. */
 #define CHUNK_SAMPLES 8192
 static int16_t  g_pcm_chunk[CHUNK_SAMPLES];
 static int16_t *g_pcm        = NULL;
@@ -95,9 +94,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    /* Callback MUST be registered before SetOutputBuffer. The engine writes
-     * each PCM chunk into g_pcm_chunk and the callback appends it to a
-     * growing g_pcm. */
+    /* RegisterCallback must come before SetOutputBuffer; the engine
+     * fails the latter otherwise. */
     eciRegisterCallback(eci, my_callback, NULL);
     eciSetOutputBuffer(eci, CHUNK_SAMPLES, g_pcm_chunk);
     eciAddText(eci, text);

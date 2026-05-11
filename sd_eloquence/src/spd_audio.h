@@ -1,15 +1,8 @@
 /*
- * spd_audio.h -- minimal definitions matching speech-dispatcher's internal
- * spd_audio.h ABI.
- *
- * speech-dispatcher includes its own spd_audio.h via <spd_audio.h> from
- * <speech-dispatcher/spd_module_main.h>, but the Arch package doesn't ship
- * that header in /usr/include. Other speech-dispatcher module projects
- * (viavoice-spd, evvrelink, macintalk) all vendor a minimal compatible
- * declaration; we do the same here.
- *
- * The ABI definitions match what libspeechd_module.so expects when modules
- * pass AudioTrack to module_tts_output_server().
+ * spd_audio.h -- vendored to provide AudioTrack / AudioFormat when the
+ * system speech-dispatcher package doesn't ship spd_audio.h (e.g. Arch).
+ * The ABI matches what libspeechd_module.so expects from
+ * module_tts_output_server().
  *
  * SPDX-License-Identifier: MIT
  */

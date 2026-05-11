@@ -33,21 +33,20 @@ those Mach-O dylibs and produces ELF `.so` files that load on Linux via
 
 ## Project status
 
-| Architecture | Builds | Runtime tested | Languages |
-|---|---|---|---|
-| **x86_64 Linux** | ✅ | ✅ end-to-end speech | 8 of 19 modules verified (see below) |
-| **aarch64 Linux** | ✅ | ⚠️ build-verified only; needs real arm64 hw | same 19 modules |
+| Architecture | Builds | Runtime tested |
+|---|---|---|
+| **x86_64 Linux** | ✅ | ✅ end-to-end speech via sd_eloquence + Orca |
+| **aarch64 Linux** | ✅ | ⚠️ build-verified only; needs real arm64 hw |
 
-The shipped binaries are built from the **tvOS 18.2 Simulator Runtime**
-which adds CJK + romanization language support over the older 16.4 release.
+The shipped binaries are built from the **tvOS 18.2 Simulator Runtime**.
 
-**Verified working language modules** (x86_64):
-- `enu` US English, `eng` UK English
-- `deu` German, `fra` French (FR), `frc` French (Canada), `esp` Spanish (Spain), `esm` Spanish (Mexico/LatAm), `ita` Italian, `fin` Finnish, `ptb` Portuguese (Brazil)
-- `jpn` Japanese, `kor` Korean, `chs` Chinese Simplified, `cht` Chinese Traditional
-
-**Romanization helper modules** (not standalone synthesizers, require integration as secondary modules):
-- `jpnrom`, `korrom`, `chsrom`, `chtrom`
+**Languages**: 10 working end-to-end on x86_64 (en-US, en-GB, es-ES,
+es-MX, fr-FR, fr-CA, de-DE, it-IT, pt-BR, fi-FI). The CJK modules
+(ja-JP, ko-KR, zh-CN, zh-TW) load but are currently gated out of the
+speech-dispatcher voice list pending stability fixes in the
+RomanizerManager / language-module-init path. The four romanizer
+helpers (`jpnrom`, `korrom`, `chsrom`, `chtrom`) ship alongside the
+primary modules but aren't standalone synthesizers.
 
 ## Quick start (use the prebuilt binaries)
 
