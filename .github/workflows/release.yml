@@ -30,9 +30,11 @@ jobs:
       matrix:
         include:
           - arch: x86_64
+            lipo_arch: x86_64
             runner: ubuntu-24.04
             cc: gcc
           - arch: aarch64
+            lipo_arch: arm64    # Mach-O fat-binary slice name (Apple's name)
             runner: ubuntu-24.04-arm
             cc: gcc
     runs-on: ${{ matrix.runner }}
@@ -124,11 +126,11 @@ jobs:
           mkdir -p slices elfs
           for d in vendor/tvOS-18.2/*.dylib; do
               base="$(basename "$d" .dylib)"
-              llvm-lipo -extract ${{ matrix.arch }} "$d" \
-                  -output "slices/${base}.${{ matrix.arch }}.dylib"
+              llvm-lipo -extract ${{ matrix.lipo_arch }} "$d" \
+                  -output "slices/${base}.${{ matrix.lipo_arch }}.dylib"
           done
           for slice in slices/*.dylib; do
-              base="$(basename "$slice" .${{ matrix.arch }}.dylib)"
+              base="$(basename "$slice" .${{ matrix.lipo_arch }}.dylib)"
               ./venv/bin/python3 macho2elf/macho2elf.py "$slice" \
                   --cc "${{ matrix.cc }}" \
                   -o "elfs/${base}.so" \
