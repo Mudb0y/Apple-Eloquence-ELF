@@ -52,8 +52,9 @@ which adds CJK + romanization language support over the older 16.4 release.
 ## Quick start (use the prebuilt binaries)
 
 ```bash
-# 1. Build the examples
-make -C examples
+# 1. Build everything (macho2elf script, sd_eloquence module, example binaries)
+cmake -B build
+cmake --build build
 
 # 2. Set up an eci.ini pointing at the language module
 cd prebuilt/x86_64
@@ -61,7 +62,7 @@ cp ../../examples/eci.ini ./eci.ini
 sed -i "s|^Path=.*$|Path=$(pwd)/enu.so|" eci.ini
 
 # 3. Speak
-../../examples/speak ./eci.so "Hello from Apple's Eloquence on Linux."
+../../build/examples/speak ./eci.so "Hello from Apple's Eloquence on Linux."
 aplay -r 11025 -f S16_LE /tmp/eci_out.s16
 ```
 
@@ -129,10 +130,9 @@ prebuilt/x86_64/          Pre-converted ELF .so files for Linux x86_64
 prebuilt/aarch64/         Pre-converted ELF .so files for Linux aarch64
 examples/speak.c          Full TTS C example using dlopen + the ECI callback API
 examples/eci.ini          Minimal config (the engine has built-in voice/phoneme defaults)
-sd_eloquence/             Native Speech Dispatcher module -- wires Eloquence into
-                          Orca, spd-say, and other speechd clients. Optional
-                          libsoxr resampling for "Apple higher sample rate"-style
-                          output quality. See sd_eloquence/README.md.
+sd_eloquence/             Native Speech Dispatcher module sources. Built by
+                          the root CMakeLists; install drops the binary where
+                          speechd auto-discovers it. Optional libsoxr resampling.
 docs/                     Extraction, conversion, integration, internals, troubleshooting
 tools/checksums.txt       SHA256 of every shipped binary + the source DMG
 tools/verify.sh           Verify shipped binaries match expected checksums
@@ -140,20 +140,14 @@ tools/verify.sh           Verify shipped binaries match expected checksums
 
 ## Speech Dispatcher integration
 
-The bundled `sd_eloquence/` subproject is a native speech-dispatcher output
-module that loads the converted Eloquence dylibs and exposes them to Orca,
-spd-say, and any other SSIP-speaking client. It's a fresh implementation
-(not derived from voxin/viavoice-spd) and includes optional libsoxr-based
-output resampling so you can mimic Apple's "Higher sample rate" toggle.
-
-Quick build + install:
-```
-cmake -B sd_eloquence/build -S sd_eloquence
-cmake --build sd_eloquence/build
-sudo cmake --install sd_eloquence/build
-# Edit /etc/speech-dispatcher/modules/eloquence.conf and restart speech-dispatcher.
-```
-See `sd_eloquence/README.md` for the full guide.
+A native speech-dispatcher output module ships in `sd_eloquence/`, built as
+part of the root CMake project. After `sudo cmake --install build`, edit
+`/etc/speech-dispatcher/modules/eloquence.conf` to point `EciLibrary` at
+your `eci.so` and `EciVoicePath` at a language module, then restart
+speech-dispatcher. Anyone familiar with speech-dispatcher modules will
+recognise the SSIP-on-stdio shape; the conf file documents the
+Eloquence-specific knobs (sample rate, default voice/language, optional
+libsoxr resampling).
 
 ## How it works (the very short version)
 

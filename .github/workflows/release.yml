@@ -158,7 +158,7 @@ jobs:
         run: |
           cmake -B build -DBUILD_SD_MODULE=ON -DINSTALL_PREBUILT_DYLIBS=OFF
           cmake --build build
-          ls -la build/sd_eloquence/sd_eloquence
+          ls -la build/sd_eloquence
 
       - name: Source tarball (without prebuilt/ + vendor/)
         run: |
@@ -173,7 +173,7 @@ jobs:
         with:
           name: source-and-module
           path: |
-            build/sd_eloquence/sd_eloquence
+            build/sd_eloquence
             *-source.tar.gz
           retention-days: 1
 
