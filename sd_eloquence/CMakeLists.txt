@@ -14,13 +14,34 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
 
-# Locate speech-dispatcher's module headers and library.
+# Locate speech-dispatcher via pkg-config. The .pc file exposes a
+# `modulebindir` variable that tells us where the daemon looks for module
+# binaries on this system (typically
+# /usr/lib/speech-dispatcher/speech-dispatcher-modules). Always use that
+# instead of guessing -- different distros put it in different places.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SPEECHD REQUIRED speech-dispatcher)
+
+pkg_get_variable(SPEECHD_MODULEBINDIR speech-dispatcher modulebindir)
+if(NOT SPEECHD_MODULEBINDIR)
+    message(FATAL_ERROR
+        "speech-dispatcher's pkg-config doesn't expose modulebindir. "
+        "Your speech-dispatcher install is broken or too old.")
+endif()
+message(STATUS "speech-dispatcher modulebindir: ${SPEECHD_MODULEBINDIR}")
+
+# Headers come from SPEECHD_INCLUDE_DIRS (parent /usr/include) plus the
+# speech-dispatcher subdir that contains spd_module_main.h.
 find_path(SPEECHD_INCLUDE_DIR
     NAMES speech-dispatcher/spd_module_main.h
+    HINTS ${SPEECHD_INCLUDE_DIRS}
     PATHS /usr/include
 )
+
+# The module-side helper library that provides main() + protocol loop.
 find_library(SPEECHD_MODULE_LIB
     NAMES speechd_module
+    HINTS ${SPEECHD_LIBRARY_DIRS}
     PATHS /usr/lib /usr/lib64
 )
 if(NOT SPEECHD_INCLUDE_DIR OR NOT SPEECHD_MODULE_LIB)
@@ -75,18 +96,17 @@ if(SOXR_FOUND)
     target_link_libraries(sd_eloquence PRIVATE ${SOXR_LIBRARIES})
 endif()
 
-# Install paths follow GNUInstallDirs:
-#   binary:  $CMAKE_INSTALL_LIBDIR/speech-dispatcher-modules/sd_eloquence
-#            (with prefix=/usr -> /usr/lib/speech-dispatcher-modules)
-#   config:  $CMAKE_INSTALL_FULL_SYSCONFDIR/speech-dispatcher/modules/eloquence.conf
-#            (with prefix=/usr -> /etc/speech-dispatcher/modules
-#             with prefix=/tmp/xx -> /tmp/xx/etc/speech-dispatcher/modules)
+# Install paths:
+#   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
+#            -- comes from speech-dispatcher's own pkg-config so the daemon
+#            actually finds it. Typically /usr/lib/speech-dispatcher/speech-dispatcher-modules.
+#   config:  ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf
+#            -- with prefix=/usr -> /etc/speech-dispatcher/modules.
+#               with prefix=/tmp/xx (test installs) -> /tmp/xx/etc/...
 #
-# Distro packagers use `cmake --install build --prefix=/usr` which gives the
-# correct /etc/ path. Test installs with a non-/usr prefix get the config
-# under the prefix's etc/ subdir, so unprivileged dry-runs work.
+# Distro packagers use `cmake --install build --prefix=/usr`.
 install(TARGETS sd_eloquence
-    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/speech-dispatcher-modules
+    RUNTIME DESTINATION ${SPEECHD_MODULEBINDIR}
 )
 install(FILES eloquence.conf
     DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules
@@ -94,9 +114,11 @@ install(FILES eloquence.conf
 
 message(STATUS "")
 message(STATUS "sd_eloquence ${PROJECT_VERSION}")
-message(STATUS "  speech-dispatcher headers: ${SPEECHD_INCLUDE_DIR}")
-message(STATUS "  speech-dispatcher lib:     ${SPEECHD_MODULE_LIB}")
-message(STATUS "  libsoxr resampling:        ${SOXR_FOUND}")
+message(STATUS "  speech-dispatcher headers:  ${SPEECHD_INCLUDE_DIR}")
+message(STATUS "  speech-dispatcher lib:      ${SPEECHD_MODULE_LIB}")
+message(STATUS "  module install dir (from")
+message(STATUS "    spd's pkg-config):        ${SPEECHD_MODULEBINDIR}")
+message(STATUS "  libsoxr resampling:         ${SOXR_FOUND}")
 message(STATUS "")
 message(STATUS "After build: install with `sudo make install`, then edit")
 message(STATUS "/etc/speech-dispatcher/modules/eloquence.conf to set:")
