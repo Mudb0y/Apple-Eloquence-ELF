@@ -559,6 +559,99 @@ int module_debug(int enable, const char *file) {
 }
 
 /* ------------------------------------------------------------------ */
+/* SSML stripper                                                      */
+/* ------------------------------------------------------------------ */
+/*
+ * speech-dispatcher passes text that may contain SSML markup like
+ * <speak>, <mark name="..."/>, <prosody rate="..">, <break time="..ms"/>
+ * etc. ECI doesn't parse SSML -- it'd literally speak the tag text. We
+ * strip all `<...>` runs and decode the standard XML entities.
+ *
+ * TODO: turn this into real SSML support eventually:
+ *   - <mark name="..."/> -> eciInsertIndex + module_report_index_mark
+ *     when eciIndexReply fires.
+ *   - <prosody rate/pitch/volume> -> push/pop eciSetVoiceParam stack.
+ *   - <break time="Nms"/> -> insert silence.
+ *   - <voice name="..."> -> switch slot per-utterance.
+ *
+ * For now, plain text content is all that's preserved.
+ */
+static char *strip_ssml(const char *in, size_t len) {
+    char *out = malloc(len + 1);
+    if (!out) return NULL;
+    size_t j = 0, i = 0;
+
+    while (i < len) {
+        char c = in[i];
+
+        if (c == '<') {
+            /* Skip everything until the matching '>' (or buffer end). */
+            while (i < len && in[i] != '>') i++;
+            if (i < len) i++;  /* consume '>' */
+            continue;
+        }
+
+        if (c == '&') {
+            /* Try to decode an XML entity ending in ';'. */
+            size_t k = i + 1;
+            while (k < len && k - i < 10 && in[k] != ';') k++;
+            if (k < len && in[k] == ';') {
+                size_t elen = k - i - 1;
+                if      (elen == 3 && !memcmp(in+i+1, "amp",  3)) out[j++] = '&';
+                else if (elen == 2 && !memcmp(in+i+1, "lt",   2)) out[j++] = '<';
+                else if (elen == 2 && !memcmp(in+i+1, "gt",   2)) out[j++] = '>';
+                else if (elen == 4 && !memcmp(in+i+1, "quot", 4)) out[j++] = '"';
+                else if (elen == 4 && !memcmp(in+i+1, "apos", 4)) out[j++] = '\'';
+                else if (elen >= 2 && in[i+1] == '#') {
+                    /* Numeric entity: &#NNN; or &#xHH; -- encode as UTF-8. */
+                    int code = 0, base = 10;
+                    const char *p = in + i + 2;
+                    if (p < in + k && (*p == 'x' || *p == 'X')) { base = 16; p++; }
+                    while (p < in + k) {
+                        int d = (*p <= '9') ? (*p - '0')
+                                : ((*p | 32) - 'a' + 10);
+                        if (d < 0 || d >= base) { code = -1; break; }
+                        code = code * base + d;
+                        p++;
+                    }
+                    if (code < 0) {
+                        out[j++] = '&';  /* malformed; preserve char */
+                        i++; continue;
+                    }
+                    if (code < 0x80) {
+                        out[j++] = (char)code;
+                    } else if (code < 0x800) {
+                        out[j++] = (char)(0xC0 | (code >> 6));
+                        out[j++] = (char)(0x80 | (code & 0x3F));
+                    } else if (code < 0x10000) {
+                        out[j++] = (char)(0xE0 | (code >> 12));
+                        out[j++] = (char)(0x80 | ((code >> 6) & 0x3F));
+                        out[j++] = (char)(0x80 | (code & 0x3F));
+                    } else if (code < 0x110000) {
+                        out[j++] = (char)(0xF0 | (code >> 18));
+                        out[j++] = (char)(0x80 | ((code >> 12) & 0x3F));
+                        out[j++] = (char)(0x80 | ((code >> 6) & 0x3F));
+                        out[j++] = (char)(0x80 | (code & 0x3F));
+                    }
+                } else {
+                    /* Unknown named entity -- copy verbatim. */
+                    memcpy(out + j, in + i, k - i + 1);
+                    j += k - i + 1;
+                }
+                i = k + 1;
+                continue;
+            }
+            /* No matching ';' -- fall through and copy '&' literally. */
+        }
+
+        out[j++] = c;
+        i++;
+    }
+    out[j] = 0;
+    return out;
+}
+
+/* ------------------------------------------------------------------ */
 /* Speak                                                              */
 /* ------------------------------------------------------------------ */
 void module_speak_sync(const char *data, size_t bytes, SPDMessageType msgtype) {
@@ -583,17 +676,16 @@ void module_speak_sync(const char *data, size_t bytes, SPDMessageType msgtype) {
     eci.RegisterCallback(h_engine, eci_cb, NULL);
     eci.SetOutputBuffer(h_engine, PCM_CHUNK_SAMPLES, g_pcm_chunk);
 
-    /* SPD passes the text as raw bytes (not null-terminated). Copy to make it
-     * a C string. */
-    char *text = strndup(data, bytes);
+    /* SPD passes the text as raw bytes (may contain SSML). Strip markup
+     * + decode entities before feeding to ECI (which doesn't parse SSML
+     * and would speak the literal tags otherwise). */
+    char *text = strip_ssml(data, bytes);
     if (!text) {
         module_report_event_stop();
         return;
     }
+    DBG("speak (post-strip): '%.80s%s'", text, strlen(text) > 80 ? "..." : "");
 
-    /* Strip SSML/SSIP markup naively: only feed text content to ECI.
-     * (TODO: proper SSML support — for now mirror espeak-ng's approach which
-     * is what most TTS modules do.) */
     /* For msgtype == SPD_MSGTYPE_CHAR / SPD_MSGTYPE_KEY: use spell mode. */
     if (msgtype == SPD_MSGTYPE_CHAR || msgtype == SPD_MSGTYPE_KEY) {
         eci.SetParam(h_engine, eciTextMode, 3);   /* spell */
