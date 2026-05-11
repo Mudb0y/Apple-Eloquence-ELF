@@ -98,8 +98,12 @@ static int16_t  g_pcm_chunk[PCM_CHUNK_SAMPLES];
 
 #ifdef HAVE_SOXR
 static soxr_t  g_soxr = NULL;
-/* Output buffer for resampled PCM. Sized for the worst case (22050->48000 ≈ 2.18x). */
-#define RESAMPLED_MAX_SAMPLES (PCM_CHUNK_SAMPLES * 5)
+/* Output buffer for resampled PCM. Real-world max ratio is 11025 -> 48000
+ * = ~4.35x; an 8x buffer covers that plus the headroom soxr's polyphase
+ * filter sometimes wants on internal flush boundaries. Without the
+ * headroom soxr would write past the end of g_resampled and segfault
+ * mid-utterance the first time it hit a chunk that ran the filter long. */
+#define RESAMPLED_MAX_SAMPLES (PCM_CHUNK_SAMPLES * 8)
 static int16_t  g_resampled[RESAMPLED_MAX_SAMPLES];
 #endif
 
@@ -250,6 +254,18 @@ static enum ECICallbackReturn eci_cb(ECIHand h, enum ECIMessage msg,
 
     if (lParam <= 0)
         return eciDataProcessed;
+
+    /* Clamp to the buffer size we handed the engine. If the engine ever
+     * returns a sample count larger than PCM_CHUNK_SAMPLES (observed on
+     * some builds when end-of-utterance carries a residual), we'd read
+     * past the end of g_pcm_chunk -- which on the resampler path means
+     * libsoxr reads garbage from beyond our buffer and segfaults deep
+     * inside its polyphase loop. */
+    if (lParam > PCM_CHUNK_SAMPLES) {
+        DBG("eci_cb: clamping lParam=%ld to buffer size %d",
+            lParam, PCM_CHUNK_SAMPLES);
+        lParam = PCM_CHUNK_SAMPLES;
+    }
 
     AudioTrack track;
     track.bits         = 16;
