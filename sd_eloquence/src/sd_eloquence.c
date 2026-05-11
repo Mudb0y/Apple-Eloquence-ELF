@@ -331,21 +331,52 @@ int module_config(const char *configfile) {
 /* Engine init / lifecycle                                            */
 /* ------------------------------------------------------------------ */
 
-/* Write a minimal eci.ini next to the .so if EciVoicePath is set and no
- * eci.ini already exists in cwd. This is a convenience for users who don't
- * want to manage the ini themselves. */
+/* If EciVoicePath is set, chdir() into the directory holding that .so and
+ * write a minimal eci.ini there. The engine looks for eci.ini in the
+ * process cwd; without a chdir we'd write to wherever speech-dispatcher
+ * happened to launch the module from (often $HOME or /). The language
+ * module's directory is the discoverable, user-chosen location.
+ *
+ * If g_voice_path is unset, the user has opted to manage eci.ini and cwd
+ * themselves; we leave the daemon's cwd alone. */
 static void maybe_write_eci_ini(void) {
-    if (!g_voice_path[0]) return;
-    if (access("eci.ini", F_OK) == 0) return;  /* user-provided ini; leave alone */
+    if (!g_voice_path[0]) {
+        char cwd[1024] = "?";
+        getcwd(cwd, sizeof(cwd));
+        DBG("EciVoicePath unset; not touching eci.ini (engine will look in cwd=%s)", cwd);
+        return;
+    }
+
+    /* Derive the directory portion of g_voice_path. */
+    char dir[512];
+    strncpy(dir, g_voice_path, sizeof(dir)-1);
+    dir[sizeof(dir)-1] = 0;
+    char *slash = strrchr(dir, '/');
+    if (slash && slash != dir) {
+        *slash = 0;
+        if (chdir(dir) != 0) {
+            fprintf(stderr,
+                "sd_eloquence: chdir(%s) failed: %s -- engine may not find eci.ini\n",
+                dir, strerror(errno));
+        } else {
+            DBG("chdir -> %s", dir);
+        }
+    }
+
+    if (access("eci.ini", F_OK) == 0) {
+        DBG("eci.ini already present in %s; leaving alone", dir);
+        return;
+    }
 
     FILE *f = fopen("eci.ini", "w");
     if (!f) {
-        DBG("cannot write eci.ini in cwd: %s", strerror(errno));
+        fprintf(stderr, "sd_eloquence: cannot write eci.ini in %s: %s\n",
+                dir, strerror(errno));
         return;
     }
     fprintf(f, "[1.0]\nPath=%s\nVersion=6.1\n", g_voice_path);
     fclose(f);
-    DBG("auto-wrote eci.ini -> Path=%s", g_voice_path);
+    DBG("wrote %s/eci.ini -> Path=%s", dir, g_voice_path);
 }
 
 int module_init(char **msg) {
