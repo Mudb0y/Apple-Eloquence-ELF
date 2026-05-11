@@ -203,23 +203,36 @@ if(INSTALL_PREBUILT_DYLIBS)
 # eciLanguageDialect (or the language code passed to eciNewEx).
 
 \")
-        # 14 sections, one per supported language.
-        set(LANG_PAIRS
-            \"1.0|enu.so\" \"1.1|eng.so\"
-            \"2.0|esp.so\" \"2.1|esm.so\"
-            \"3.0|fra.so\" \"3.1|frc.so\"
-            \"4.0|deu.so\"
-            \"5.0|ita.so\"
-            \"6.0|chs.so\" \"6.1|cht.so\"
-            \"7.0|ptb.so\"
-            \"8.0|jpn.so\"
-            \"9.0|fin.so\"
-            \"10.0|kor.so\")
-        foreach(pair IN LISTS LANG_PAIRS)
-            string(REPLACE \"|\" \";\" parts \"\${pair}\")
+        # 14 sections, one per supported language. CJK entries (Mandarin,
+        # Taiwanese, Japanese, Korean) include a Path_Rom= key pointing at
+        # the matching romanizer .so -- the engine reads this from eci.ini
+        # at module load time and uses it to convert romanized / mixed
+        # input into the script the synthesizer expects. Without Path_Rom
+        # the CJK language modules fail eciNewEx with retval=-21 because
+        # their constructor can't locate the romanizer (the engine's
+        # RomanizerManager logs \"No Romanizer Error\" internally).
+        # Pipe-separated triples: section | primary.so | romanizer.so (or empty).
+        set(LANG_TRIPLES
+            \"1.0|enu.so|\"        \"1.1|eng.so|\"
+            \"2.0|esp.so|\"        \"2.1|esm.so|\"
+            \"3.0|fra.so|\"        \"3.1|frc.so|\"
+            \"4.0|deu.so|\"
+            \"5.0|ita.so|\"
+            \"6.0|chs.so|chsrom.so\" \"6.1|cht.so|chtrom.so\"
+            \"7.0|ptb.so|\"
+            \"8.0|jpn.so|jpnrom.so\"
+            \"9.0|fin.so|\"
+            \"10.0|kor.so|korrom.so\")
+        foreach(triple IN LISTS LANG_TRIPLES)
+            string(REPLACE \"|\" \";\" parts \"\${triple}\")
             list(GET parts 0 sect)
             list(GET parts 1 so)
-            file(APPEND \"\${INI}\" \"[\${sect}]\\nPath=\${DATA_DIR}/\${so}\\nVersion=6.1\\n\\n\")
+            list(GET parts 2 rom)
+            file(APPEND \"\${INI}\" \"[\${sect}]\\nPath=\${DATA_DIR}/\${so}\\n\")
+            if(NOT rom STREQUAL \"\")
+                file(APPEND \"\${INI}\" \"Path_Rom=\${DATA_DIR}/\${rom}\\n\")
+            endif()
+            file(APPEND \"\${INI}\" \"Version=6.1\\n\\n\")
         endforeach()
     ")
 
