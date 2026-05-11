@@ -48,20 +48,40 @@ jobs:
               gcc binutils \
               libc++-dev libc++abi-dev \
               cmake pkg-config \
-              speech-dispatcher libspeechd-dev \
               libsoxr-dev \
-              zstd
-          # Diagnostics: confirm whether libspeechd-dev shipped the
-          # native-module API headers / libs.
-          echo "--- libspeechd-dev contents ---"
-          dpkg -L libspeechd-dev | sort
-          echo "--- speech-dispatcher contents (module dir) ---"
-          dpkg -L speech-dispatcher | grep -E "module" || true
-          echo "--- searching the filesystem for native module bits ---"
-          (find /usr -name 'spd_module_main.h' -o -name 'libspeechd_module*' 2>/dev/null || true)
+              zstd \
+              build-essential autoconf automake libtool gettext intltool texinfo \
+              libltdl-dev libdotconf-dev libglib2.0-dev libpulse-dev \
+              git
           python3 -m venv venv
           ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install lief
+
+      - name: Build speech-dispatcher (native module SDK)
+        # Ubuntu noble's libspeechd-dev does not ship spd_module_main.h or
+        # libspeechd_module.so even though it packages 0.12.0-rc2. Build
+        # speech-dispatcher from upstream into /usr/local so the native
+        # module SDK is available for the cmake step below.
+        run: |
+          git clone --depth 1 --branch 0.12.0 \
+              https://github.com/brailcom/speechd.git /tmp/speechd
+          cd /tmp/speechd
+          ./build.sh 2>/dev/null || ./autogen.sh
+          # We only installed libpulse-dev for audio + the speechd build
+          # essentials. TTS engines (espeak-ng, flite, pico, ibmtts ...)
+          # auto-skip when their dev packages aren't present, so the only
+          # explicit knob we need is to skip the Python bindings.
+          ./configure --prefix=/usr/local --disable-python
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
+          # Make pkg-config see the /usr/local install first.
+          echo "PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=/usr/local/lib" >> "$GITHUB_ENV"
+          echo "--- post-install diagnostics ---"
+          find /usr/local -name 'spd_module_main.h' -o -name 'libspeechd_module*' || true
+          PKG_CONFIG_PATH=/usr/local/lib/pkgconfig pkg-config --modversion speech-dispatcher
+          PKG_CONFIG_PATH=/usr/local/lib/pkgconfig pkg-config --variable=modulebindir speech-dispatcher
 
       - name: Resolve version
         id: ver
