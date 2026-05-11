@@ -53,36 +53,65 @@ int eci_runtime_open(const char *eci_so_path, EciApi *api, char **errmsg) {
         return -1;
     }
 
-    /* Resolve every entry point. If any are missing, the engine is
-     * incompatible and we bail out. */
+    /* Resolve every IBM-documented entry point. If any are missing, the
+     * runtime doesn't conform to the IBM ABI and we refuse to load. */
+
+    /* Lifecycle */
     LOAD(New);
     LOAD(NewEx);
     LOAD(Delete);
+    LOAD(Reset);
+    LOAD(IsBeingReentered);
     LOAD(Version);
+
+    /* Diagnostics */
     LOAD(ProgStatus);
     LOAD(ErrorMessage);
-    LOAD(Speaking);
-    LOAD(Stop);
-    LOAD(Reset);
-    LOAD(Synchronize);
-    LOAD(Synthesize);
-    LOAD(AddText);
-    LOAD(ClearInput);
-    LOAD(Pause);
-    LOAD(InsertIndex);
+    LOAD(ClearErrors);
+    LOAD(TestPhrase);
+
+    /* Single-shot speak */
+    LOAD(SpeakText);
+    LOAD(SpeakTextEx);
+
+    /* Parameters */
     LOAD(GetParam);
     LOAD(SetParam);
-    LOAD(GetVoiceParam);
-    LOAD(SetVoiceParam);
     LOAD(GetDefaultParam);
     LOAD(SetDefaultParam);
+
+    /* Voices */
+    LOAD(CopyVoice);
     LOAD(GetVoiceName);
     LOAD(SetVoiceName);
-    LOAD(CopyVoice);
-    LOAD(RegisterCallback);
+    LOAD(GetVoiceParam);
+    LOAD(SetVoiceParam);
+
+    /* Synthesis queue */
+    LOAD(AddText);
+    LOAD(InsertIndex);
+    LOAD(Synthesize);
+    LOAD(SynthesizeFile);
+    LOAD(ClearInput);
+    LOAD(GeneratePhonemes);
+    LOAD(GetIndex);
+
+    /* Playback control */
+    LOAD(Stop);
+    LOAD(Speaking);
+    LOAD(Synchronize);
+    LOAD(Pause);
+
+    /* Output routing */
     LOAD(SetOutputBuffer);
-    LOAD(SetOutputDevice);
     LOAD(SetOutputFilename);
+    LOAD(SetOutputDevice);
+
+    /* Callbacks */
+    LOAD(RegisterCallback);
+
+    /* Misc */
+    LOAD(GetAvailableLanguages);
 
     return 0;
 }

@@ -178,7 +178,8 @@ static void resampler_teardown(void) {}
 /* ------------------------------------------------------------------ */
 /* Callback: ECI -> our PCM forwarder (+ optional resampling)         */
 /* ------------------------------------------------------------------ */
-static int eci_cb(ECIHand h, int msg, long lParam, void *pData) {
+static enum ECICallbackReturn eci_cb(ECIHand h, enum ECIMessage msg,
+                                     long lParam, void *pData) {
     (void)h; (void)pData;
 
     if (g_stop_requested)
@@ -763,8 +764,7 @@ void module_speak_sync(const char *data, size_t bytes, SPDMessageType msgtype) {
         eci.SetParam(h_engine, eciTextMode, 0);
     }
 
-    /* eciAddText returns nonzero on success, 0 on failure. */
-    if (!eci.AddText(h_engine, text)) {
+    if (eci.AddText(h_engine, text) == ECIFalse) {
         DBG("eciAddText rejected the input (engine error %#x)",
             eci.ProgStatus(h_engine));
     }
