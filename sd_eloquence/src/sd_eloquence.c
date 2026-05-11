@@ -17,6 +17,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -38,6 +39,7 @@
 #endif
 
 #include "eci.h"
+#include "voice_presets.h"
 
 #define DBG(fmt, ...) \
     do { if (g_debug) fprintf(stderr, "sd_eloquence: " fmt "\n", ##__VA_ARGS__); } while (0)
@@ -46,10 +48,13 @@
 /* Configuration loaded from eloquence.conf                           */
 /* ------------------------------------------------------------------ */
 static int   g_debug = 0;
-static char  g_eci_so[512]    = "/usr/lib/eci.so";
-static char  g_voice_path[512] = "";   /* If set, used for [1.0]Path= in eci.ini */
+/* Directory holding eci.so, the language modules, and the multi-section
+ * eci.ini that ties them together. The module chdirs here at init so the
+ * engine's static constructor finds eci.ini in cwd, then dlopens eci.so
+ * from the same place. */
+static char  g_data_dir[512]      = "/usr/lib/eloquence";
 static int   g_default_sample_rate = 1;  /* 0=8k, 1=11k, 2=22k */
-static int   g_default_voice_slot  = 0;
+static int   g_default_voice_slot  = 0;  /* 0..7, index into g_voice_presets */
 static int   g_default_language    = eciGeneralAmericanEnglish;
 
 /* Resampling: if g_resample_rate > 0, feed engine PCM through libsoxr to
@@ -65,7 +70,16 @@ static int   g_resample_steep   = 0;   /* 1 = steep cutoff filter */
 static EciApi   eci;
 static ECIHand  h_engine = NULL;
 static int      h_engine_sample_rate_hz = 11025;  /* derived from current eciSampleRate */
+static int      g_current_language      = eciGeneralAmericanEnglish;
+static int      g_current_voice_slot    = 0;     /* 0..7 */
 static volatile int g_stop_requested    = 0;
+
+/* SPD-side cached parameter values per voice slot. Apply on engine create
+ * AND on slot change so each voice picks up the user's rate/pitch/volume
+ * choices when selected. -1 means "use the slot's preset default". */
+static int g_spd_rate[N_VOICE_PRESETS];
+static int g_spd_pitch[N_VOICE_PRESETS];
+static int g_spd_volume[N_VOICE_PRESETS];
 
 /* PCM buffer the engine fills via eciSetOutputBuffer + our callback. */
 #define PCM_CHUNK_SAMPLES   8192        /* per-chunk request, in samples */
@@ -78,43 +92,60 @@ static soxr_t  g_soxr = NULL;
 static int16_t  g_resampled[RESAMPLED_MAX_SAMPLES];
 #endif
 
-/* Voice presets — ECI ships 8 named slots */
-static const char *g_voice_names[ECI_PRESET_VOICES] = {
-    "Wade",     /* 0  Adult Male 1   - default */
-    "Flo",      /* 1  Adult Female 1 */
-    "Bobbie",   /* 2  Child */
-    "Reed",     /* 3  Adult Male 2 */
-    "Brian",    /* 4  Adult Male 3 */
-    "Dawn",     /* 5  Adult Female 2 */
-    "Grandma",  /* 6  Elderly Female */
-    "Grandpa",  /* 7  Elderly Male */
-};
-
-/* Map ECI language-dialect code -> SPDVoice "language" / "variant" strings. */
+/* Full 14-language table. Each entry binds together the ECI dialect code
+ * passed to eciNewEx / SetParam, the eci.ini section name [major.minor]
+ * used to locate the .so on disk, the .so filename (under g_data_dir),
+ * and the ISO 639-1 / region tags surfaced to speech-dispatcher via
+ * SPDVoice.language / SPDVoice.variant. */
 typedef struct {
     int   eci_dialect;
-    const char *language;   /* ISO 639-1 */
-    const char *variant;    /* short region tag we use in SPDVoice */
-    const char *human;      /* display name */
+    int   ini_major;        /* eci.ini section name -- upper half of dialect code */
+    int   ini_minor;        /* lower half */
+    const char *so_name;    /* "enu.so" */
+    const char *iso_lang;   /* "en" */
+    const char *iso_variant;/* "us" */
+    const char *human;      /* "American English" */
 } LangEntry;
 
 static const LangEntry g_langs[] = {
-    { eciGeneralAmericanEnglish, "en", "us",     "American English" },
-    { eciBritishEnglish,         "en", "gb",     "British English" },
-    { eciStandardGerman,         "de", "de",     "German" },
-    { eciCastilianSpanish,       "es", "es",     "Castilian Spanish" },
-    { eciMexicanSpanish,         "es", "mx",     "Latin American Spanish" },
-    { eciStandardFrench,         "fr", "fr",     "French" },
-    { eciCanadianFrench,         "fr", "ca",     "Canadian French" },
-    { eciStandardItalian,        "it", "it",     "Italian" },
-    { eciStandardFinnish,        "fi", "fi",     "Finnish" },
-    { eciBrazilianPortuguese,    "pt", "br",     "Brazilian Portuguese" },
-    { eciStandardJapanese,       "ja", "jp",     "Japanese" },
-    { eciStandardKorean,         "ko", "kr",     "Korean" },
-    { eciMandarinChinese,        "zh", "cn",     "Mandarin Chinese (Simplified)" },
-    { eciTaiwaneseMandarin,      "zh", "tw",     "Mandarin Chinese (Traditional)" },
+    { eciGeneralAmericanEnglish, 1,  0, "enu.so", "en", "us", "American English" },
+    { eciBritishEnglish,         1,  1, "eng.so", "en", "gb", "British English" },
+    { eciCastilianSpanish,       2,  0, "esp.so", "es", "es", "Castilian Spanish" },
+    { eciMexicanSpanish,         2,  1, "esm.so", "es", "mx", "Latin American Spanish" },
+    { eciStandardFrench,         3,  0, "fra.so", "fr", "fr", "French" },
+    { eciCanadianFrench,         3,  1, "frc.so", "fr", "ca", "Canadian French" },
+    { eciStandardGerman,         4,  0, "deu.so", "de", "de", "German" },
+    { eciStandardItalian,        5,  0, "ita.so", "it", "it", "Italian" },
+    { eciMandarinChinese,        6,  0, "chs.so", "zh", "cn", "Mandarin Chinese (Simplified)" },
+    { eciTaiwaneseMandarin,      6,  1, "cht.so", "zh", "tw", "Mandarin Chinese (Traditional)" },
+    { eciBrazilianPortuguese,    7,  0, "ptb.so", "pt", "br", "Brazilian Portuguese" },
+    { eciStandardJapanese,       8,  0, "jpn.so", "ja", "jp", "Japanese" },
+    { eciStandardFinnish,        9,  0, "fin.so", "fi", "fi", "Finnish" },
+    { eciStandardKorean,        10,  0, "kor.so", "ko", "kr", "Korean" },
 };
 #define N_LANGS (sizeof(g_langs)/sizeof(g_langs[0]))
+
+static const LangEntry *find_lang_by_dialect(int dialect) {
+    for (size_t i = 0; i < N_LANGS; i++)
+        if (g_langs[i].eci_dialect == dialect) return &g_langs[i];
+    return NULL;
+}
+
+static const LangEntry *find_lang_by_iso(const char *iso2) {
+    /* Match the leading 2 chars of the SPD language tag. */
+    for (size_t i = 0; i < N_LANGS; i++)
+        if (strncasecmp(iso2, g_langs[i].iso_lang, 2) == 0) return &g_langs[i];
+    return NULL;
+}
+
+/* Return the display name for slot in language `lang`. The French entry
+ * uses "Jacques" instead of "Reed" for slot 0 to mirror Apple's plist. */
+static const char *voice_display_name(int slot, const LangEntry *lang) {
+    const VoicePreset *v = &g_voice_presets[slot];
+    if (v->name_fr && lang && strcmp(lang->iso_lang, "fr") == 0)
+        return v->name_fr;
+    return v->name;
+}
 
 /* ------------------------------------------------------------------ */
 /* Resampler init / teardown                                          */
@@ -283,21 +314,57 @@ int module_config(const char *configfile) {
 
         if (strcasecmp(p, "Debug") == 0) {
             g_debug = atoi(val);
-        } else if (strcasecmp(p, "EciLibrary") == 0) {
-            strncpy(g_eci_so, val, sizeof(g_eci_so)-1);
-            g_eci_so[sizeof(g_eci_so)-1] = 0;
-        } else if (strcasecmp(p, "EciVoicePath") == 0) {
-            strncpy(g_voice_path, val, sizeof(g_voice_path)-1);
-            g_voice_path[sizeof(g_voice_path)-1] = 0;
+        } else if (strcasecmp(p, "EloquenceDataDir") == 0) {
+            strncpy(g_data_dir, val, sizeof(g_data_dir)-1);
+            g_data_dir[sizeof(g_data_dir)-1] = 0;
+        } else if (strcasecmp(p, "EciLibrary") == 0 ||
+                   strcasecmp(p, "EciVoicePath") == 0) {
+            /* Legacy keys from earlier eloquence.conf revisions. The new
+             * model uses EloquenceDataDir and an install-generated eci.ini
+             * that knows about every language module, so these no longer
+             * make sense. Silently accept and ignore so older configs
+             * keep loading without errors. */
+            DBG("ignoring legacy config key '%s' (now derived from EloquenceDataDir)", p);
         } else if (strcasecmp(p, "EloquenceSampleRate") == 0) {
             g_default_sample_rate = atoi(val);
             if (g_default_sample_rate < 0 || g_default_sample_rate > 2)
                 g_default_sample_rate = 1;
         } else if (strcasecmp(p, "EloquenceDefaultVoice") == 0) {
-            g_default_voice_slot = atoi(val) & 7;
+            /* Accept either a 0..7 slot index or one of the Apple voice
+             * names (Reed, Shelley, Sandy, Rocko, Flo, Grandma, Grandpa,
+             * Eddy; "Jacques" maps to slot 0 like Reed). */
+            char *end = NULL;
+            long n = strtol(val, &end, 10);
+            if (end && *end == 0 && n >= 0 && n < (long)N_VOICE_PRESETS) {
+                g_default_voice_slot = (int)n;
+            } else {
+                int matched = -1;
+                for (int i = 0; i < (int)N_VOICE_PRESETS; i++) {
+                    if (!strcasecmp(val, g_voice_presets[i].name) ||
+                        (g_voice_presets[i].name_fr &&
+                         !strcasecmp(val, g_voice_presets[i].name_fr))) {
+                        matched = i; break;
+                    }
+                }
+                if (matched >= 0) g_default_voice_slot = matched;
+                else DBG("unknown EloquenceDefaultVoice '%s', keeping slot %d",
+                         val, g_default_voice_slot);
+            }
         } else if (strcasecmp(p, "EloquenceDefaultLanguage") == 0) {
-            /* Allow decimal or 0x... hex */
-            g_default_language = (int)strtol(val, NULL, 0);
+            /* Accept decimal, 0x... hex, OR an ISO-639-1 / IETF tag like
+             * "en-US" / "de" / "ja-JP". */
+            const LangEntry *L = NULL;
+            char *end = NULL;
+            long n = strtol(val, &end, 0);
+            if (end && *end == 0) {
+                L = find_lang_by_dialect((int)n);
+                if (L) g_default_language = (int)n;
+                else DBG("unknown EloquenceDefaultLanguage 0x%lx", n);
+            } else {
+                L = find_lang_by_iso(val);
+                if (L) g_default_language = L->eci_dialect;
+                else DBG("unknown EloquenceDefaultLanguage '%s'", val);
+            }
         } else if (strcasecmp(p, "EloquenceResampleRate") == 0) {
             g_resample_rate = atoi(val);
         } else if (strcasecmp(p, "EloquenceResampleQuality") == 0) {
@@ -322,9 +389,9 @@ int module_config(const char *configfile) {
         }
     }
     fclose(f);
-    DBG("config: debug=%d eci=%s rate=%d voice=%d lang=%#x",
-        g_debug, g_eci_so, g_default_sample_rate, g_default_voice_slot,
-        g_default_language);
+    DBG("config: debug=%d data_dir=%s rate=%d voice=%d (%s) lang=%#x",
+        g_debug, g_data_dir, g_default_sample_rate, g_default_voice_slot,
+        g_voice_presets[g_default_voice_slot].name, g_default_language);
     return 0;
 }
 
@@ -332,89 +399,150 @@ int module_config(const char *configfile) {
 /* Engine init / lifecycle                                            */
 /* ------------------------------------------------------------------ */
 
-/* If EciVoicePath is set, chdir() into the directory holding that .so and
- * write a minimal eci.ini there. The engine looks for eci.ini in the
- * process cwd; without a chdir we'd write to wherever speech-dispatcher
- * happened to launch the module from (often $HOME or /). The language
- * module's directory is the discoverable, user-chosen location.
- *
- * If g_voice_path is unset, the user has opted to manage eci.ini and cwd
- * themselves; we leave the daemon's cwd alone. */
-static void maybe_write_eci_ini(void) {
-    if (!g_voice_path[0]) {
-        char cwd[1024] = "?";
-        getcwd(cwd, sizeof(cwd));
-        DBG("EciVoicePath unset; not touching eci.ini (engine will look in cwd=%s)", cwd);
-        return;
-    }
+/* Push the cached SPD-side rate/pitch/volume for `slot` into the engine
+ * for that slot. spd_to_eci_pct / spd_to_eci_speed are forward-declared
+ * just below; this helper is called from apply_engine_state and module_set. */
+static int spd_to_eci_pct(int spd_val);
+static int spd_to_eci_speed(int spd_val);
 
-    /* Derive the directory portion of g_voice_path. */
-    char dir[512];
-    strncpy(dir, g_voice_path, sizeof(dir)-1);
-    dir[sizeof(dir)-1] = 0;
-    char *slash = strrchr(dir, '/');
-    if (slash && slash != dir) {
-        *slash = 0;
-        if (chdir(dir) != 0) {
-            fprintf(stderr,
-                "sd_eloquence: chdir(%s) failed: %s -- engine may not find eci.ini\n",
-                dir, strerror(errno));
-        } else {
-            DBG("chdir -> %s", dir);
+static void apply_voice_preset_to_slot(ECIHand h, int slot) {
+    if (slot < 0 || slot >= (int)N_VOICE_PRESETS) return;
+    const VoicePreset *v = &g_voice_presets[slot];
+    eci.SetVoiceParam(h, slot, eciGender,           v->gender);
+    eci.SetVoiceParam(h, slot, eciHeadSize,         v->head_size);
+    eci.SetVoiceParam(h, slot, eciPitchBaseline,    v->pitch_baseline);
+    eci.SetVoiceParam(h, slot, eciPitchFluctuation, v->pitch_fluctuation);
+    eci.SetVoiceParam(h, slot, eciRoughness,        v->roughness);
+    eci.SetVoiceParam(h, slot, eciBreathiness,      v->breathiness);
+    eci.SetVoiceParam(h, slot, eciVolume,           v->volume);
+    /* speed is intentionally not preset -- it follows SPD rate. */
+
+    /* Then layer the SPD-side overrides if the user has set them. */
+    if (g_spd_rate[slot]   != INT_MIN)
+        eci.SetVoiceParam(h, slot, eciSpeed,         spd_to_eci_speed(g_spd_rate[slot]));
+    if (g_spd_pitch[slot]  != INT_MIN)
+        eci.SetVoiceParam(h, slot, eciPitchBaseline, spd_to_eci_pct(g_spd_pitch[slot]));
+    if (g_spd_volume[slot] != INT_MIN)
+        eci.SetVoiceParam(h, slot, eciVolume,        spd_to_eci_pct(g_spd_volume[slot]));
+}
+
+/* Apply our full cached state to a freshly-created engine handle. */
+static void apply_engine_state(ECIHand h) {
+    if (eci.SetParam(h, eciSampleRate, g_default_sample_rate) < 0) {
+        DBG("apply: setParam(eciSampleRate=%d) rejected, falling back to 11025 Hz",
+            g_default_sample_rate);
+        g_default_sample_rate = 1;
+        eci.SetParam(h, eciSampleRate, g_default_sample_rate);
+    }
+    for (int i = 0; i < (int)N_VOICE_PRESETS; i++)
+        apply_voice_preset_to_slot(h, i);
+    eci.RegisterCallback(h, eci_cb, NULL);
+    eci.SetOutputBuffer(h, PCM_CHUNK_SAMPLES, g_pcm_chunk);
+}
+
+/* Destroy the current engine (if any) and recreate it with eciNewEx for
+ * `dialect`. Returns 0 on success, -1 on failure (h_engine is NULL on
+ * failure). */
+static int rebuild_engine_for_language(int dialect) {
+    if (h_engine) {
+        eci.Stop(h_engine);
+        eci.Delete(h_engine);
+        h_engine = NULL;
+    }
+    h_engine = eci.NewEx(dialect);
+    if (!h_engine) {
+        const LangEntry *lang = find_lang_by_dialect(dialect);
+        fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed -- "
+                "language module %s not loadable from %s\n",
+                dialect, lang ? lang->human : "?",
+                lang ? lang->so_name : "?", g_data_dir);
+        return -1;
+    }
+    g_current_language = dialect;
+    apply_engine_state(h_engine);
+    DBG("engine rebuilt for language %#x (%s)",
+        dialect, find_lang_by_dialect(dialect)
+                 ? find_lang_by_dialect(dialect)->human : "?");
+    return 0;
+}
+
+/* chdir() into g_data_dir before dlopen so the engine's static
+ * constructor finds eci.ini there. Returns -1 if the directory or
+ * eci.so / eci.ini are missing. */
+static int enter_data_dir(char **errmsg) {
+    char eci_so[1024], eci_ini[1024];
+    snprintf(eci_so,  sizeof(eci_so),  "%s/eci.so",  g_data_dir);
+    snprintf(eci_ini, sizeof(eci_ini), "%s/eci.ini", g_data_dir);
+
+    if (access(eci_so, R_OK) != 0) {
+        if (errmsg) {
+            char buf[2048];
+            snprintf(buf, sizeof(buf),
+                "ECI runtime missing: %s not found (set EloquenceDataDir "
+                "in eloquence.conf to the directory holding eci.so and "
+                "the language modules)", eci_so);
+            *errmsg = strdup(buf);
         }
+        return -1;
     }
-
-    if (access("eci.ini", F_OK) == 0) {
-        DBG("eci.ini already present in %s; leaving alone", dir);
-        return;
+    if (access(eci_ini, R_OK) != 0) {
+        if (errmsg) {
+            char buf[2048];
+            snprintf(buf, sizeof(buf),
+                "eci.ini missing: %s not found (the install step should "
+                "have generated it; re-run `cmake --install build`)",
+                eci_ini);
+            *errmsg = strdup(buf);
+        }
+        return -1;
     }
-
-    FILE *f = fopen("eci.ini", "w");
-    if (!f) {
-        fprintf(stderr, "sd_eloquence: cannot write eci.ini in %s: %s\n",
-                dir, strerror(errno));
-        return;
+    if (chdir(g_data_dir) != 0) {
+        if (errmsg) {
+            char buf[2048];
+            snprintf(buf, sizeof(buf),
+                "chdir(%s) failed: %s", g_data_dir, strerror(errno));
+            *errmsg = strdup(buf);
+        }
+        return -1;
     }
-    fprintf(f, "[1.0]\nPath=%s\nVersion=6.1\n", g_voice_path);
-    fclose(f);
-    DBG("wrote %s/eci.ini -> Path=%s", dir, g_voice_path);
+    DBG("chdir -> %s", g_data_dir);
+    return 0;
 }
 
 int module_init(char **msg) {
-    /* The ECI engine parses eci.ini in a static constructor invoked during
-     * dlopen, not in eciNew() -- so our auto-write must happen BEFORE the
-     * library load, otherwise the engine will see no ini and eciNew returns
-     * NULL.  */
-    maybe_write_eci_ini();
+    /* Initialise the SPD-side cached parameters to "use preset default". */
+    for (size_t i = 0; i < N_VOICE_PRESETS; i++) {
+        g_spd_rate[i]   = INT_MIN;
+        g_spd_pitch[i]  = INT_MIN;
+        g_spd_volume[i] = INT_MIN;
+    }
+    g_current_voice_slot = g_default_voice_slot;
 
-    DBG("module_init: opening eci library at '%s'", g_eci_so);
+    /* chdir into the data dir so the engine's static constructor finds
+     * eci.ini there, then dlopen eci.so from the same place. */
     char *err = NULL;
-    if (eci_runtime_open(g_eci_so, &eci, &err) != 0) {
+    if (enter_data_dir(&err) != 0) {
+        if (msg) *msg = err ? err : strdup("EloquenceDataDir unusable");
+        return -1;
+    }
+    char eci_so_path[1024];
+    snprintf(eci_so_path, sizeof(eci_so_path), "%s/eci.so", g_data_dir);
+    DBG("module_init: opening eci runtime at '%s'", eci_so_path);
+    if (eci_runtime_open(eci_so_path, &eci, &err) != 0) {
         if (msg) *msg = err ? err : strdup("ECI library open failed");
         return -1;
     }
 
-    h_engine = eci.New();
-    if (!h_engine) {
+    /* Create the engine for the configured default language. eciNewEx
+     * loads the matching language module from the eci.ini section that
+     * corresponds to the dialect code. */
+    if (rebuild_engine_for_language(g_default_language) != 0) {
         if (msg) *msg = strdup(
-            "eciNew returned NULL -- check eci.ini Path= and that the language "
-            "module .so is at that absolute path");
+            "eciNewEx returned NULL -- check that EloquenceDataDir holds "
+            "a complete language set and that eci.ini references each .so");
         return -1;
     }
 
-    /* Apply default sample rate (param 5 per SDK). eciSetParam returns the
-     * previous value on success and -1 on rejection. If the engine rejects
-     * the requested rate (Apple's eci.dylib 6.1 refuses 22050), fall back
-     * to 11025 and re-issue SetParam so the engine state matches what we
-     * report downstream. */
-    if (eci.SetParam(h_engine, eciSampleRate, g_default_sample_rate) < 0) {
-        DBG("setParam(eciSampleRate=%d) rejected; falling back to 11025 Hz",
-            g_default_sample_rate);
-        g_default_sample_rate = 1;
-        if (eci.SetParam(h_engine, eciSampleRate, g_default_sample_rate) < 0) {
-            DBG("setParam(eciSampleRate=1) also rejected; engine is in an unknown state");
-        }
-    }
     switch (g_default_sample_rate) {
         case 0: h_engine_sample_rate_hz = 8000;  break;
         case 1: h_engine_sample_rate_hz = 11025; break;
@@ -423,27 +551,24 @@ int module_init(char **msg) {
     DBG("engine sample rate = %d Hz (param %d)",
         h_engine_sample_rate_hz, g_default_sample_rate);
 
-    /* Set up output resampler if user configured one. */
     if (resampler_setup(h_engine_sample_rate_hz) != 0) {
         if (msg) *msg = strdup("resampler setup failed");
         return -1;
     }
 
-    /* Default voice slot */
-    eci.SetParam(h_engine, eciLanguageDialect, g_default_language);
-
-    /* Audio output: stream wave events to speechd's audio server */
     module_audio_set_server();
-    eci.RegisterCallback(h_engine, eci_cb, NULL);
-    eci.SetOutputBuffer(h_engine, PCM_CHUNK_SAMPLES, g_pcm_chunk);
 
     char ver[64] = {0};
     eci.Version(ver);
     if (msg) {
-        char *out = malloc(128);
+        char *out = malloc(160);
         if (out) {
-            snprintf(out, 128, "ETI Eloquence %s -- ready (rate=%d Hz)",
-                     ver, h_engine_sample_rate_hz);
+            const LangEntry *L = find_lang_by_dialect(g_current_language);
+            snprintf(out, 160,
+                     "ETI Eloquence %s -- ready (rate=%d Hz, lang=%s, voice=%s)",
+                     ver, h_engine_sample_rate_hz,
+                     L ? L->human : "?",
+                     g_voice_presets[g_current_voice_slot].name);
         }
         *msg = out;
     }
@@ -465,22 +590,21 @@ int module_close(void) {
 /* Voice listing                                                      */
 /* ------------------------------------------------------------------ */
 SPDVoice **module_list_voices(void) {
-    int n = (int)N_LANGS * ECI_PRESET_VOICES;
+    int n = (int)N_LANGS * (int)N_VOICE_PRESETS;
     SPDVoice **list = calloc(n + 1, sizeof(SPDVoice *));
     if (!list) return NULL;
     int idx = 0;
     for (size_t li = 0; li < N_LANGS; li++) {
-        for (int vi = 0; vi < ECI_PRESET_VOICES; vi++) {
+        for (int vi = 0; vi < (int)N_VOICE_PRESETS; vi++) {
             SPDVoice *v = calloc(1, sizeof(SPDVoice));
-            if (!v) continue;  /* OOM: skip this voice rather than abort */
+            if (!v) continue;
             char name[64];
-            /* Format: "Wade (American English)". The voice name alone isn't
-             * unique across the 14*8 grid -- the language disambiguates. */
             snprintf(name, sizeof(name), "%s (%s)",
-                     g_voice_names[vi], g_langs[li].human);
+                     voice_display_name(vi, &g_langs[li]),
+                     g_langs[li].human);
             v->name     = strdup(name);
-            v->language = strdup(g_langs[li].language);
-            v->variant  = strdup(g_langs[li].variant);
+            v->language = strdup(g_langs[li].iso_lang);
+            v->variant  = strdup(g_langs[li].iso_variant);
             list[idx++] = v;
         }
     }
@@ -517,65 +641,86 @@ static int spd_to_eci_speed(int spd_val) {
     return v;
 }
 
-static int current_voice_slot = 0;
-
 int module_set(const char *var, const char *val) {
     if (!h_engine) return -1;
     DBG("module_set: %s = %s", var, val);
 
     if (strcasecmp(var, "rate") == 0) {
-        int v = spd_to_eci_speed(atoi(val));
-        eci.SetVoiceParam(h_engine, current_voice_slot, eciSpeed, v);
+        int spd = atoi(val);
+        g_spd_rate[g_current_voice_slot] = spd;
+        eci.SetVoiceParam(h_engine, g_current_voice_slot,
+                          eciSpeed, spd_to_eci_speed(spd));
         return 0;
     }
     if (strcasecmp(var, "pitch") == 0) {
-        int v = spd_to_eci_pct(atoi(val));
-        eci.SetVoiceParam(h_engine, current_voice_slot, eciPitchBaseline, v);
+        int spd = atoi(val);
+        g_spd_pitch[g_current_voice_slot] = spd;
+        eci.SetVoiceParam(h_engine, g_current_voice_slot,
+                          eciPitchBaseline, spd_to_eci_pct(spd));
         return 0;
     }
     if (strcasecmp(var, "volume") == 0) {
-        int v = spd_to_eci_pct(atoi(val));
-        eci.SetVoiceParam(h_engine, current_voice_slot, eciVolume, v);
+        int spd = atoi(val);
+        g_spd_volume[g_current_voice_slot] = spd;
+        eci.SetVoiceParam(h_engine, g_current_voice_slot,
+                          eciVolume, spd_to_eci_pct(spd));
         return 0;
     }
     if (strcasecmp(var, "synthesis_voice") == 0) {
-        /* Voice names of form "Wade", "Flo", etc. */
-        for (int i = 0; i < ECI_PRESET_VOICES; i++) {
-            if (strstr(val, g_voice_names[i]) != NULL) {
-                current_voice_slot = i;
-                /* No direct "activate this preset" -- the per-voice params
-                 * we set above are applied to current_voice_slot. */
+        /* SPD passes names from our module_list_voices output, typically
+         * "Reed (American English)". Match the leading voice-name token
+         * against our preset list (Apple's 8 names + French "Jacques"). */
+        for (int i = 0; i < (int)N_VOICE_PRESETS; i++) {
+            const VoicePreset *p = &g_voice_presets[i];
+            if (!strncasecmp(val, p->name, strlen(p->name)) ||
+                (p->name_fr && !strncasecmp(val, p->name_fr, strlen(p->name_fr)))) {
+                g_current_voice_slot = i;
+                DBG("synthesis_voice -> slot %d (%s)", i, p->name);
                 return 0;
             }
         }
-        DBG("unknown synthesis_voice '%s', keeping slot %d", val, current_voice_slot);
+        DBG("unknown synthesis_voice '%s', keeping slot %d",
+            val, g_current_voice_slot);
         return 0;
     }
     if (strcasecmp(var, "language") == 0) {
-        /* Match on ISO code prefix */
-        for (size_t i = 0; i < N_LANGS; i++) {
-            if (strncasecmp(val, g_langs[i].language, 2) == 0) {
-                eci.SetParam(h_engine, eciLanguageDialect, g_langs[i].eci_dialect);
-                DBG("language -> %s (%#x)", g_langs[i].human, g_langs[i].eci_dialect);
-                return 0;
-            }
+        const LangEntry *L = find_lang_by_iso(val);
+        if (!L) {
+            DBG("unknown language '%s'", val);
+            return 0;
         }
-        DBG("unknown language '%s'", val);
+        if (L->eci_dialect == g_current_language) {
+            DBG("language already %s", L->human);
+            return 0;
+        }
+        /* Apple's eciSetParam(eciLanguageDialect, X) is unreliable mid-
+         * session; recreate the engine via eciNewEx instead. The recreate
+         * is ~0.6ms so it's transparent to the user, and apply_engine_state
+         * reapplies the cached voice presets + per-slot rate/pitch/volume. */
+        DBG("language switch %s -> %s; rebuilding engine",
+            find_lang_by_dialect(g_current_language)
+                ? find_lang_by_dialect(g_current_language)->human : "?",
+            L->human);
+        rebuild_engine_for_language(L->eci_dialect);
         return 0;
     }
     if (strcasecmp(var, "voice_type") == 0) {
-        /* SPD voice types: MALE1, MALE2, MALE3, FEMALE1, FEMALE2, FEMALE3, CHILD_MALE, CHILD_FEMALE */
-        int slot = 0;
-        if      (!strcasecmp(val, "MALE1"))         slot = 0;  /* Wade */
-        else if (!strcasecmp(val, "FEMALE1"))       slot = 1;  /* Flo */
-        else if (!strcasecmp(val, "CHILD_MALE") ||
-                 !strcasecmp(val, "CHILD_FEMALE"))  slot = 2;  /* Bobbie */
-        else if (!strcasecmp(val, "MALE2"))         slot = 3;
-        else if (!strcasecmp(val, "MALE3"))         slot = 4;
-        else if (!strcasecmp(val, "FEMALE2"))       slot = 5;
-        else if (!strcasecmp(val, "FEMALE3"))       slot = 6;  /* Grandma */
-        else                                        slot = 0;
-        current_voice_slot = slot;
+        /* Match SPD voice_type tag against the preset table. */
+        int slot = g_current_voice_slot;
+        for (int i = 0; i < (int)N_VOICE_PRESETS; i++) {
+            if (g_voice_presets[i].spd_voice_type &&
+                !strcasecmp(val, g_voice_presets[i].spd_voice_type)) {
+                slot = i; break;
+            }
+        }
+        /* Child voices: SPD distinguishes CHILD_MALE / CHILD_FEMALE but
+         * Apple ships only one child voice (Sandy, female). Send both
+         * tags to that slot. */
+        if (!strcasecmp(val, "CHILD_MALE") || !strcasecmp(val, "CHILD_FEMALE"))
+            slot = 2;  /* Sandy */
+        g_current_voice_slot = slot;
+        DBG("voice_type %s -> slot %d (%s)",
+            val, slot, g_voice_presets[slot].name);
         return 0;
     }
     if (strcasecmp(var, "punctuation_mode") == 0) {

@@ -141,13 +141,18 @@ tools/verify.sh           Verify shipped binaries match expected checksums
 ## Speech Dispatcher integration
 
 A native speech-dispatcher output module ships in `sd_eloquence/`, built as
-part of the root CMake project. After `sudo cmake --install build`, edit
-`/etc/speech-dispatcher/modules/eloquence.conf` to point `EciLibrary` at
-your `eci.so` and `EciVoicePath` at a language module, then restart
-speech-dispatcher. Anyone familiar with speech-dispatcher modules will
-recognise the SSIP-on-stdio shape; the conf file documents the
-Eloquence-specific knobs (sample rate, default voice/language, optional
-libsoxr resampling).
+part of the root CMake project. Configure with `-DINSTALL_PREBUILT_DYLIBS=ON`
+and `sudo cmake --install build` drops `eci.so`, the 14 language modules
+and a multi-section `eci.ini` into `${CMAKE_INSTALL_PREFIX}/lib/eloquence/`
+(typically `/usr/lib/eloquence`). The module's only required config is
+`EloquenceDataDir` (defaults to that path); every supported language is
+then available on the fly through speech-dispatcher's standard
+`language=` setting -- no per-language conf edits.
+
+The 8 voice presets (Reed, Shelley, Sandy, Rocko, Flo, Grandma, Grandpa,
+Eddy -- "Jacques" replaces Reed in French) and their per-voice parameter
+sets are transcribed verbatim from Apple's `KonaVoicePresets.plist`, so
+the voices sound the same as on iOS/tvOS/macOS.
 
 ## How it works (the very short version)
 
