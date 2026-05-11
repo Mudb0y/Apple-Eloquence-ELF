@@ -51,6 +51,14 @@ jobs:
               speech-dispatcher libspeechd-dev \
               libsoxr-dev \
               zstd
+          # Diagnostics: confirm whether libspeechd-dev shipped the
+          # native-module API headers / libs.
+          echo "--- libspeechd-dev contents ---"
+          dpkg -L libspeechd-dev | sort
+          echo "--- speech-dispatcher contents (module dir) ---"
+          dpkg -L speech-dispatcher | grep -E "module" || true
+          echo "--- searching the filesystem for native module bits ---"
+          (find /usr -name 'spd_module_main.h' -o -name 'libspeechd_module*' 2>/dev/null || true)
           python3 -m venv venv
           ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install lief
