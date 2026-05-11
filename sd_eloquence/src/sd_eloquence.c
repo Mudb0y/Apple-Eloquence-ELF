@@ -506,27 +506,20 @@ static int rebuild_engine_for_language(int dialect) {
     return 0;
 }
 
-/* Populate g_lang_available[] from a static knowledge of which Apple
- * language modules currently work as converted ELFs. This intentionally
- * doesn't call eciNewEx for each one -- repeatedly creating/destroying
- * engines at init corrupts state on Apple's build because the language
- * .so files register C++ static destructors that don't tolerate the
- * dlclose-then-dlopen pattern eciDelete triggers.
+/* Populate g_lang_available[]. All 14 languages work once the prebuilt
+ * .so files are correctly converted (macho2elf's GOT-rebase fix was
+ * essential -- without it every language module had at least one NULL
+ * pointer in __DATA_CONST,__got that some code paths would dereference,
+ * and the CJK romanizer paths were the most consistent at hitting it).
  *
- * jpn / kor / chs / cht all fail eciNewEx with retval=-21 (init failure
- * inside the language module); they need data files Apple's framework
- * provides but our macho2elf extraction doesn't carry. Marking them
- * unavailable here is correct until CJK support gets sorted separately. */
+ * We don't probe with eciNewEx/eciDelete loops at init because that
+ * pattern triggers Apple's C++ static-destructor ordering issue
+ * (documented in eci_runtime.c and examples/speak.c). The single-engine
+ * init flow that follows mark_available_languages avoids the problem. */
 static void mark_available_languages(void) {
     for (size_t li = 0; li < N_LANGS; li++) {
-        const char *so = g_langs[li].so_name;
-        int broken = (strcmp(so, "jpn.so") == 0 ||
-                      strcmp(so, "kor.so") == 0 ||
-                      strcmp(so, "chs.so") == 0 ||
-                      strcmp(so, "cht.so") == 0);
-        g_lang_available[li] = !broken;
-        DBG("%-30s %s", g_langs[li].human,
-            g_lang_available[li] ? "available" : "unavailable (CJK -- not yet supported)");
+        g_lang_available[li] = 1;
+        DBG("%-30s available", g_langs[li].human);
     }
 }
 

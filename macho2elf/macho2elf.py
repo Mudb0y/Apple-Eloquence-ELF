@@ -377,21 +377,52 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
         add("")
 
     # --- __DATA_CONST,__got (pure symbol table, no raw bytes) ------------
+    # The GOT can hold two kinds of 8-byte entries:
+    #   - External bindings: pointer to a symbol the loader resolves at
+    #     load time (libc/libc++/...). We collected these as `bindings`
+    #     above and emit them as `.quad <sym>` so the static linker can
+    #     generate the right GLOB_DAT / JUMP_SLOT relocation.
+    #   - Internal rebases: pointer to an address inside this dylib.
+    #     These were registered in events_by_section as "rebase" events.
+    #     We must emit them as `.quad <elf_label> + offset` so the static
+    #     linker generates an R_X86_64_RELATIVE that re-bases the pointer
+    #     at load time.
+    #
+    # The earlier implementation only walked `got_bindings` and zero-
+    # filled the gaps, which dropped every rebase. For Apple's
+    # jpnrom.so (and any other language module with internal pointers in
+    # its GOT) that produced NULL pointers in __const that the language
+    # code crashes on the first time it dereferences them.
     got_vaddr, got_size = get_section_vaddr(binary, "__DATA_CONST", "__got")
-    got_bindings = bindings_by_section.get(("__DATA_CONST", "__got"), [])
     if got_vaddr is not None and got_size > 0:
-        add(f"/* === __DATA_CONST,__got -> .m2e_got (vaddr={got_vaddr:#x} size={got_size:#x} bindings={len(got_bindings)}) === */")
+        got_events = events_by_section.get(("__DATA_CONST", "__got"), [])
+        # Merge bindings (which weren't added to events_by_section because
+        # we wanted to keep the symref/rebase split for normal sections)
+        # with the rebase events. Sort by offset; if both kinds claim the
+        # same slot the binding wins (Mach-O may report both, but the
+        # binding is the canonical external link).
+        merged = {}
+        for off, sym_name in bindings_by_section.get(("__DATA_CONST", "__got"), []):
+            merged[off] = ("symref", sym_name)
+        for off, kind, data in got_events:
+            if kind == "rebase" and off not in merged:
+                merged[off] = ("rebase", data)
+        items = sorted(merged.items())
+        n_sym = sum(1 for _, (k, _) in items if k == "symref")
+        n_reb = sum(1 for _, (k, _) in items if k == "rebase")
+        add(f"/* === __DATA_CONST,__got -> .m2e_got (vaddr={got_vaddr:#x} size={got_size:#x} bindings={n_sym} rebases={n_reb}) === */")
         add(f".section .m2e_got, \"aw\", @progbits")
         add(f".balign 8")
         add(f".m2e_got_start:")
         prev_off = 0
-        for off, sym_name in got_bindings:
+        for off, (kind, data) in items:
             if off > prev_off:
                 add(f".zero {off - prev_off}")
-            if sym_name:
-                add(f".quad {sym_name}")
-            else:
-                add(f".quad 0")
+            if kind == "symref":
+                add(f".quad {data}" if data else ".quad 0")
+            else:  # rebase
+                tgt_label, tgt_off = data
+                add(f".quad {tgt_label} + {tgt_off:#x}")
             prev_off = off + 8
         if got_size > prev_off:
             add(f".zero {got_size - prev_off}")
