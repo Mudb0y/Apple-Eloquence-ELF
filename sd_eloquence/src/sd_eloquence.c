@@ -81,13 +81,15 @@ static int g_spd_rate[N_VOICE_PRESETS];
 static int g_spd_pitch[N_VOICE_PRESETS];
 static int g_spd_volume[N_VOICE_PRESETS];
 
-/* At init we probe each language with eciNewEx and remember which ones
- * succeed. CJK (jpn/kor/chs/cht) currently fail with retval=-21 inside
- * the language module -- they need data files that Apple's framework
- * provides but our extraction doesn't carry. Gating them here keeps
- * speech-dispatcher and Orca stable; advertising broken voices and
- * crashing on selection is the worse outcome. Working languages are
- * marked with 1, broken ones with 0. */
+/* Per-language availability flag. We deliberately do NOT probe at init by
+ * looping eciNewEx + eciDelete: that pattern triggers Apple's C++ static-
+ * destructor ordering bug (also documented in examples/speak.c and
+ * eci_runtime.c -- dlclose during running destructors crashes inside
+ * libc atexit). Instead we set this flag from a static list: jpn / kor /
+ * chs / cht fail eciNewEx with retval=-21 on Apple's converted modules
+ * (they need data files our extraction doesn't carry); everything else
+ * works. Marking them unavailable here keeps the voice list honest and
+ * keeps the engine off the broken language modules entirely. */
 static int g_lang_available[14];  /* parallel to g_langs[] */
 
 /* PCM buffer the engine fills via eciSetOutputBuffer + our callback. */
@@ -467,25 +469,35 @@ static void apply_engine_state(ECIHand h) {
     eci.SetOutputBuffer(h, PCM_CHUNK_SAMPLES, g_pcm_chunk);
 }
 
-/* Atomic-swap engine for a new language: create the new handle BEFORE
- * destroying the old one. If eciNewEx fails (broken / unsupported
- * language), the previous engine stays alive so synthesis continues
- * with whatever was active before. Returns 0 on success, -1 on
- * failure (h_engine unchanged on failure). */
+/* Switch to a different language by destroying the current engine and
+ * creating a new one with eciNewEx. The order MUST be Stop -> Synchronize
+ * -> Delete -> NewEx (serial, one engine alive at a time):
+ *
+ *   - Holding two ECI engines alive concurrently corrupts internal state
+ *     (observed: SIGSEGV in enu.so during synthesis when a second engine
+ *     was created without first deleting the previous one).
+ *   - eciDelete returns immediately on Apple's build but the engine's
+ *     worker thread can still be mid-synthesis. Calling Synchronize
+ *     before Delete forces the engine to drain pending audio first, so
+ *     no worker thread is left dereferencing freed engine state.
+ *
+ * Returns 0 on success, -1 on failure. On failure h_engine is NULL and
+ * the caller should fall back (e.g. recreate the previous language).
+ */
 static int rebuild_engine_for_language(int dialect) {
-    ECIHand h_new = eci.NewEx(dialect);
-    if (!h_new) {
+    if (h_engine) {
+        eci.Stop(h_engine);
+        eci.Synchronize(h_engine);
+        eci.Delete(h_engine);
+        h_engine = NULL;
+    }
+    h_engine = eci.NewEx(dialect);
+    if (!h_engine) {
         const LangEntry *lang = find_lang_by_dialect(dialect);
-        fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed -- "
-                "keeping previous engine alive\n",
+        fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed\n",
                 dialect, lang ? lang->human : "?");
         return -1;
     }
-    if (h_engine) {
-        eci.Stop(h_engine);
-        eci.Delete(h_engine);
-    }
-    h_engine = h_new;
     g_current_language = dialect;
     apply_engine_state(h_engine);
     DBG("engine rebuilt for language %#x (%s)",
@@ -494,25 +506,28 @@ static int rebuild_engine_for_language(int dialect) {
     return 0;
 }
 
-/* Probe each language with eciNewEx and record which succeed in
- * g_lang_available[]. Logs the survey result so users can see what's
- * actually usable. CJK currently all fail with retval=-21 inside the
- * language module; this gate makes that a non-issue. */
-static void probe_languages(void) {
-    int ok = 0;
+/* Populate g_lang_available[] from a static knowledge of which Apple
+ * language modules currently work as converted ELFs. This intentionally
+ * doesn't call eciNewEx for each one -- repeatedly creating/destroying
+ * engines at init corrupts state on Apple's build because the language
+ * .so files register C++ static destructors that don't tolerate the
+ * dlclose-then-dlopen pattern eciDelete triggers.
+ *
+ * jpn / kor / chs / cht all fail eciNewEx with retval=-21 (init failure
+ * inside the language module); they need data files Apple's framework
+ * provides but our macho2elf extraction doesn't carry. Marking them
+ * unavailable here is correct until CJK support gets sorted separately. */
+static void mark_available_languages(void) {
     for (size_t li = 0; li < N_LANGS; li++) {
-        ECIHand probe = eci.NewEx(g_langs[li].eci_dialect);
-        if (probe) {
-            g_lang_available[li] = 1;
-            eci.Delete(probe);
-            ok++;
-        } else {
-            g_lang_available[li] = 0;
-        }
-        DBG("probe %-30s %s",
-            g_langs[li].human, g_lang_available[li] ? "available" : "unavailable");
+        const char *so = g_langs[li].so_name;
+        int broken = (strcmp(so, "jpn.so") == 0 ||
+                      strcmp(so, "kor.so") == 0 ||
+                      strcmp(so, "chs.so") == 0 ||
+                      strcmp(so, "cht.so") == 0);
+        g_lang_available[li] = !broken;
+        DBG("%-30s %s", g_langs[li].human,
+            g_lang_available[li] ? "available" : "unavailable (CJK -- not yet supported)");
     }
-    DBG("language probe: %d of %zu languages available", ok, N_LANGS);
 }
 
 /* chdir() into g_data_dir before dlopen so the engine's static
@@ -582,10 +597,10 @@ int module_init(char **msg) {
         return -1;
     }
 
-    /* Probe every supported language so we know which ones to advertise
-     * to speech-dispatcher. CJK currently all fail with retval=-21 in
-     * the language module's init; the probe gates them out. */
-    probe_languages();
+    /* Mark which languages we can advertise. Done from a static knowledge
+     * table rather than runtime probing -- see mark_available_languages
+     * for why repeatedly calling eciNewEx/eciDelete at init is unsafe. */
+    mark_available_languages();
 
     /* If the configured default language is unavailable, fall back to
      * the first language that works (en-US in practice). */
@@ -754,20 +769,58 @@ int module_set(const char *var, const char *val) {
         return 0;
     }
     if (strcasecmp(var, "synthesis_voice") == 0) {
-        /* SPD passes names from our module_list_voices output, typically
-         * "Reed (American English)". Match the leading voice-name token
-         * against our preset list (Apple's 8 names + French "Jacques"). */
+        /* SPD voice names from our module_list_voices have the form
+         * "<voice>-<lang>-<region>" e.g. "Reed-en-US", "Jacques-fr-fr".
+         * Orca picks a voice from the list and sends only this string --
+         * no accompanying language= setting -- so we have to extract
+         * both pieces here, otherwise selecting "Reed-en-US" while the
+         * engine sits on en-GB results in en-GB synthesizing American
+         * English text (the symptom that prompted this fix).
+         *
+         * Match the voice-name prefix to pick the slot, then peel off
+         * the suffix "<lang>-<region>" and feed it through find_lang_by_iso
+         * for the language switch. */
+        int matched_slot = -1;
+        size_t name_len = 0;
         for (int i = 0; i < (int)N_VOICE_PRESETS; i++) {
             const VoicePreset *p = &g_voice_presets[i];
-            if (!strncasecmp(val, p->name, strlen(p->name)) ||
-                (p->name_fr && !strncasecmp(val, p->name_fr, strlen(p->name_fr)))) {
-                g_current_voice_slot = i;
-                DBG("synthesis_voice -> slot %d (%s)", i, p->name);
-                return 0;
+            size_t nlen = strlen(p->name);
+            if (!strncasecmp(val, p->name, nlen)) {
+                matched_slot = i; name_len = nlen; break;
+            }
+            if (p->name_fr) {
+                size_t flen = strlen(p->name_fr);
+                if (!strncasecmp(val, p->name_fr, flen)) {
+                    matched_slot = i; name_len = flen; break;
+                }
             }
         }
-        DBG("unknown synthesis_voice '%s', keeping slot %d",
-            val, g_current_voice_slot);
+        if (matched_slot < 0) {
+            DBG("unknown synthesis_voice '%s', keeping slot %d",
+                val, g_current_voice_slot);
+            return 0;
+        }
+        g_current_voice_slot = matched_slot;
+        DBG("synthesis_voice -> slot %d (%s)",
+            matched_slot, g_voice_presets[matched_slot].name);
+
+        /* If there's a "-<lang>-<region>" tail, switch language too. */
+        if (val[name_len] == '-' && val[name_len + 1]) {
+            const char *lang_tail = val + name_len + 1;
+            const LangEntry *L = find_lang_by_iso(lang_tail);
+            if (L) {
+                int idx = (int)(L - g_langs);
+                if (g_lang_available[idx] &&
+                    L->eci_dialect != g_current_language) {
+                    DBG("synthesis_voice implies language %s; switching", L->human);
+                    rebuild_engine_for_language(L->eci_dialect);
+                }
+            }
+        }
+        /* Re-apply the slot's presets+overrides on the (possibly new)
+         * engine so the voice takes effect immediately. */
+        if (h_engine)
+            apply_voice_preset_to_slot(h_engine, g_current_voice_slot);
         return 0;
     }
     if (strcasecmp(var, "language") == 0) {
