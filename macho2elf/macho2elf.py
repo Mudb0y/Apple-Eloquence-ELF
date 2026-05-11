@@ -422,14 +422,13 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
     # before any other code can use the library — exactly what we need.
     for s in binary.sections:
         if s.segment_name == "__TEXT" and s.name == "__init_offsets" and s.size > 0:
-            import struct
             raw = bytes(s.content)
             init_count = s.size // 4
             offsets = [struct.unpack("<I", raw[i*4:i*4+4])[0] for i in range(init_count)]
             add(f"/* === .init_array (from {init_count} entries in __init_offsets) === */")
             add(f".section .init_array, \"aw\", @init_array")
             add(f".balign 8")
-            for off in offsets:
+            for init_idx, off in enumerate(offsets):
                 # Find which section the function lives in and emit a
                 # section-relative reference so ld generates R_X86_64_RELATIVE.
                 tgt_seg = tgt_sect = None
@@ -448,7 +447,7 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
                     add(f"/* WARNING: init offset {off:#x} in {tgt_seg},{tgt_sect} has no ELF label */")
                     add(f".quad 0")
                     continue
-                add(f".quad {tgt_label} + {tgt_inner:#x}  /* init #{offsets.index(off)} */")
+                add(f".quad {tgt_label} + {tgt_inner:#x}  /* init #{init_idx} */")
             add("")
             break
 
@@ -720,6 +719,15 @@ def main():
     fat = lief.MachO.parse(str(input_path))
     if not fat or len(fat) == 0:
         print(f"ERROR: failed to parse {input_path}", file=sys.stderr)
+        sys.exit(1)
+    if len(fat) > 1:
+        slices = [str(fat.at(i).header.cpu_type) for i in range(len(fat))]
+        print(f"ERROR: {input_path} is a fat binary with {len(fat)} slices ({', '.join(slices)}).",
+              file=sys.stderr)
+        print("       Extract a single-arch slice first, e.g.",
+              file=sys.stderr)
+        print(f"         llvm-lipo -extract x86_64 {input_path} -output /tmp/slice.dylib",
+              file=sys.stderr)
         sys.exit(1)
     binary = fat.at(0)
     arch = detect_arch(binary)
