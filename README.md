@@ -151,7 +151,7 @@ Quick build + install:
 cmake -B sd_eloquence/build -S sd_eloquence
 cmake --build sd_eloquence/build
 sudo cmake --install sd_eloquence/build
-# Edit /etc/speech-dispatcher/modules/eloquence.conf, register in speechd.conf.
+# Edit /etc/speech-dispatcher/modules/eloquence.conf and restart speech-dispatcher.
 ```
 See `sd_eloquence/README.md` for the full guide.
 

@@ -37,11 +37,9 @@ sudo cmake --install build
 #       EciLibrary       /path/to/eci.so
 #       EciVoicePath     /path/to/enu.so
 
-# 5. Register the module in /etc/speech-dispatcher/speechd.conf:
-#       AddModule "eloquence" "sd_eloquence" "eloquence.conf"
-#       DefaultModule eloquence
-
-# 6. Restart speech-dispatcher and test
+# 5. Restart speech-dispatcher and test
+#    (no edit to speechd.conf needed -- modules are auto-discovered from
+#     /usr/lib/speech-dispatcher-modules + their matching .conf file)
 systemctl --user restart speech-dispatcher
 spd-say -o eloquence "Hello from ETI Eloquence."
 ```

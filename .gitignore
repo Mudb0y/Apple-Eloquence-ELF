@@ -29,3 +29,4 @@ eci.dbg
 # Local copies of test inputs
 slices/
 *.dmg
+build/
