@@ -151,29 +151,41 @@ A complete working example is in `examples/speak.c`.
 
 ## Common parameters
 
+Engine-wide params (used with `eciSetParam` / `eciGetParam`). The numbering
+has deliberate gaps — slots 4, 6, 11 are unused in ECI 6.x and must not be
+touched. The authoritative declarations live in `sd_eloquence/src/eci.h`.
+
 ```c
-#define eciDictionary       0   /* enable user dictionary */
-#define eciSampleRate       2   /* 0=8000, 1=11025, 2=22050 Hz */
-#define eciSynthMode        3   /* 0=screen reader, 1=text-to-speech */
-#define eciInputType        4   /* 0=async, 1=sync */
-#define eciTextMode         5
-#define eciLanguageDialect  9
-#define eciNumberMode      10
-#define eciPhrasePrediction 11
-#define eciRealWorldUnits  12
-#define eciInputTypePhonemes 13
+#define eciSynthMode               0   /* 0=screen reader, 1=TTS general text */
+#define eciInputType               1   /* 0=character, 1=phonetic, 2=TTS */
+#define eciTextMode                2   /* 0=normal, 1=alphanumeric, 2=verbatim, 3=spell */
+#define eciDictionary              3   /* 0=use dictionary, 1=skip */
+#define eciSampleRate              5   /* 0=8 kHz, 1=11025 Hz, 2=22050 Hz */
+#define eciWantPhonemeIndices      7
+#define eciRealWorldUnits          8
+#define eciLanguageDialect         9
+#define eciNumberMode             10
+#define eciWantWordIndex          12
+#define eciNumDeviceBlocks        13
+#define eciSizeDeviceBlocks       14
+#define eciNumPrerollDeviceBlocks 15
+#define eciSizePrerollDeviceBlocks 16
 ```
+
+Apple's eci.dylib 6.1 only accepts `eciSampleRate` values 0 and 1 — passing
+2 returns -1. Other ECI builds (Speechworks/IBMTTS era, voxin) accept all
+three.
 
 Per-voice params (used with `eciSetVoiceParam`):
 ```c
-#define eciGender       0   /* 0=male, 1=female */
-#define eciHeadSize     1
-#define eciPitchBaseline 2
+#define eciGender           0   /* 0=male, 1=female */
+#define eciHeadSize         1
+#define eciPitchBaseline    2
 #define eciPitchFluctuation 3
-#define eciRoughness    4
-#define eciBreathiness  5
-#define eciSpeed        6
-#define eciVolume       7
+#define eciRoughness        4
+#define eciBreathiness      5
+#define eciSpeed            6
+#define eciVolume           7
 ```
 
 ## Common pitfalls
