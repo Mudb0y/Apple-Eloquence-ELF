@@ -9,8 +9,8 @@
 # correctly-built sd_eloquence binary plus the per-arch ELFs.
 #
 # Trigger:
-#   - push of a v* tag         -> upload artifacts to a GitHub Release
-#   - manual workflow_dispatch -> build the artifacts without releasing
+#   - push of a v* or pre-* tag -> upload artifacts to a GitHub Release
+#   - manual workflow_dispatch  -> build the artifacts without releasing
 #     (useful for sanity-checking the pipeline)
 
 name: Release
@@ -19,6 +19,7 @@ on:
   push:
     tags:
       - 'v*'
+      - 'pre-*'
   workflow_dispatch:
 
 jobs:
@@ -189,7 +190,7 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
