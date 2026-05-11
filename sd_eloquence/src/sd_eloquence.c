@@ -539,30 +539,42 @@ static int rebuild_engine_for_language(int dialect) {
 
 /* Populate g_lang_available[].
  *
- * 13 of the 14 supported languages work after the macho2elf GOT-rebase
- * fix. chs.so (Mandarin Simplified) is the lone exception: its synthesis
- * worker thread reproducibly SIGSEGVs in reset_sent_vars -> _fence on
- * the first eciAddText after eciSetParam(eciLanguageDialect, zh-CN),
- * even though the structurally-identical cht.so (Mandarin Traditional)
- * works the same way. The crash signature (PC at function entry,
- * push %rbp failing) and the chs-vs-cht symmetry suggest a chs-specific
- * stale-state issue inside Apple's eci.so RomanizerManager / chs.so
- * boundary that we haven't yet isolated. Marking it unavailable keeps
- * speech-dispatcher stable; zh-CN users can fall back to zh-TW (which
- * speaks Mandarin in the Taiwanese register) in the meantime.
+ * CJK is currently disabled across the board (jpn / kor / chs / cht).
+ * macho2elf's GOT-rebase fix made the language modules LOAD, and the
+ * eciSetParam-based language switching kept the engine alive across
+ * transitions, but synthesis remains unreliable:
+ *
+ *   - chs.so reproducibly SIGSEGVs in reset_sent_vars -> _fence on
+ *     the first eciAddText after a switch to zh-CN, even though the
+ *     structurally identical cht.so survives the same path.
+ *   - jpn.so / ja-JP synthesizes audio for some inputs but the
+ *     romanizer (jpnrom.so) appears to read uninitialised tables
+ *     under speechd-style threading; reproduces as intermittent
+ *     SIGSEGV in DictSearch::lookupFuncDict under Orca usage.
+ *   - kor.so + cht.so come along for the ride: shipping a partial
+ *     CJK set (one out of four) was confusing for users and would
+ *     keep eating support attention, so gate the whole family until
+ *     we can debug the RomanizerManager / language-module-init
+ *     boundary properly.
+ *
+ * The 10 non-CJK languages (en-US, en-GB, es-ES, es-MX, fr-FR, fr-CA,
+ * de-DE, it-IT, pt-BR, fi-FI) are stable.
  *
  * We deliberately do NOT probe at init by looping eciNewEx + eciDelete:
  * that pattern triggers Apple's C++ static-destructor ordering bug
  * already documented in eci_runtime.c and examples/speak.c. */
 static void mark_available_languages(void) {
     for (size_t li = 0; li < N_LANGS; li++) {
-        int broken = strcmp(g_langs[li].so_name, "chs.so") == 0;
-        g_lang_available[li] = !broken;
+        const char *so = g_langs[li].so_name;
+        int cjk = (strcmp(so, "jpn.so") == 0 ||
+                   strcmp(so, "kor.so") == 0 ||
+                   strcmp(so, "chs.so") == 0 ||
+                   strcmp(so, "cht.so") == 0);
+        g_lang_available[li] = !cjk;
         DBG("%-30s %s", g_langs[li].human,
             g_lang_available[li]
                 ? "available"
-                : "unavailable (chs.so crashes in reset_sent_vars; "
-                  "use zh-TW for Mandarin)");
+                : "unavailable (CJK temporarily disabled)");
     }
 }
 
