@@ -50,9 +50,10 @@ jobs:
               cmake pkg-config \
               libsoxr-dev \
               zstd \
-              build-essential autoconf automake libtool gettext intltool texinfo \
+              build-essential autoconf automake libtool gettext autopoint \
+              intltool texinfo \
               libltdl-dev libdotconf-dev libglib2.0-dev libpulse-dev \
-              git
+              curl
           python3 -m venv venv
           ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install lief
