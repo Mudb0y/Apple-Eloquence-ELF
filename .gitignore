@@ -31,3 +31,9 @@ slices/
 *.dmg
 build/
 eci.ini
+
+# Converted ELFs -- generated locally by macho2elf from vendor/, or
+# pulled from a GitHub Release tarball. The dylib originals stay
+# tracked; the derived .so files do not.
+prebuilt/x86_64/*.so
+prebuilt/aarch64/*.so

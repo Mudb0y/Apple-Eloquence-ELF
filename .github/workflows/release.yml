@@ -1,15 +1,17 @@
 # Release workflow for apple-eloquence-elf
 #
-# Triggered manually (workflow_dispatch) or on a `v*` tag push.
+# Builds end-user tarballs on Linux from the Apple Mach-O dylibs already
+# committed under vendor/.  No macOS runner needed: everything (the
+# macho2elf conversion, sd_eloquence module build, packaging) happens
+# on Linux.
 #
-# The macOS runner extracts the Apple tvOS Simulator Runtime that comes
-# preinstalled with Xcode on GitHub's macos-14 image, then ships the .dylib
-# files as an artifact to a Linux job which runs macho2elf to produce ELFs.
-# Final job creates a GitHub Release and uploads everything.
+# Matrix targets x86_64 and aarch64 natively so each tarball ships a
+# correctly-built sd_eloquence binary plus the per-arch ELFs.
 #
-# Legal posture: same as having vendor/tvOS-18.2 in the repo -- we're
-# redistributing Apple's compiled binaries (originals + derived ELFs).
-# See LICENSE for the project's note on this.
+# Trigger:
+#   - push of a v* tag         -> upload artifacts to a GitHub Release
+#   - manual workflow_dispatch -> build the artifacts without releasing
+#     (useful for sanity-checking the pipeline)
 
 name: Release
 
@@ -18,73 +20,21 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      runtime_version:
-        description: 'tvOS Simulator Runtime version to extract (must be installed on the macos-14 runner)'
-        required: false
-        default: '18.2'
 
 jobs:
-  # -----------------------------------------------------------------------
-  # 1. Extract Apple's Mach-O dylibs from the simulator runtime on macOS.
-  # -----------------------------------------------------------------------
-  extract-dylibs:
-    name: Extract dylibs from tvOS Simulator Runtime
-    runs-on: macos-14
-    outputs:
-      runtime_version: ${{ steps.locate.outputs.version }}
-    steps:
-      - name: Locate the simulator runtime
-        id: locate
-        run: |
-          VERSION="${{ github.event.inputs.runtime_version || '18.2' }}"
-          # GitHub macos-14 runners ship Xcode with iOS / tvOS Simulator Runtimes
-          # at well-known paths. Find the TextToSpeechKonaSupport framework
-          # inside the requested tvOS runtime.
-          ROOT=$(find /Applications/Xcode.app \
-              -type d -path "*tvOS*${VERSION}*.simruntime/Contents/Resources/RuntimeRoot" \
-              2>/dev/null | head -1)
-          if [ -z "$ROOT" ]; then
-              # Try /Library if not in /Applications
-              ROOT=$(find /Library/Developer/CoreSimulator/Profiles/Runtimes \
-                  -type d -path "*tvOS*${VERSION}*.simruntime/Contents/Resources/RuntimeRoot" \
-                  2>/dev/null | head -1)
-          fi
-          if [ -z "$ROOT" ]; then
-              echo "Could not locate tvOS ${VERSION} simulator runtime on the runner." >&2
-              echo "Available runtimes:" >&2
-              ls -la /Applications/Xcode.app/Contents/Developer/Platforms/AppleTVSimulator.platform/Developer/Library/CoreSimulator/Profiles/Runtimes/ 2>&1 || true
-              exit 1
-          fi
-          FRAMEWORK="$ROOT/System/Library/PrivateFrameworks/TextToSpeechKonaSupport.framework/Frameworks"
-          ls "$FRAMEWORK" || { echo "Framework not found at $FRAMEWORK"; exit 1; }
-          echo "framework=$FRAMEWORK" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Stage the dylibs
-        run: |
-          mkdir -p staging
-          cp "${{ steps.locate.outputs.framework }}"/*.dylib staging/
-          shasum -a 256 staging/*.dylib > staging/SHA256SUMS
-          ls -la staging/
-
-      - name: Upload dylib artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: apple-dylibs
-          path: staging/
-          retention-days: 1
-
-  # -----------------------------------------------------------------------
-  # 2. Convert to ELF .so files for x86_64 + aarch64 on a Linux runner.
-  # -----------------------------------------------------------------------
-  build-elf:
-    name: Build ELF .so files (${{ matrix.arch }})
-    needs: extract-dylibs
-    runs-on: ubuntu-24.04
+  build:
+    name: Build (${{ matrix.arch }})
     strategy:
+      fail-fast: false
       matrix:
-        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            cc: gcc
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            cc: gcc
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -94,128 +44,168 @@ jobs:
           sudo apt-get install -y \
               python3-pip python3-venv \
               llvm \
-              gcc gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+              gcc binutils \
               libc++-dev libc++abi-dev \
-              cmake
+              cmake pkg-config \
+              speech-dispatcher libspeechd-dev \
+              libsoxr-dev \
+              zstd
           python3 -m venv venv
+          ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install lief
 
-      - name: Download dylibs from previous job
-        uses: actions/download-artifact@v4
-        with:
-          name: apple-dylibs
-          path: dylibs/
-
-      - name: Extract per-arch slices
+      - name: Resolve version
+        id: ver
         run: |
-          mkdir -p slices
-          for d in dylibs/*.dylib; do
-              name=$(basename "$d")
-              llvm-lipo -extract ${{ matrix.arch }} "$d" -output "slices/${name}.${{ matrix.arch }}" \
-                  || echo "warning: no ${{ matrix.arch }} slice in $name"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+              echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+              echo "version=dev-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build sd_eloquence
+        run: |
+          cmake -B build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_SD_MODULE=ON \
+              -DBUILD_EXAMPLES=OFF \
+              -DINSTALL_PREBUILT_DYLIBS=OFF
+          cmake --build build -j"$(nproc)"
+          file build/sd_eloquence
+
+      - name: Convert vendor dylibs -> ELFs
+        run: |
+          mkdir -p slices elfs
+          for d in vendor/tvOS-18.2/*.dylib; do
+              base="$(basename "$d" .dylib)"
+              llvm-lipo -extract ${{ matrix.arch }} "$d" \
+                  -output "slices/${base}.${{ matrix.arch }}.dylib"
           done
-          ls -la slices/
-
-      - name: Run macho2elf for each dylib
-        run: |
-          ELFDIR=$([ "${{ matrix.arch }}" = "aarch64" ] && echo "aarch64" || echo "x86_64")
-          mkdir -p out/${ELFDIR}
-          for slice in slices/*.${{ matrix.arch }}; do
-              name=$(basename "$slice" .dylib.${{ matrix.arch }})
+          for slice in slices/*.dylib; do
+              base="$(basename "$slice" .${{ matrix.arch }}.dylib)"
               ./venv/bin/python3 macho2elf/macho2elf.py "$slice" \
-                  -o "out/${ELFDIR}/${name}.so" \
-                  --workdir "build/${name}_work"
+                  --cc "${{ matrix.cc }}" \
+                  -o "elfs/${base}.so" \
+                  --workdir "build/${base}_work"
           done
-          ls -la out/${ELFDIR}/
-          (cd out && sha256sum ${ELFDIR}/*.so) > out/SHA256SUMS-${{ matrix.arch }}
+          ls -la elfs/
 
-      - name: Upload ELF artifact
+      - name: Stage tarball
+        id: stage
+        run: |
+          NAME="apple-eloquence-elf-${{ steps.ver.outputs.version }}-linux-${{ matrix.arch }}"
+          STAGE="stage/${NAME}"
+          mkdir -p "${STAGE}/lib"
+          cp elfs/*.so "${STAGE}/lib/"
+          cp build/sd_eloquence "${STAGE}/"
+          cp sd_eloquence/eloquence.conf "${STAGE}/"
+          cp dist/install.sh "${STAGE}/install.sh"
+          cp dist/uninstall.sh "${STAGE}/uninstall.sh"
+          chmod +x "${STAGE}/install.sh" "${STAGE}/uninstall.sh"
+
+          # Generate the multi-section eci.ini. Path= entries reference
+          # /usr/lib/eloquence (the default install destination); install.sh
+          # respects --prefix but most users will install to /usr.
+          python3 - "${STAGE}/eci.ini" <<'PY'
+          import sys, pathlib
+          DATA_DIR = "/usr/lib/eloquence"
+          TRIPLES = [
+              ("1.0", "enu.so", None), ("1.1", "eng.so", None),
+              ("2.0", "esp.so", None), ("2.1", "esm.so", None),
+              ("3.0", "fra.so", None), ("3.1", "frc.so", None),
+              ("4.0", "deu.so", None),
+              ("5.0", "ita.so", None),
+              ("6.0", "chs.so", "chsrom.so"), ("6.1", "cht.so", "chtrom.so"),
+              ("7.0", "ptb.so", None),
+              ("8.0", "jpn.so", "jpnrom.so"),
+              ("9.0", "fin.so", None),
+              ("10.0", "kor.so", "korrom.so"),
+          ]
+          lines = [
+              "# Generated by apple-eloquence-elf install. Each section binds an",
+              "# eciLanguageDialect code to a language .so the engine dlopens at runtime.",
+              "# CJK entries also list a Path_Rom= romanizer; without it the language",
+              "# modules fail eciNewEx with 'No Romanizer Error'.",
+              "",
+          ]
+          for sect, so, rom in TRIPLES:
+              lines.append(f"[{sect}]")
+              lines.append(f"Path={DATA_DIR}/{so}")
+              if rom:
+                  lines.append(f"Path_Rom={DATA_DIR}/{rom}")
+              lines.append("Version=6.1")
+              lines.append("")
+          pathlib.Path(sys.argv[1]).write_text("\n".join(lines))
+          PY
+
+          cat > "${STAGE}/README.txt" <<EOF
+          apple-eloquence-elf ${{ steps.ver.outputs.version }} (${{ matrix.arch }})
+
+          Native ETI Eloquence TTS for Linux, derived from Apple's bundled
+          TextToSpeechKonaSupport.framework.
+
+          Quick install:
+              sudo ./install.sh
+
+          Then restart speech-dispatcher and try it:
+              spd-say -o eloquence "Hello from Eloquence."
+
+          Customize voice / language / sample rate in:
+              /etc/speech-dispatcher/modules/eloquence.conf
+
+          Uninstall:
+              sudo ./uninstall.sh         (keeps eloquence.conf)
+              sudo ./uninstall.sh --purge (also removes eloquence.conf)
+
+          Runtime deps (install via your distro):
+              libc++ libc++abi    (Debian: libc++1 libc++abi1)
+              libsoxr (optional)  (Debian: libsoxr0)
+
+          Source / issues: https://github.com/Mudb0y/Apple-Eloquence-ELF
+          EOF
+
+          (cd "${STAGE}" && \
+              find . -type f ! -name SHA256SUMS -print0 \
+              | sort -z \
+              | xargs -0 sha256sum > SHA256SUMS)
+
+          TARBALL="${NAME}.tar.zst"
+          tar --zstd -C stage -cf "${TARBALL}" "${NAME}"
+          sha256sum "${TARBALL}" > "${TARBALL}.sha256"
+          ls -la "${TARBALL}" "${TARBALL}.sha256"
+
+          echo "name=${NAME}"       >> "$GITHUB_OUTPUT"
+          echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:
-          name: elf-${{ matrix.arch }}
-          path: out/
-          retention-days: 1
-
-  # -----------------------------------------------------------------------
-  # 3. Build source tarball + sd_eloquence module binaries.
-  # -----------------------------------------------------------------------
-  build-source-and-module:
-    name: Source tarball + sd_eloquence module
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install build deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-              speech-dispatcher libspeechd-dev \
-              libsoxr-dev cmake gcc
-
-      - name: Configure + build sd_eloquence (x86_64)
-        run: |
-          cmake -B build -DBUILD_SD_MODULE=ON -DINSTALL_PREBUILT_DYLIBS=OFF
-          cmake --build build
-          ls -la build/sd_eloquence
-
-      - name: Source tarball (without prebuilt/ + vendor/)
-        run: |
-          NAME=apple-eloquence-elf-${GITHUB_REF_NAME:-dev}
-          git archive --format=tar.gz \
-              --prefix=${NAME}/ \
-              -o ${NAME}-source.tar.gz HEAD
-          ls -la ${NAME}-source.tar.gz
-
-      - name: Upload module + source artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: source-and-module
+          name: tarball-${{ matrix.arch }}
           path: |
-            build/sd_eloquence
-            *-source.tar.gz
-          retention-days: 1
+            ${{ steps.stage.outputs.tarball }}
+            ${{ steps.stage.outputs.tarball }}.sha256
+          retention-days: 7
 
-  # -----------------------------------------------------------------------
-  # 4. Collect artifacts + publish GitHub Release.
-  # -----------------------------------------------------------------------
   release:
     name: Publish release
-    needs: [extract-dylibs, build-elf, build-source-and-module]
-    if: github.event_name == 'push'  # only on tag push, not workflow_dispatch
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Collect tarballs
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
 
-      - name: Assemble release tarballs
+      - name: Assemble release assets
         run: |
           mkdir -p release
-          # Per-arch tarballs containing the original Apple dylibs +
-          # converted ELFs + verify.sh-style checksums.
-          for ARCH in x86_64 aarch64; do
-              TAR=apple-eloquence-elf-${GITHUB_REF_NAME}-${ARCH}.tar.zst
-              D=stage-${ARCH}
-              mkdir -p $D/vendor/tvOS-${{ needs.extract-dylibs.outputs.runtime_version }}
-              mkdir -p $D/prebuilt/${ARCH}
-              cp artifacts/apple-dylibs/*.dylib $D/vendor/tvOS-${{ needs.extract-dylibs.outputs.runtime_version }}/
-              cp artifacts/elf-${ARCH}/${ARCH}/*.so $D/prebuilt/${ARCH}/ 2>/dev/null \
-                  || cp artifacts/elf-${ARCH}/*.so $D/prebuilt/${ARCH}/ 2>/dev/null || true
-              cp artifacts/apple-dylibs/SHA256SUMS $D/vendor/SHA256SUMS-dylibs
-              (cd $D && find prebuilt vendor -type f -exec sha256sum {} + > SHA256SUMS.txt)
-              tar --zstd -cf release/$TAR -C $D .
-          done
-          ls -la release/
-          # Module binary + source tarball alongside
-          cp artifacts/source-and-module/sd_eloquence release/sd_eloquence-${GITHUB_REF_NAME}-x86_64 || true
-          cp artifacts/source-and-module/*.tar.gz release/ || true
+          find artifacts -type f \( -name '*.tar.zst' -o -name '*.sha256' \) \
+              -exec cp {} release/ \;
           ls -la release/
 
       - name: Create GitHub Release
@@ -223,4 +213,4 @@ jobs:
         with:
           files: release/*
           generate_release_notes: true
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true

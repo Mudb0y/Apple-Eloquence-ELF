@@ -1,50 +1,14 @@
-# SHA256 checksums for all shipped binary artifacts.
+# SHA256 checksums for the vendored Apple Mach-O dylibs in this repo.
+# These are the unmodified originals extracted from the tvOS 18.2 Simulator
+# Runtime; macho2elf converts them to the ELF .so files used at runtime.
+#
 # Verify with: ./tools/verify.sh  (or sha256sum -c tools/checksums.txt)
+#
+# Release tarballs ship their own SHA256SUMS file for the converted ELFs,
+# generated reproducibly by the CI workflow.
 
 # Source DMG (not shipped; recorded for provenance):
 # b1a17d29587d5c62833b29e445c22881cb46ab8d3c884f24923caf58480bde6c  tvOS_18.2_Simulator_Runtime.dmg
-
-# x86_64 prebuilt ELFs
-0dfb62a43a7267e1f0ced7256dabca8a4795d9b3f0b33d071bba743902a94254  prebuilt/x86_64/chsrom.so
-1cc1e91f8f7c8dafbc424d8e9d53ae795a9c8f8c73c43c7cbb6027c364e71d31  prebuilt/x86_64/chs.so
-371b24600fb358fbe6c5ff72c8ff96595757d1403dd34de4679de920fca6f564  prebuilt/x86_64/chtrom.so
-80d352f823ff8c4455122206447632667c4b2c1e6e0256d506c56ed5773075d7  prebuilt/x86_64/cht.so
-6e94eec8e1fd9c9b536d44a1be4d829321c8cbf125077609aefdb1e9c09ab12f  prebuilt/x86_64/deu.so
-ee46678a7a1d45033bc24ccec9a1c634351bc141ff0c021fa8dae3a0e5baef0d  prebuilt/x86_64/eci.so
-ad5ca783f91eb7ba9240a123ad02a1935cf4e900930dec5e348a236938804a98  prebuilt/x86_64/eng.so
-e267c98d2e0f4482e446a8974ca64c4340d5151611d97f315ce9780059e6c9fe  prebuilt/x86_64/enu.so
-65570cb9aa082702fdd71df6d60a10e8d268cc720846cae0d593eb41d2f6ac2b  prebuilt/x86_64/esm.so
-9140567a34159478d2ff6e5dd2455408e410c8bc1682b2cc8be7730503ce4156  prebuilt/x86_64/esp.so
-f4505eb6d06d993255bf427b34aaedd548840c274528983932c483b4e1ebd0c5  prebuilt/x86_64/fin.so
-68a14fbac56f148d6ad48984a8f1bd0b7c3126bc74a38fbf1cc676295b8351ef  prebuilt/x86_64/fra.so
-d6792168b846d70cee626bb9129302a36cf4c54ccbb265a1fe8a6dd59254d49d  prebuilt/x86_64/frc.so
-c87f780fcd3b2b928ba31c561d4df70584665b5db4e43dab5213fad92b29cb78  prebuilt/x86_64/ita.so
-168f4adbe0567194b252d42c2cb01b33a2a8cd017ab2f17be47722f016edb901  prebuilt/x86_64/jpnrom.so
-cb6fe79d83748257deb5049dc5843279ba9a07589c9513ad163ba6c301efe649  prebuilt/x86_64/jpn.so
-45bf6db533831a3003b2e506054842cd99bebc7971fb269cbf907a932c842a7a  prebuilt/x86_64/korrom.so
-d74f50c246fa650eb69bfa1aa119b7d24ae92d98e18e44c9c3a7c2eb9caf3fed  prebuilt/x86_64/kor.so
-3e3c40d42a7b998a5d9987e1cdbcb811c467dafa3f1db23a3f0259bc9d54e4de  prebuilt/x86_64/ptb.so
-
-# aarch64 prebuilt ELFs
-c9bfe56c2833055b1c19225116fc07b9f2f4a97dcb719bf4bf5d97cce4a4ab60  prebuilt/aarch64/chsrom.so
-412980086177a7cbe56a99f9f5604fcefdd02f2ab88fa7705e58ce940200bf1e  prebuilt/aarch64/chs.so
-c83514e7623f8cf26ab3e1fa8bbaef9994e3d482333575fecd2d6bbec6f6fd54  prebuilt/aarch64/chtrom.so
-bfaa277dcc98e237837db4f3f431fe55106d49ccbb5920f0e390ca7231eb86b7  prebuilt/aarch64/cht.so
-d689ebd8e9b6110f9e6b5107cbef43feded3a8fd4b59cf4bc13c397a4e70e4d6  prebuilt/aarch64/deu.so
-aeef91dc6c73401e25a027bc8bf199747bac191956f6a3c3d72577006636ee6b  prebuilt/aarch64/eci.so
-3902661e7ea68e9462b50dd699de4c17c2b4d00b21c2e97a6d525983fa0cee63  prebuilt/aarch64/eng.so
-0ffbd6c3ba61b4132c4b8b682281978fe509da0853d827b6789b2c19fab2d275  prebuilt/aarch64/enu.so
-76a1ac89a748cd660b4324893d2281aa8029affdb00a57af593bae82a87420e6  prebuilt/aarch64/esm.so
-f29088df04557504f466929faf2fa009da4ab9943262adf807f0e9151331f30c  prebuilt/aarch64/esp.so
-b9262ec7801fe41008ace006199cc4c875736650f30e76abd6fc556fbae91760  prebuilt/aarch64/fin.so
-f2fbc29214f30930aeba31da19290711a527f1b00dde3ae96be34f1210ed6e8e  prebuilt/aarch64/fra.so
-d77d6f4fec514d7b3e3a2fa514043840bf2f82a11ea5249fd00993bc847a1b73  prebuilt/aarch64/frc.so
-529f32d365bf330699f10b10738de8422403346af74f91bd57f2127256ac8cca  prebuilt/aarch64/ita.so
-01881941391f98044a7a6daa64826ff531f775b4ad1320caad64c678fa83bd3b  prebuilt/aarch64/jpnrom.so
-bba554b87af778086ca9b577b1152f18607cecaef1b1d56dc46ed05de79128bf  prebuilt/aarch64/jpn.so
-9410219b1f3940af304fb1fb46fa3187c8104dcbe2c1f1302f0f97cad2149e58  prebuilt/aarch64/korrom.so
-1934bf41cbabb4c454dfb59517697c15d6082577769ce835bcae3d1fd7d5280a  prebuilt/aarch64/kor.so
-3403ae8abf1dbe7b69930de27e4a69351ce972ca066bf8f1217fdce2defa92c6  prebuilt/aarch64/ptb.so
 
 cca58b182b1e40b5ef408387cceb6ca8d0a6a3bb0ddc47e9bc8b4be94e9ab9fd  vendor/tvOS-18.2/chs.dylib
 8964e8494970cd6fe9edba2c3e62fbea0b6c6071b68f93af968702f38ea4f3cd  vendor/tvOS-18.2/chsrom.dylib

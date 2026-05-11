@@ -734,6 +734,9 @@ def main():
     ap.add_argument("input", help="Path to Mach-O dylib slice (x86_64 or arm64)")
     ap.add_argument("-o", "--output", required=True, help="Output ELF .so path")
     ap.add_argument("--workdir", default=None, help="Intermediate files directory")
+    ap.add_argument("--cc", default=None,
+                    help="Override the C compiler to link with (defaults are 'gcc' for "
+                         "x86_64 and 'aarch64-linux-gnu-gcc' for arm64).")
     ap.add_argument("--no-link", action="store_true", help="Stop after generating asm/lds")
     args = ap.parse_args()
 
@@ -804,7 +807,7 @@ def main():
     import subprocess
     print("[macho2elf] building...")
 
-    cc = arch_cfg["gcc"]
+    cc = args.cc or arch_cfg["gcc"]
 
     # Generate empty stub shared objects for libraries the cross-sysroot lacks
     # (arm64 typically needs this for libc++/libc++abi).
