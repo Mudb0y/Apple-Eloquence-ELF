@@ -9,8 +9,9 @@
 # correctly-built sd_eloquence binary plus the per-arch ELFs.
 #
 # Trigger:
-#   - push of a v* or pre-* tag -> upload artifacts to a GitHub Release
-#   - manual workflow_dispatch  -> build the artifacts without releasing
+#   - push of a version-looking tag (v*, pre-*, or a leading-digit semver
+#     like 0.1.0) -> upload artifacts to a GitHub Release
+#   - manual workflow_dispatch    -> build the artifacts without releasing
 #     (useful for sanity-checking the pipeline)
 
 name: Release
@@ -20,6 +21,7 @@ on:
     tags:
       - 'v*'
       - 'pre-*'
+      - '[0-9]*'
   workflow_dispatch:
 
 jobs:
