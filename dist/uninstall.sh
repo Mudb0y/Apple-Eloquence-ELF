@@ -42,14 +42,38 @@ run() {
     fi
 }
 
-MODULEBINDIR=""
+# Try every place install.sh might have dropped the binary so an
+# upgrade-then-uninstall sequence on different distros still cleans up
+# fully.
+MODULEBINDIR_CANDIDATES=()
 if command -v pkg-config >/dev/null 2>&1; then
-    MODULEBINDIR="$(pkg-config --variable=modulebindir speech-dispatcher 2>/dev/null || true)"
+    pc="$(pkg-config --variable=modulebindir speech-dispatcher 2>/dev/null || true)"
+    [ -n "$pc" ] && MODULEBINDIR_CANDIDATES+=("$pc")
 fi
-[ -z "$MODULEBINDIR" ] && MODULEBINDIR="${PREFIX}/lib/speech-dispatcher-modules"
+MOD_LIB="$(ldconfig -p 2>/dev/null \
+    | awk '/libspeechd_module\.so/ {print $NF; exit}')"
+[ -n "$MOD_LIB" ] && MODULEBINDIR_CANDIDATES+=("$(dirname "$MOD_LIB")/speech-dispatcher-modules")
+MODULEBINDIR_CANDIDATES+=(\
+    "${PREFIX}/lib/$(uname -m)-linux-gnu/speech-dispatcher-modules" \
+    "${PREFIX}/lib/speech-dispatcher-modules" \
+    "${PREFIX}/lib64/speech-dispatcher-modules" )
 
 run rm -rf "${DESTDIR}${PREFIX}/lib/eloquence"
-run rm -f  "${DESTDIR}${MODULEBINDIR}/sd_eloquence"
+for cand in "${MODULEBINDIR_CANDIDATES[@]}"; do
+    run rm -f "${DESTDIR}${cand}/sd_eloquence"
+done
+
+# Strip the AddModule block install.sh added to speechd.conf.
+SPEECHD_CONF="${DESTDIR}${SYSCONFDIR}/speech-dispatcher/speechd.conf"
+if [ -f "$SPEECHD_CONF" ] \
+        && grep -qF "# >>> apple-eloquence-elf >>>" "$SPEECHD_CONF"; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  [dry-run] strip AddModule block from %s\n' "$SPEECHD_CONF"
+    else
+        sed -i '/# >>> apple-eloquence-elf >>>/,/# <<< apple-eloquence-elf <<</d' \
+            "$SPEECHD_CONF"
+    fi
+fi
 
 if [ "$PURGE" -eq 1 ]; then
     run rm -f "${DESTDIR}${SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf"

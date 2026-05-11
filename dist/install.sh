@@ -53,15 +53,49 @@ run() {
     fi
 }
 
-# Resolve speech-dispatcher's module install directory.  Fall back to
-# the FHS-standard path if pkg-config isn't around.
+# Resolve speech-dispatcher's module install directory.  End users
+# usually don't have libspeechd-dev installed so pkg-config alone is
+# not reliable.  Probe in order:
+#
+#   1. pkg-config (works on dev systems)
+#   2. the directory of libspeechd_module.so.0 (works whenever speech-
+#      dispatcher itself is installed, picks up multiarch on Debian)
+#   3. common candidate paths (multiarch first, then non-multiarch)
+#
 MODULEBINDIR=""
 if command -v pkg-config >/dev/null 2>&1; then
     MODULEBINDIR="$(pkg-config --variable=modulebindir speech-dispatcher 2>/dev/null || true)"
 fi
 if [ -z "$MODULEBINDIR" ]; then
+    # Derive from the loader's view of libspeechd_module.  On Debian /
+    # Ubuntu this gives /usr/lib/x86_64-linux-gnu/speech-dispatcher-modules;
+    # on Arch / Fedora it gives /usr/lib/speech-dispatcher-modules.
+    MOD_LIB="$(ldconfig -p 2>/dev/null \
+        | awk '/libspeechd_module\.so/ {print $NF; exit}')"
+    if [ -n "$MOD_LIB" ]; then
+        cand="$(dirname "$MOD_LIB")/speech-dispatcher-modules"
+        [ -d "$cand" ] && MODULEBINDIR="$cand"
+    fi
+fi
+if [ -z "$MODULEBINDIR" ]; then
+    for cand in \
+        "${PREFIX}/lib/$(uname -m)-linux-gnu/speech-dispatcher-modules" \
+        "${PREFIX}/lib/speech-dispatcher-modules" \
+        "${PREFIX}/lib64/speech-dispatcher-modules"
+    do
+        if [ -d "$cand" ]; then
+            MODULEBINDIR="$cand"
+            break
+        fi
+    done
+fi
+if [ -z "$MODULEBINDIR" ]; then
     MODULEBINDIR="${PREFIX}/lib/speech-dispatcher-modules"
-    echo "note: speech-dispatcher pkg-config not found; defaulting modulebindir to $MODULEBINDIR" >&2
+    echo "warning: could not detect speech-dispatcher's module directory;" >&2
+    echo "         falling back to ${MODULEBINDIR}." >&2
+    echo "         Is speech-dispatcher actually installed?  Try:" >&2
+    echo "             Debian/Ubuntu: apt install speech-dispatcher" >&2
+    echo "             Arch:          pacman -S speech-dispatcher" >&2
 fi
 
 DATA_DIR="${PREFIX}/lib/eloquence"
@@ -96,6 +130,34 @@ if [ -e "${DESTDIR}${CONF_DIR}/eloquence.conf" ]; then
     echo "      The new template is at ${here}/eloquence.conf if you want to diff."
 else
     run install -m 0644 "$here/eloquence.conf" "${DESTDIR}${CONF_DIR}/eloquence.conf"
+fi
+
+# Register the module with speech-dispatcher.  Without an AddModule
+# line in speechd.conf the daemon never discovers sd_eloquence and any
+# `spd-say -o eloquence` returns an opaque "module not loaded" error.
+SPEECHD_CONF="${DESTDIR}${SYSCONFDIR}/speech-dispatcher/speechd.conf"
+SD_BEGIN="# >>> apple-eloquence-elf >>>"
+SD_END="# <<< apple-eloquence-elf <<<"
+if [ -f "$SPEECHD_CONF" ]; then
+    if grep -qF "$SD_BEGIN" "$SPEECHD_CONF"; then
+        echo "note: AddModule \"eloquence\" already registered in $SPEECHD_CONF."
+    else
+        if [ "$DRY_RUN" -eq 1 ]; then
+            printf '  [dry-run] append AddModule block to %s\n' "$SPEECHD_CONF"
+        else
+            {
+                echo ""
+                echo "$SD_BEGIN"
+                echo "AddModule \"eloquence\" \"sd_eloquence\" \"eloquence.conf\""
+                echo "$SD_END"
+            } >> "$SPEECHD_CONF"
+        fi
+        echo "Registered \"eloquence\" in $SPEECHD_CONF."
+    fi
+else
+    echo "warning: $SPEECHD_CONF not found; you'll need to register the module"
+    echo "         manually by adding this line to your speechd.conf:" >&2
+    echo "             AddModule \"eloquence\" \"sd_eloquence\" \"eloquence.conf\"" >&2
 fi
 
 cat <<EOF
