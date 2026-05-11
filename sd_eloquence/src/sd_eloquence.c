@@ -428,34 +428,48 @@ int module_config(const char *configfile) {
 /* Engine init / lifecycle                                            */
 /* ------------------------------------------------------------------ */
 
-/* Push the cached SPD-side rate/pitch/volume for `slot` into the engine
- * for that slot. spd_to_eci_pct / spd_to_eci_speed are forward-declared
- * just below; this helper is called from apply_engine_state and module_set. */
+/* Engine slot 0 is the "active" voice on Apple's eci.dylib -- it's the
+ * slot used for synthesis. Setting per-voice parameters on slots 1..7
+ * configures stored presets but doesn't affect what the engine speaks
+ * with. To change voice we have to push the chosen preset's parameter
+ * values into slot 0; eciCopyVoice would do this too but writing the
+ * params directly is just as cheap and avoids depending on a feature
+ * Apple's build may handle differently. spd_to_eci_pct /
+ * spd_to_eci_speed are forward-declared because they're defined below
+ * but used here. */
 static int spd_to_eci_pct(int spd_val);
 static int spd_to_eci_speed(int spd_val);
 
-static void apply_voice_preset_to_slot(ECIHand h, int slot) {
+#define ECI_ACTIVE_SLOT 0
+
+static void activate_voice_preset(ECIHand h, int slot) {
     if (slot < 0 || slot >= (int)N_VOICE_PRESETS) return;
     const VoicePreset *v = &g_voice_presets[slot];
-    eci.SetVoiceParam(h, slot, eciGender,           v->gender);
-    eci.SetVoiceParam(h, slot, eciHeadSize,         v->head_size);
-    eci.SetVoiceParam(h, slot, eciPitchBaseline,    v->pitch_baseline);
-    eci.SetVoiceParam(h, slot, eciPitchFluctuation, v->pitch_fluctuation);
-    eci.SetVoiceParam(h, slot, eciRoughness,        v->roughness);
-    eci.SetVoiceParam(h, slot, eciBreathiness,      v->breathiness);
-    eci.SetVoiceParam(h, slot, eciVolume,           v->volume);
-    /* speed is intentionally not preset -- it follows SPD rate. */
+    DBG("activate %s: gender=%d head=%d pitch=%d breath=%d vol=%d",
+        v->name, v->gender, v->head_size, v->pitch_baseline, v->breathiness, v->volume);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciGender,           v->gender);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciHeadSize,         v->head_size);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline,    v->pitch_baseline);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchFluctuation, v->pitch_fluctuation);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciRoughness,        v->roughness);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciBreathiness,      v->breathiness);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume,           v->volume);
+    /* speed isn't part of the preset (it follows SPD rate). */
 
-    /* Then layer the SPD-side overrides if the user has set them. */
+    /* Layer the per-voice SPD overrides the user previously set. The
+     * caches are indexed by the SOURCE preset slot so picking a voice
+     * back later restores its rate/pitch/volume. */
     if (g_spd_rate[slot]   != INT_MIN)
-        eci.SetVoiceParam(h, slot, eciSpeed,         spd_to_eci_speed(g_spd_rate[slot]));
+        eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciSpeed,         spd_to_eci_speed(g_spd_rate[slot]));
     if (g_spd_pitch[slot]  != INT_MIN)
-        eci.SetVoiceParam(h, slot, eciPitchBaseline, spd_to_eci_pct(g_spd_pitch[slot]));
+        eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline, spd_to_eci_pct(g_spd_pitch[slot]));
     if (g_spd_volume[slot] != INT_MIN)
-        eci.SetVoiceParam(h, slot, eciVolume,        spd_to_eci_pct(g_spd_volume[slot]));
+        eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume,        spd_to_eci_pct(g_spd_volume[slot]));
 }
 
-/* Apply our full cached state to a freshly-created engine handle. */
+/* Apply our full cached state to a freshly-created engine handle:
+ * sample rate, the currently selected voice preset, and the standard
+ * synthesis callback/output buffer wiring. */
 static void apply_engine_state(ECIHand h) {
     if (eci.SetParam(h, eciSampleRate, g_default_sample_rate) < 0) {
         DBG("apply: setParam(eciSampleRate=%d) rejected, falling back to 11025 Hz",
@@ -463,8 +477,7 @@ static void apply_engine_state(ECIHand h) {
         g_default_sample_rate = 1;
         eci.SetParam(h, eciSampleRate, g_default_sample_rate);
     }
-    for (int i = 0; i < (int)N_VOICE_PRESETS; i++)
-        apply_voice_preset_to_slot(h, i);
+    activate_voice_preset(h, g_current_voice_slot);
     eci.RegisterCallback(h, eci_cb, NULL);
     eci.SetOutputBuffer(h, PCM_CHUNK_SAMPLES, g_pcm_chunk);
 }
@@ -795,24 +808,30 @@ int module_set(const char *var, const char *val) {
     if (!h_engine) return -1;
     DBG("module_set: %s = %s", var, val);
 
+    /* rate/pitch/volume always set on ECI_ACTIVE_SLOT (slot 0) since
+     * that's the slot the engine actually synthesizes with. We cache
+     * the value indexed by the current preset slot so that the user's
+     * adjustment travels with that voice -- selecting Shelley, dialing
+     * her down to rate=-30, switching to Reed, and switching back to
+     * Shelley keeps Shelley at -30. */
     if (strcasecmp(var, "rate") == 0) {
         int spd = atoi(val);
         g_spd_rate[g_current_voice_slot] = spd;
-        eci.SetVoiceParam(h_engine, g_current_voice_slot,
+        eci.SetVoiceParam(h_engine, ECI_ACTIVE_SLOT,
                           eciSpeed, spd_to_eci_speed(spd));
         return 0;
     }
     if (strcasecmp(var, "pitch") == 0) {
         int spd = atoi(val);
         g_spd_pitch[g_current_voice_slot] = spd;
-        eci.SetVoiceParam(h_engine, g_current_voice_slot,
+        eci.SetVoiceParam(h_engine, ECI_ACTIVE_SLOT,
                           eciPitchBaseline, spd_to_eci_pct(spd));
         return 0;
     }
     if (strcasecmp(var, "volume") == 0) {
         int spd = atoi(val);
         g_spd_volume[g_current_voice_slot] = spd;
-        eci.SetVoiceParam(h_engine, g_current_voice_slot,
+        eci.SetVoiceParam(h_engine, ECI_ACTIVE_SLOT,
                           eciVolume, spd_to_eci_pct(spd));
         return 0;
     }
@@ -865,10 +884,11 @@ int module_set(const char *var, const char *val) {
                 }
             }
         }
-        /* Re-apply the slot's presets+overrides on the (possibly new)
-         * engine so the voice takes effect immediately. */
+        /* Push the chosen preset's parameter set into the engine's
+         * active slot so the voice change actually takes effect on
+         * the next synthesis. */
         if (h_engine)
-            apply_voice_preset_to_slot(h_engine, g_current_voice_slot);
+            activate_voice_preset(h_engine, g_current_voice_slot);
         return 0;
     }
     if (strcasecmp(var, "language") == 0) {
@@ -915,6 +935,8 @@ int module_set(const char *var, const char *val) {
         g_current_voice_slot = slot;
         DBG("voice_type %s -> slot %d (%s)",
             val, slot, g_voice_presets[slot].name);
+        /* Activate the new voice in the engine's active slot. */
+        activate_voice_preset(h_engine, g_current_voice_slot);
         return 0;
     }
     if (strcasecmp(var, "punctuation_mode") == 0) {
@@ -1077,9 +1099,11 @@ void module_speak_sync(const char *data, size_t bytes, SPDMessageType msgtype) {
 
     module_report_event_begin();
 
-    /* Tell engine to stop anything in flight (defensive) and queue this text. */
-    eci.Stop(h_engine);
-    /* Reset the output buffer since eciStop can detach it on some builds. */
+    /* The engine is already idle by the time we land here -- the
+     * previous module_speak_sync blocked in eciSynchronize and the
+     * explicit-interrupt path is module_stop, not this function.
+     * Re-bind the callback + output buffer (cheap, idempotent) and
+     * proceed to queue the new utterance. */
     eci.RegisterCallback(h_engine, eci_cb, NULL);
     eci.SetOutputBuffer(h_engine, PCM_CHUNK_SAMPLES, g_pcm_chunk);
 
