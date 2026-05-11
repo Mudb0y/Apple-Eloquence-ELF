@@ -63,14 +63,17 @@ jobs:
         # speech-dispatcher from upstream into /usr/local so the native
         # module SDK is available for the cmake step below.
         run: |
-          git clone --depth 1 --branch 0.12.0 \
-              https://github.com/brailcom/speechd.git /tmp/speechd
-          cd /tmp/speechd
-          ./build.sh 2>/dev/null || ./autogen.sh
-          # We only installed libpulse-dev for audio + the speechd build
-          # essentials. TTS engines (espeak-ng, flite, pico, ibmtts ...)
-          # auto-skip when their dev packages aren't present, so the only
-          # explicit knob we need is to skip the Python bindings.
+          mkdir -p /tmp/speechd && cd /tmp/speechd
+          curl -fsSL -o speechd.tar.gz \
+              https://github.com/brailcom/speechd/archive/refs/tags/0.12.0.tar.gz
+          tar xzf speechd.tar.gz --strip-components=1
+          ls -la
+          # autoreconf bootstraps configure from configure.ac regardless of
+          # whether the upstream ships build.sh / autogen.sh.
+          autoreconf -fi
+          # We installed only libpulse-dev for audio + autotools / glib /
+          # ltdl / dotconf for the build. TTS engines (espeak-ng, flite,
+          # pico, ibmtts ...) auto-skip with no dev deps installed.
           ./configure --prefix=/usr/local --disable-python
           make -j"$(nproc)"
           sudo make install
