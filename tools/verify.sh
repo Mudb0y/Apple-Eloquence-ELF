@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# verify.sh -- check that all shipped binaries match tools/checksums.txt
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [ ! -f tools/checksums.txt ]; then
+    echo "ERROR: tools/checksums.txt not found" >&2
+    exit 1
+fi
+
+# Filter out comment / empty lines, then run sha256sum -c
+grep -v '^#' tools/checksums.txt | grep -v '^$' | sha256sum -c --strict --quiet
+echo "All binaries match expected checksums."

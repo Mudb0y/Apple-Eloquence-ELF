@@ -1,0 +1,31 @@
+# Python venv
+venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+examples/speak
+examples/version
+*.o
+*.s
+*.bin
+
+# Generated work directories from macho2elf.py
+.m2e_*/
+build/*_work/
+
+# Runtime artifacts
+eci.dbg
+*.s16
+*.wav
+
+# Editor / OS junk
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local copies of test inputs
+slices/
+*.dmg
