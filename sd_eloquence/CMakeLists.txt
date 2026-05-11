@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
-project(sd_eloquence
-    VERSION 0.1.0
-    DESCRIPTION "Speech Dispatcher module for ETI Eloquence (ECI 6.x)"
-    LANGUAGES C)
+
+# Standalone build when invoked directly; otherwise inherits parent project.
+if(NOT DEFINED PROJECT_NAME)
+    project(sd_eloquence
+        VERSION 0.1.0
+        DESCRIPTION "Speech Dispatcher module for ETI Eloquence (ECI 6.x)"
+        LANGUAGES C)
+endif()
+
+include(GNUInstallDirs)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -69,11 +75,21 @@ if(SOXR_FOUND)
     target_link_libraries(sd_eloquence PRIVATE ${SOXR_LIBRARIES})
 endif()
 
+# Install paths follow GNUInstallDirs:
+#   binary:  $CMAKE_INSTALL_LIBDIR/speech-dispatcher-modules/sd_eloquence
+#            (with prefix=/usr -> /usr/lib/speech-dispatcher-modules)
+#   config:  $CMAKE_INSTALL_FULL_SYSCONFDIR/speech-dispatcher/modules/eloquence.conf
+#            (with prefix=/usr -> /etc/speech-dispatcher/modules
+#             with prefix=/tmp/xx -> /tmp/xx/etc/speech-dispatcher/modules)
+#
+# Distro packagers use `cmake --install build --prefix=/usr` which gives the
+# correct /etc/ path. Test installs with a non-/usr prefix get the config
+# under the prefix's etc/ subdir, so unprivileged dry-runs work.
 install(TARGETS sd_eloquence
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/speech-dispatcher-modules
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/speech-dispatcher-modules
 )
 install(FILES eloquence.conf
-    DESTINATION /etc/speech-dispatcher/modules
+    DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules
 )
 
 message(STATUS "")

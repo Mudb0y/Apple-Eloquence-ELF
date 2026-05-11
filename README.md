@@ -65,6 +65,37 @@ sed -i "s|^Path=.*$|Path=$(pwd)/enu.so|" eci.ini
 aplay -r 11025 -f S16_LE /tmp/eci_out.s16
 ```
 
+## System install (any distro)
+
+`cmake --install` puts everything in standard FHS paths:
+
+```bash
+# Build tools + speech-dispatcher module
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build
+
+# Install (needs root for /usr and /etc paths)
+sudo cmake --install build
+```
+
+Files placed:
+- `/usr/bin/macho2elf` — converter CLI
+- `/usr/lib/speech-dispatcher-modules/sd_eloquence` — speechd module binary
+- `/etc/speech-dispatcher/modules/eloquence.conf` — module config template
+- `/usr/share/doc/apple-eloquence-elf/` — README + docs
+
+Runtime deps the install does NOT pull in (install via your distro):
+
+| Component | Arch | Debian/Ubuntu | Fedora |
+|---|---|---|---|
+| LIEF (Python) | `python-lief` | `python3-lief` | `python3-lief` |
+| C++ runtime | `libc++ libc++abi` | `libc++1 libc++abi1` | `libcxx libcxxabi` |
+| Resampler (optional) | `libsoxr` | `libsoxr0` | `soxr` |
+| llvm tools (for `llvm-lipo`) | `llvm` | `llvm` | `llvm` |
+| aarch64 cross-build (optional) | `aarch64-linux-gnu-{gcc,binutils}` | `gcc-aarch64-linux-gnu` | `gcc-aarch64-linux-gnu` |
+
+Then convert your own Apple dylibs (see `docs/02-conversion.md`) or grab pre-converted release artifacts from the [GitHub Releases page](../../releases) (built by CI on a macOS runner from the actual Apple SDK).
+
 To try Japanese, Korean, Chinese, etc: change the `Path=` to `jpn.so`,
 `kor.so`, `chs.so`, `cht.so` and so on. See `docs/03-integration.md` for
 the complete API guide.
