@@ -20,17 +20,34 @@
 
 /* ECI callback return codes */
 #define eciDataProcessed 1
+#define eciDataAbort     2
 
 typedef int (*ECICallback)(void *hEngine, int msg, long lParam, void *pData);
 
-static int16_t *g_pcm;
-static long     g_pcm_len;
+/* Engine writes into g_pcm_chunk; the callback appends each chunk into a
+ * growing g_pcm buffer so we capture the whole utterance, not just the last
+ * chunk. */
+#define CHUNK_SAMPLES 8192
+static int16_t  g_pcm_chunk[CHUNK_SAMPLES];
+static int16_t *g_pcm        = NULL;
+static long     g_pcm_len    = 0;
+static long     g_pcm_cap    = 0;
 
 static int my_callback(void *hEngine, int msg, long lParam, void *pData) {
     (void)hEngine; (void)pData;
-    if (msg == eciWaveformBuffer) {
-        g_pcm_len += lParam;
+    if (msg != eciWaveformBuffer || lParam <= 0) return eciDataProcessed;
+
+    long need = g_pcm_len + lParam;
+    if (need > g_pcm_cap) {
+        long new_cap = g_pcm_cap ? g_pcm_cap * 2 : 65536;
+        while (new_cap < need) new_cap *= 2;
+        int16_t *p = realloc(g_pcm, (size_t)new_cap * sizeof(int16_t));
+        if (!p) return eciDataAbort;
+        g_pcm = p;
+        g_pcm_cap = new_cap;
     }
+    memcpy(g_pcm + g_pcm_len, g_pcm_chunk, (size_t)lParam * sizeof(int16_t));
+    g_pcm_len += lParam;
     return eciDataProcessed;
 }
 
@@ -78,13 +95,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    /* 1 MB PCM buffer (16-bit mono @ 11025 Hz) */
-    g_pcm = calloc(524288, 2);
-    g_pcm_len = 0;
-
-    /* Callback MUST be registered before SetOutputBuffer */
+    /* Callback MUST be registered before SetOutputBuffer. The engine writes
+     * each PCM chunk into g_pcm_chunk and the callback appends it to a
+     * growing g_pcm. */
     eciRegisterCallback(eci, my_callback, NULL);
-    eciSetOutputBuffer(eci, 524288, g_pcm);
+    eciSetOutputBuffer(eci, CHUNK_SAMPLES, g_pcm_chunk);
     eciAddText(eci, text);
     eciSynthesize(eci);
     eciSynchronize(eci);

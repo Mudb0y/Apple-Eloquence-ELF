@@ -1,5 +1,5 @@
 CC      ?= gcc
-CFLAGS  += -Wall -O2 -g
+CFLAGS  += -std=c11 -Wall -Wextra -Wno-unused-parameter -O2 -g
 
 all: speak version
 
