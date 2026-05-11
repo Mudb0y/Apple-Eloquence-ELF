@@ -491,12 +491,28 @@ SPDVoice **module_list_voices(void) {
 /* SPD parameter -> ECI mapping                                       */
 /* ------------------------------------------------------------------ */
 
-/* SPD rate/pitch/volume range: -100..+100. ECI uses 0..100 for these. */
+/* SPD rate/pitch/volume range: -100..+100.
+ *
+ * Pitch and volume use ECI's 0..100 range, mapped linearly.
+ *
+ * Speed is different: Apple's eci.dylib accepts eciSpeed values 0..250
+ * (the IBM ViaVoice range), with engine default = 50. Capping our output
+ * at 100 left "+100 in Orca is still slow" because we only exposed ~40%
+ * of the engine's real range. Map SPD -100..+100 linearly to ECI 0..200
+ * so SPD=0 lands at ECI=100 (a fluent reading pace, ~2x engine default)
+ * and SPD=+100 lands at ECI=200 (very fast, with 50 units of engine
+ * headroom remaining if anyone needs even faster). */
 static int spd_to_eci_pct(int spd_val) {
-    /* Linear map -100..+100 -> 0..100 */
     int v = (spd_val + 100) / 2;
     if (v < 0) v = 0;
     if (v > 100) v = 100;
+    return v;
+}
+
+static int spd_to_eci_speed(int spd_val) {
+    int v = spd_val + 100;   /* -100..+100 -> 0..200 */
+    if (v < 0) v = 0;
+    if (v > 200) v = 200;
     return v;
 }
 
@@ -507,7 +523,7 @@ int module_set(const char *var, const char *val) {
     DBG("module_set: %s = %s", var, val);
 
     if (strcasecmp(var, "rate") == 0) {
-        int v = spd_to_eci_pct(atoi(val));
+        int v = spd_to_eci_speed(atoi(val));
         eci.SetVoiceParam(h_engine, current_voice_slot, eciSpeed, v);
         return 0;
     }
@@ -562,12 +578,20 @@ int module_set(const char *var, const char *val) {
         return 0;
     }
     if (strcasecmp(var, "punctuation_mode") == 0) {
-        /* SPD: none / some / most / all -> ECI eciTextMode */
+        /* SPD: none / some / most / all -> ECI eciTextMode.
+         *
+         * ECI text modes (cross-verified against Apple's eci.dylib):
+         *   0 = normal (engine default punctuation handling)
+         *   1 = alphanumeric (single chars pronounced one at a time)
+         *   2 = verbatim (every char including punctuation read by name)
+         *   3 = phonetic alphabet ("Tango" for T) -- NOT what "spell
+         *       punctuation" means; we don't use this mode anywhere.
+         */
         int mode = 0;
-        if (!strcasecmp(val, "none")) mode = 1;        /* skip punctuation */
-        else if (!strcasecmp(val, "some")) mode = 0;   /* default */
+        if      (!strcasecmp(val, "none")) mode = 0;
+        else if (!strcasecmp(val, "some")) mode = 0;
         else if (!strcasecmp(val, "most")) mode = 0;
-        else if (!strcasecmp(val, "all"))  mode = 3;   /* spell punctuation */
+        else if (!strcasecmp(val, "all"))  mode = 2;
         eci.SetParam(h_engine, eciTextMode, mode);
         return 0;
     }
@@ -729,11 +753,14 @@ void module_speak_sync(const char *data, size_t bytes, SPDMessageType msgtype) {
     }
     DBG("speak (post-strip): '%.80s%s'", text, strlen(text) > 80 ? "..." : "");
 
-    /* For msgtype == SPD_MSGTYPE_CHAR / SPD_MSGTYPE_KEY: use spell mode. */
+    /* For SPD_MSGTYPE_CHAR / SPD_MSGTYPE_KEY, each char is spelled out.
+     * Mode 2 (verbatim) speaks "T" as "T" and "." as "period"; mode 3
+     * is the NATO phonetic alphabet ("Tango") which isn't what users
+     * want for letter-by-letter readout. */
     if (msgtype == SPD_MSGTYPE_CHAR || msgtype == SPD_MSGTYPE_KEY) {
-        eci.SetParam(h_engine, eciTextMode, 3);   /* spell */
+        eci.SetParam(h_engine, eciTextMode, 2);
     } else {
-        eci.SetParam(h_engine, eciTextMode, 0);   /* normal */
+        eci.SetParam(h_engine, eciTextMode, 0);
     }
 
     /* eciAddText returns nonzero on success, 0 on failure. */
