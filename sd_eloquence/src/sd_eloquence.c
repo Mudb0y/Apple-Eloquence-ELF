@@ -81,6 +81,15 @@ static int g_spd_rate[N_VOICE_PRESETS];
 static int g_spd_pitch[N_VOICE_PRESETS];
 static int g_spd_volume[N_VOICE_PRESETS];
 
+/* At init we probe each language with eciNewEx and remember which ones
+ * succeed. CJK (jpn/kor/chs/cht) currently fail with retval=-21 inside
+ * the language module -- they need data files that Apple's framework
+ * provides but our extraction doesn't carry. Gating them here keeps
+ * speech-dispatcher and Orca stable; advertising broken voices and
+ * crashing on selection is the worse outcome. Working languages are
+ * marked with 1, broken ones with 0. */
+static int g_lang_available[14];  /* parallel to g_langs[] */
+
 /* PCM buffer the engine fills via eciSetOutputBuffer + our callback. */
 #define PCM_CHUNK_SAMPLES   8192        /* per-chunk request, in samples */
 static int16_t  g_pcm_chunk[PCM_CHUNK_SAMPLES];
@@ -131,10 +140,28 @@ static const LangEntry *find_lang_by_dialect(int dialect) {
     return NULL;
 }
 
-static const LangEntry *find_lang_by_iso(const char *iso2) {
-    /* Match the leading 2 chars of the SPD language tag. */
-    for (size_t i = 0; i < N_LANGS; i++)
-        if (strncasecmp(iso2, g_langs[i].iso_lang, 2) == 0) return &g_langs[i];
+static const LangEntry *find_lang_by_iso(const char *tag) {
+    /* Accept either an ISO 639-1 prefix ("en", "de") or a full IETF tag
+     * ("en-US", "de-DE"). The full tag is preferred -- it picks the
+     * exact dialect -- so try that match first. Fall back to the
+     * language-only match when no region is given. */
+    for (size_t i = 0; i < N_LANGS; i++) {
+        char ietf[16];
+        snprintf(ietf, sizeof(ietf), "%s-%s",
+                 g_langs[i].iso_lang, g_langs[i].iso_variant);
+        if (strcasecmp(tag, ietf) == 0) return &g_langs[i];
+        /* Some callers may pass lowercase region: "en-us". snprintf
+         * above produced lowercase region already, so the strcasecmp
+         * caught that too. */
+    }
+    /* Fall back to first match on the language portion only. */
+    for (size_t i = 0; i < N_LANGS; i++) {
+        size_t lang_len = strlen(g_langs[i].iso_lang);
+        if (strncasecmp(tag, g_langs[i].iso_lang, lang_len) == 0 &&
+            (tag[lang_len] == 0 || tag[lang_len] == '-' ||
+             tag[lang_len] == '_'))
+            return &g_langs[i];
+    }
     return NULL;
 }
 
@@ -440,30 +467,52 @@ static void apply_engine_state(ECIHand h) {
     eci.SetOutputBuffer(h, PCM_CHUNK_SAMPLES, g_pcm_chunk);
 }
 
-/* Destroy the current engine (if any) and recreate it with eciNewEx for
- * `dialect`. Returns 0 on success, -1 on failure (h_engine is NULL on
- * failure). */
+/* Atomic-swap engine for a new language: create the new handle BEFORE
+ * destroying the old one. If eciNewEx fails (broken / unsupported
+ * language), the previous engine stays alive so synthesis continues
+ * with whatever was active before. Returns 0 on success, -1 on
+ * failure (h_engine unchanged on failure). */
 static int rebuild_engine_for_language(int dialect) {
+    ECIHand h_new = eci.NewEx(dialect);
+    if (!h_new) {
+        const LangEntry *lang = find_lang_by_dialect(dialect);
+        fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed -- "
+                "keeping previous engine alive\n",
+                dialect, lang ? lang->human : "?");
+        return -1;
+    }
     if (h_engine) {
         eci.Stop(h_engine);
         eci.Delete(h_engine);
-        h_engine = NULL;
     }
-    h_engine = eci.NewEx(dialect);
-    if (!h_engine) {
-        const LangEntry *lang = find_lang_by_dialect(dialect);
-        fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed -- "
-                "language module %s not loadable from %s\n",
-                dialect, lang ? lang->human : "?",
-                lang ? lang->so_name : "?", g_data_dir);
-        return -1;
-    }
+    h_engine = h_new;
     g_current_language = dialect;
     apply_engine_state(h_engine);
     DBG("engine rebuilt for language %#x (%s)",
         dialect, find_lang_by_dialect(dialect)
                  ? find_lang_by_dialect(dialect)->human : "?");
     return 0;
+}
+
+/* Probe each language with eciNewEx and record which succeed in
+ * g_lang_available[]. Logs the survey result so users can see what's
+ * actually usable. CJK currently all fail with retval=-21 inside the
+ * language module; this gate makes that a non-issue. */
+static void probe_languages(void) {
+    int ok = 0;
+    for (size_t li = 0; li < N_LANGS; li++) {
+        ECIHand probe = eci.NewEx(g_langs[li].eci_dialect);
+        if (probe) {
+            g_lang_available[li] = 1;
+            eci.Delete(probe);
+            ok++;
+        } else {
+            g_lang_available[li] = 0;
+        }
+        DBG("probe %-30s %s",
+            g_langs[li].human, g_lang_available[li] ? "available" : "unavailable");
+    }
+    DBG("language probe: %d of %zu languages available", ok, N_LANGS);
 }
 
 /* chdir() into g_data_dir before dlopen so the engine's static
@@ -533,13 +582,30 @@ int module_init(char **msg) {
         return -1;
     }
 
-    /* Create the engine for the configured default language. eciNewEx
-     * loads the matching language module from the eci.ini section that
-     * corresponds to the dialect code. */
+    /* Probe every supported language so we know which ones to advertise
+     * to speech-dispatcher. CJK currently all fail with retval=-21 in
+     * the language module's init; the probe gates them out. */
+    probe_languages();
+
+    /* If the configured default language is unavailable, fall back to
+     * the first language that works (en-US in practice). */
+    const LangEntry *def = find_lang_by_dialect(g_default_language);
+    int def_idx = def ? (int)(def - g_langs) : -1;
+    if (def_idx < 0 || !g_lang_available[def_idx]) {
+        for (size_t li = 0; li < N_LANGS; li++) {
+            if (g_lang_available[li]) {
+                DBG("default language %#x unavailable, falling back to %s",
+                    g_default_language, g_langs[li].human);
+                g_default_language = g_langs[li].eci_dialect;
+                break;
+            }
+        }
+    }
+
     if (rebuild_engine_for_language(g_default_language) != 0) {
         if (msg) *msg = strdup(
-            "eciNewEx returned NULL -- check that EloquenceDataDir holds "
-            "a complete language set and that eci.ini references each .so");
+            "eciNewEx returned NULL for every probed language -- check that "
+            "EloquenceDataDir holds a working ECI runtime and language set");
         return -1;
     }
 
@@ -589,22 +655,43 @@ int module_close(void) {
 /* ------------------------------------------------------------------ */
 /* Voice listing                                                      */
 /* ------------------------------------------------------------------ */
+/* Build an upper-case IETF region tag: "us" -> "US". */
+static void uppercase_region(char *p) {
+    for (; *p; p++)
+        if (*p >= 'a' && *p <= 'z') *p -= 32;
+}
+
 SPDVoice **module_list_voices(void) {
-    int n = (int)N_LANGS * (int)N_VOICE_PRESETS;
-    SPDVoice **list = calloc(n + 1, sizeof(SPDVoice *));
+    /* Capacity = N_LANGS * N_VOICE_PRESETS (the worst case before
+     * gating). The actual count after filtering broken languages may
+     * be smaller; trailing entries stay NULL. */
+    int cap = (int)N_LANGS * (int)N_VOICE_PRESETS;
+    SPDVoice **list = calloc(cap + 1, sizeof(SPDVoice *));
     if (!list) return NULL;
     int idx = 0;
     for (size_t li = 0; li < N_LANGS; li++) {
+        if (!g_lang_available[li]) continue;
         for (int vi = 0; vi < (int)N_VOICE_PRESETS; vi++) {
             SPDVoice *v = calloc(1, sizeof(SPDVoice));
             if (!v) continue;
-            char name[64];
-            snprintf(name, sizeof(name), "%s (%s)",
-                     voice_display_name(vi, &g_langs[li]),
-                     g_langs[li].human);
-            v->name     = strdup(name);
-            v->language = strdup(g_langs[li].iso_lang);
-            v->variant  = strdup(g_langs[li].iso_variant);
+            /* Orca's UI groups by `language` (so we need the full IETF
+             * tag here -- "en" alone collapses en-US and en-GB into one
+             * "English" entry) and shows `variant` as the per-voice
+             * "Person" label. `name` is the unique identifier passed
+             * back as synthesis_voice; it must be distinct across the
+             * whole list. */
+            char ietf[16];
+            snprintf(ietf, sizeof(ietf), "%s-%s",
+                     g_langs[li].iso_lang, g_langs[li].iso_variant);
+            uppercase_region(ietf + strlen(g_langs[li].iso_lang) + 1);
+
+            char unique_name[64];
+            const char *voice = voice_display_name(vi, &g_langs[li]);
+            snprintf(unique_name, sizeof(unique_name), "%s-%s", voice, ietf);
+
+            v->name     = strdup(unique_name);
+            v->language = strdup(ietf);
+            v->variant  = strdup(voice);
             list[idx++] = v;
         }
     }
@@ -689,14 +776,20 @@ int module_set(const char *var, const char *val) {
             DBG("unknown language '%s'", val);
             return 0;
         }
+        int idx = (int)(L - g_langs);
+        if (!g_lang_available[idx]) {
+            DBG("language '%s' (%s) not available; engine refused init at probe",
+                val, L->human);
+            return 0;
+        }
         if (L->eci_dialect == g_current_language) {
             DBG("language already %s", L->human);
             return 0;
         }
         /* Apple's eciSetParam(eciLanguageDialect, X) is unreliable mid-
          * session; recreate the engine via eciNewEx instead. The recreate
-         * is ~0.6ms so it's transparent to the user, and apply_engine_state
-         * reapplies the cached voice presets + per-slot rate/pitch/volume. */
+         * is ~0.6ms so it's transparent to the user. rebuild_engine_for_language
+         * does an atomic swap -- on failure the old engine stays alive. */
         DBG("language switch %s -> %s; rebuilding engine",
             find_lang_by_dialect(g_current_language)
                 ? find_lang_by_dialect(g_current_language)->human : "?",
