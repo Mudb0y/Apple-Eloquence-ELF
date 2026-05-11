@@ -442,29 +442,69 @@ static int spd_to_eci_speed(int spd_val);
 
 #define ECI_ACTIVE_SLOT 0
 
+/* Switch the engine's active voice (slot 0) to a different preset.
+ *
+ * Writes ALL eight per-voice parameters explicitly, every time, even
+ * the ones the new preset shares with the old one. Otherwise the
+ * leftover values from the previous voice "leak" into the new one --
+ * e.g. switching from Reed (pitchBase=65) to Sandy (pitchBase=93)
+ * with only the differing fields set would let Reed's pitch survive
+ * if the engine fast-paths SetVoiceParam to a no-op when the new
+ * value equals the cached one, or if some param re-derives others
+ * after a later write.
+ *
+ * Order matters less than completeness, but we go gender -> head ->
+ * pitch_fluct -> pitch_base -> roughness -> breath -> speed -> volume
+ * so the dominant "voice shape" params (gender, head, pitch) land
+ * before the modulation params (roughness, breath).
+ *
+ * eciSpeed: the preset itself doesn't ship a speed (Apple's plist
+ * pins every preset at speed=50), so we use Apple's 50 unless the
+ * user has dialed a per-voice SPD rate override for this slot.
+ *
+ * SPD per-voice overrides (rate/pitch/volume) get layered on at
+ * the end so they win over the preset defaults. */
 static void activate_voice_preset(ECIHand h, int slot) {
     if (slot < 0 || slot >= (int)N_VOICE_PRESETS) return;
     const VoicePreset *v = &g_voice_presets[slot];
-    DBG("activate %s: gender=%d head=%d pitch=%d breath=%d vol=%d",
-        v->name, v->gender, v->head_size, v->pitch_baseline, v->breathiness, v->volume);
+
+    int speed_val = (g_spd_rate[slot]   != INT_MIN)
+                    ? spd_to_eci_speed(g_spd_rate[slot])
+                    : 50;
+    int pitch_val = (g_spd_pitch[slot]  != INT_MIN)
+                    ? spd_to_eci_pct(g_spd_pitch[slot])
+                    : v->pitch_baseline;
+    int vol_val   = (g_spd_volume[slot] != INT_MIN)
+                    ? spd_to_eci_pct(g_spd_volume[slot])
+                    : v->volume;
+
+    DBG("activate %s: gender=%d head=%d pitch=%d/%d rough=%d breath=%d speed=%d vol=%d",
+        v->name, v->gender, v->head_size,
+        pitch_val, v->pitch_fluctuation,
+        v->roughness, v->breathiness, speed_val, vol_val);
+
     eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciGender,           v->gender);
     eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciHeadSize,         v->head_size);
-    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline,    v->pitch_baseline);
     eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchFluctuation, v->pitch_fluctuation);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline,    pitch_val);
     eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciRoughness,        v->roughness);
     eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciBreathiness,      v->breathiness);
-    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume,           v->volume);
-    /* speed isn't part of the preset (it follows SPD rate). */
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciSpeed,            speed_val);
+    eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume,           vol_val);
 
-    /* Layer the per-voice SPD overrides the user previously set. The
-     * caches are indexed by the SOURCE preset slot so picking a voice
-     * back later restores its rate/pitch/volume. */
-    if (g_spd_rate[slot]   != INT_MIN)
-        eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciSpeed,         spd_to_eci_speed(g_spd_rate[slot]));
-    if (g_spd_pitch[slot]  != INT_MIN)
-        eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline, spd_to_eci_pct(g_spd_pitch[slot]));
-    if (g_spd_volume[slot] != INT_MIN)
-        eci.SetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume,        spd_to_eci_pct(g_spd_volume[slot]));
+    /* Read back what the engine actually accepted so we can spot any
+     * silent rejection. The numbers should match what we just set; if
+     * they don't, the engine refused that param and we need to debug
+     * the interaction. */
+    DBG("readback   : gender=%d head=%d pitch=%d/%d rough=%d breath=%d speed=%d vol=%d",
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciGender),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciHeadSize),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchFluctuation),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciRoughness),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciBreathiness),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciSpeed),
+        eci.GetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume));
 }
 
 /* Apply our full cached state to a freshly-created engine handle:
