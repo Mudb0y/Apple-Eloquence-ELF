@@ -55,6 +55,18 @@ jobs:
               libltdl-dev libdotconf-dev libglib2.0-dev libpulse-dev \
               libsndfile1-dev libsystemd-dev \
               curl
+          # Ubuntu's llvm package only installs llvm-lipo-NN; symlink the
+          # newest one as the unversioned name so the rest of the workflow
+          # can just call `llvm-lipo`.
+          if ! command -v llvm-lipo >/dev/null; then
+              LIPO=$(ls /usr/bin/llvm-lipo-* 2>/dev/null | sort -V | tail -1)
+              if [ -z "$LIPO" ]; then
+                  echo "no llvm-lipo* binary found after installing llvm" >&2
+                  exit 1
+              fi
+              sudo ln -sf "$LIPO" /usr/local/bin/llvm-lipo
+          fi
+          llvm-lipo --version | head -2
           python3 -m venv venv
           ./venv/bin/pip install --upgrade pip
           ./venv/bin/pip install lief
