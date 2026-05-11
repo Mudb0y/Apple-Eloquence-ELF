@@ -30,3 +30,4 @@ eci.dbg
 slices/
 *.dmg
 build/
+eci.ini
