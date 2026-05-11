@@ -98,10 +98,31 @@ prebuilt/x86_64/          Pre-converted ELF .so files for Linux x86_64
 prebuilt/aarch64/         Pre-converted ELF .so files for Linux aarch64
 examples/speak.c          Full TTS C example using dlopen + the ECI callback API
 examples/eci.ini          Minimal config (the engine has built-in voice/phoneme defaults)
+sd_eloquence/             Native Speech Dispatcher module -- wires Eloquence into
+                          Orca, spd-say, and other speechd clients. Optional
+                          libsoxr resampling for "Apple higher sample rate"-style
+                          output quality. See sd_eloquence/README.md.
 docs/                     Extraction, conversion, integration, internals, troubleshooting
 tools/checksums.txt       SHA256 of every shipped binary + the source DMG
 tools/verify.sh           Verify shipped binaries match expected checksums
 ```
+
+## Speech Dispatcher integration
+
+The bundled `sd_eloquence/` subproject is a native speech-dispatcher output
+module that loads the converted Eloquence dylibs and exposes them to Orca,
+spd-say, and any other SSIP-speaking client. It's a fresh implementation
+(not derived from voxin/viavoice-spd) and includes optional libsoxr-based
+output resampling so you can mimic Apple's "Higher sample rate" toggle.
+
+Quick build + install:
+```
+cmake -B sd_eloquence/build -S sd_eloquence
+cmake --build sd_eloquence/build
+sudo cmake --install sd_eloquence/build
+# Edit /etc/speech-dispatcher/modules/eloquence.conf, register in speechd.conf.
+```
+See `sd_eloquence/README.md` for the full guide.
 
 ## How it works (the very short version)
 
