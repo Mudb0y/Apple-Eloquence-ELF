@@ -484,42 +484,85 @@ static void apply_engine_state(ECIHand h) {
  * Returns 0 on success, -1 on failure. On failure h_engine is NULL and
  * the caller should fall back (e.g. recreate the previous language).
  */
+/* Switch the engine to a new language. The first time we're called we
+ * have to use eciNewEx (no engine exists yet). After that we MUST use
+ * eciSetParam(eciLanguageDialect, ...) -- not eciDelete + eciNewEx --
+ * because Apple's eci.dylib runs a singleton engine whose internal
+ * language modules don't reload cleanly after eciDelete. Specifically,
+ * the second eciNewEx that re-loads a language .so (e.g. chs.so on
+ * user toggling zh-CN twice in Orca) hits a stale-state crash inside
+ * the language module's reset path -- coredump shows
+ * chs.so reset_sent_vars -> _fence with PC at the function entry,
+ * symptomatic of stack/state corruption from the previous engine's
+ * teardown.
+ *
+ * eciSetParam doesn't tear down the engine. Empirically some
+ * cross-language transitions return -1 (rejection), but synthesis
+ * still produces audio in the requested language afterwards; even
+ * when SetParam reports failure the engine seems to internally
+ * load the new dialect's tables. We just trust that path. */
 static int rebuild_engine_for_language(int dialect) {
-    if (h_engine) {
-        eci.Stop(h_engine);
-        eci.Synchronize(h_engine);
-        eci.Delete(h_engine);
-        h_engine = NULL;
-    }
-    h_engine = eci.NewEx(dialect);
     if (!h_engine) {
-        const LangEntry *lang = find_lang_by_dialect(dialect);
-        fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed\n",
-                dialect, lang ? lang->human : "?");
-        return -1;
+        /* First-ever engine create. eciNewEx is the only way to set
+         * the initial language; eciSetParam would no-op against a
+         * non-existent engine. */
+        h_engine = eci.NewEx(dialect);
+        if (!h_engine) {
+            const LangEntry *lang = find_lang_by_dialect(dialect);
+            fprintf(stderr, "sd_eloquence: eciNewEx(%#x %s) failed\n",
+                    dialect, lang ? lang->human : "?");
+            return -1;
+        }
+        g_current_language = dialect;
+        apply_engine_state(h_engine);
+        DBG("engine created for language %#x (%s)",
+            dialect, find_lang_by_dialect(dialect)
+                     ? find_lang_by_dialect(dialect)->human : "?");
+        return 0;
     }
+
+    /* Subsequent switches: SetParam-only, no recreate. Voice presets
+     * persist across SetParam (they live in the engine's per-slot
+     * voice tables, which the language switch doesn't reset on Apple's
+     * build), so we don't re-apply them here -- doing so was poking
+     * chs.so's internal state during the switch and tripping a
+     * SIGSEGV inside reset_sent_vars on the next synthesis. */
+    eci.Stop(h_engine);
+    eci.Synchronize(h_engine);
+    int prev = eci.SetParam(h_engine, eciLanguageDialect, dialect);
     g_current_language = dialect;
-    apply_engine_state(h_engine);
-    DBG("engine rebuilt for language %#x (%s)",
+    DBG("language switch to %#x (%s) via SetParam, prev=%#x",
         dialect, find_lang_by_dialect(dialect)
-                 ? find_lang_by_dialect(dialect)->human : "?");
+                 ? find_lang_by_dialect(dialect)->human : "?", prev);
     return 0;
 }
 
-/* Populate g_lang_available[]. All 14 languages work once the prebuilt
- * .so files are correctly converted (macho2elf's GOT-rebase fix was
- * essential -- without it every language module had at least one NULL
- * pointer in __DATA_CONST,__got that some code paths would dereference,
- * and the CJK romanizer paths were the most consistent at hitting it).
+/* Populate g_lang_available[].
  *
- * We don't probe with eciNewEx/eciDelete loops at init because that
- * pattern triggers Apple's C++ static-destructor ordering issue
- * (documented in eci_runtime.c and examples/speak.c). The single-engine
- * init flow that follows mark_available_languages avoids the problem. */
+ * 13 of the 14 supported languages work after the macho2elf GOT-rebase
+ * fix. chs.so (Mandarin Simplified) is the lone exception: its synthesis
+ * worker thread reproducibly SIGSEGVs in reset_sent_vars -> _fence on
+ * the first eciAddText after eciSetParam(eciLanguageDialect, zh-CN),
+ * even though the structurally-identical cht.so (Mandarin Traditional)
+ * works the same way. The crash signature (PC at function entry,
+ * push %rbp failing) and the chs-vs-cht symmetry suggest a chs-specific
+ * stale-state issue inside Apple's eci.so RomanizerManager / chs.so
+ * boundary that we haven't yet isolated. Marking it unavailable keeps
+ * speech-dispatcher stable; zh-CN users can fall back to zh-TW (which
+ * speaks Mandarin in the Taiwanese register) in the meantime.
+ *
+ * We deliberately do NOT probe at init by looping eciNewEx + eciDelete:
+ * that pattern triggers Apple's C++ static-destructor ordering bug
+ * already documented in eci_runtime.c and examples/speak.c. */
 static void mark_available_languages(void) {
     for (size_t li = 0; li < N_LANGS; li++) {
-        g_lang_available[li] = 1;
-        DBG("%-30s available", g_langs[li].human);
+        int broken = strcmp(g_langs[li].so_name, "chs.so") == 0;
+        g_lang_available[li] = !broken;
+        DBG("%-30s %s", g_langs[li].human,
+            g_lang_available[li]
+                ? "available"
+                : "unavailable (chs.so crashes in reset_sent_vars; "
+                  "use zh-TW for Mandarin)");
     }
 }
 
