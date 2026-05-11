@@ -53,6 +53,7 @@ jobs:
               build-essential autoconf automake libtool gettext autopoint \
               intltool texinfo \
               libltdl-dev libdotconf-dev libglib2.0-dev libpulse-dev \
+              libsndfile1-dev libsystemd-dev \
               curl
           python3 -m venv venv
           ./venv/bin/pip install --upgrade pip
