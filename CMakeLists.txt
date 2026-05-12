@@ -79,21 +79,23 @@ if(BUILD_SD_MODULE)
             endif()
         endif()
 
-        add_executable(sd_eloquence
-            sd_eloquence/src/sd_eloquence.c
-            sd_eloquence/src/eci_runtime.c)
-        target_include_directories(sd_eloquence PRIVATE
-            sd_eloquence/src
+        # Old monolith, kept building under a different target name during the
+        # rewrite. Will be deleted when the new sd_eloquence becomes the default.
+        add_executable(sd_eloquence_old
+            sd_eloquence/src/old/sd_eloquence.c
+            sd_eloquence/src/old/eci_runtime.c)
+        target_include_directories(sd_eloquence_old PRIVATE
+            sd_eloquence/src/old
             ${SPEECHD_INCLUDE_DIR}
             ${SPEECHD_INCLUDE_DIR}/speech-dispatcher)
-        target_link_libraries(sd_eloquence PRIVATE
+        target_link_libraries(sd_eloquence_old PRIVATE
             ${SPEECHD_MODULE_LIB}
             pthread
             dl)
         if(SOXR_FOUND)
-            target_compile_definitions(sd_eloquence PRIVATE HAVE_SOXR)
-            target_include_directories(sd_eloquence PRIVATE ${SOXR_INCLUDE_DIRS})
-            target_link_libraries(sd_eloquence PRIVATE ${SOXR_LIBRARIES})
+            target_compile_definitions(sd_eloquence_old PRIVATE HAVE_SOXR)
+            target_include_directories(sd_eloquence_old PRIVATE ${SOXR_INCLUDE_DIRS})
+            target_link_libraries(sd_eloquence_old PRIVATE ${SOXR_LIBRARIES})
         endif()
 
         # Install paths:
@@ -102,7 +104,7 @@ if(BUILD_SD_MODULE)
         #            daemon actually finds it.
         #   config:  ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf
         #            -- with prefix=/usr -> /etc/speech-dispatcher/modules.
-        install(TARGETS sd_eloquence
+        install(TARGETS sd_eloquence_old
             RUNTIME DESTINATION ${SPEECHD_MODULEBINDIR})
         install(FILES sd_eloquence/eloquence.conf
             DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules)
