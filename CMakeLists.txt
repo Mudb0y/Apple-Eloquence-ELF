@@ -123,7 +123,8 @@ if(BUILD_SD_MODULE)
         add_executable(sd_eloquence
             sd_eloquence/src/module_stub.c
             sd_eloquence/src/eci/runtime.c
-            sd_eloquence/src/eci/voices.c)
+            sd_eloquence/src/eci/voices.c
+            sd_eloquence/src/eci/languages.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
@@ -156,6 +157,12 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/eci/voices.c)
         target_include_directories(test_voices PRIVATE sd_eloquence/src)
         add_test(NAME test_voices COMMAND test_voices)
+
+        add_executable(test_languages
+            sd_eloquence/tests/test_languages.c
+            sd_eloquence/src/eci/languages.c)
+        target_include_directories(test_languages PRIVATE sd_eloquence/src)
+        add_test(NAME test_languages COMMAND test_languages)
 
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
