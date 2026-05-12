@@ -1,0 +1,180 @@
+/*
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * module.c -- speech-dispatcher entry points.
+ *
+ * Copyright (C) 2026 Mudb0y / Stas Przecinek
+ */
+#include <speech-dispatcher/spd_module_main.h>
+
+#include "config.h"
+#include "eci/engine.h"
+#include "eci/languages.h"
+#include "eci/voices.h"
+#include "audio/resampler.h"
+#include "audio/sink.h"
+#include "synth/worker.h"
+#include "synth/marks.h"
+#include "ssml/ssml.h"
+
+#include <errno.h>
+#include <limits.h>
+#include <stdatomic.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+
+static EloqConfig   g_cfg;
+static EciEngine    g_engine;
+static Resampler   *g_resampler = NULL;
+static AudioSink    g_sink;
+static SynthWorker *g_worker = NULL;
+static _Atomic uint32_t g_job_seq = 0;
+
+/* Per-voice SPD rate/pitch/volume overrides; INT_MIN = use preset default. */
+static int g_spd_rate[N_VOICE_PRESETS];
+static int g_spd_pitch[N_VOICE_PRESETS];
+static int g_spd_volume[N_VOICE_PRESETS];
+
+static int enter_data_dir(char **errmsg) {
+    char p[1024];
+    snprintf(p, sizeof(p), "%s/eci.so", g_cfg.data_dir);
+    if (access(p, R_OK) != 0) {
+        char buf[2048];
+        snprintf(buf, sizeof(buf), "%s not found (set EloquenceDataDir)", p);
+        if (errmsg) *errmsg = strdup(buf);
+        return -1;
+    }
+    snprintf(p, sizeof(p), "%s/eci.ini", g_cfg.data_dir);
+    if (access(p, R_OK) != 0) {
+        char buf[2048];
+        snprintf(buf, sizeof(buf), "%s not found (cmake --install should generate it)", p);
+        if (errmsg) *errmsg = strdup(buf);
+        return -1;
+    }
+    if (chdir(g_cfg.data_dir) != 0) {
+        char buf[2048];
+        snprintf(buf, sizeof(buf), "chdir(%s): %s", g_cfg.data_dir, strerror(errno));
+        if (errmsg) *errmsg = strdup(buf);
+        return -1;
+    }
+    return 0;
+}
+
+int module_config(const char *configfile) {
+    config_defaults(&g_cfg);
+    if (configfile) config_parse_file(&g_cfg, configfile);
+    return 0;
+}
+
+int module_init(char **msg) {
+    for (int i = 0; i < N_VOICE_PRESETS; i++) {
+        g_spd_rate[i]   = INT_MIN;
+        g_spd_pitch[i]  = INT_MIN;
+        g_spd_volume[i] = INT_MIN;
+    }
+    marks_init();
+
+    /* Mark languages: CJK gated for now (Phase 1+ enables case-by-case). */
+    for (int i = 0; i < N_LANGS; i++) {
+        const char *so = g_langs[i].so_name;
+        int is_cjk = (strcmp(so, "jpn.so") == 0 || strcmp(so, "kor.so") == 0 ||
+                      strcmp(so, "chs.so") == 0 || strcmp(so, "cht.so") == 0);
+        g_lang_state[i] = is_cjk ? LANG_DISABLED : LANG_AVAILABLE;
+    }
+
+    if (enter_data_dir(msg) != 0) return -1;
+
+    char eci_so[1024];
+    snprintf(eci_so, sizeof(eci_so), "%s/eci.so", g_cfg.data_dir);
+
+    /* engine_open passes NULL audio_cb because worker_create will reregister
+     * its own callback. */
+    if (engine_open(&g_engine, eci_so, g_cfg.default_language,
+                    g_cfg.default_sample_rate,
+                    NULL, NULL, NULL, 0, msg) != 0)
+        return -1;
+
+    /* Activate the default voice preset into slot 0. */
+    voice_activate(&g_engine.api, g_engine.h, g_cfg.default_voice_slot,
+                   INT_MIN, INT_MIN, INT_MIN);
+    g_engine.current_voice_slot = g_cfg.default_voice_slot;
+
+    char *re_err = NULL;
+    g_resampler = resampler_new(g_engine.sample_rate_hz, g_cfg.resample_rate,
+                                g_cfg.resample_quality, g_cfg.resample_phase,
+                                g_cfg.resample_steep, &re_err);
+    if (!g_resampler) {
+        if (re_err && msg) *msg = re_err;
+        return -1;
+    }
+    if (audio_sink_init(&g_sink, g_resampler, g_engine.sample_rate_hz,
+                        8192, msg) != 0)
+        return -1;
+
+    module_audio_set_server();
+
+    g_worker = worker_create(&g_engine, &g_sink, &g_cfg);
+    if (!g_worker) {
+        if (msg) *msg = strdup("worker_create failed");
+        return -1;
+    }
+
+    char ver[64] = { 0 };
+    g_engine.api.Version(ver);
+    if (msg) {
+        char *out = malloc(160);
+        if (out) {
+            const LangEntry *L = lang_by_dialect(g_engine.current_dialect);
+            snprintf(out, 160,
+                     "ETI Eloquence %s -- ready (rate=%d Hz, lang=%s, voice=%s)",
+                     ver, g_engine.sample_rate_hz,
+                     L ? L->human : "?",
+                     g_voice_presets[g_engine.current_voice_slot].name);
+        }
+        *msg = out;
+    }
+    return 0;
+}
+
+int module_close(void) {
+    worker_destroy(g_worker);
+    g_worker = NULL;
+    audio_sink_dispose(&g_sink);
+    resampler_free(g_resampler);
+    g_resampler = NULL;
+    engine_close(&g_engine);
+    return 0;
+}
+
+int module_audio_set(const char *var, const char *val)  { (void)var; (void)val; return 0; }
+int module_audio_init(char **s)                          { if (s) *s = strdup("ok"); return 0; }
+int module_loglevel_set(const char *v, const char *l)    {
+    if (!strcasecmp(v, "log_level")) g_cfg.debug = atoi(l) > 0;
+    return 0;
+}
+int module_debug(int e, const char *f)                   { g_cfg.debug = e; (void)f; return 0; }
+
+/* The remaining entry points are stubbed for now; filled in by Task G2. */
+int  module_speak(char *d, size_t b, SPDMessageType t) {
+    (void)d; (void)b; (void)t;
+    return -1;
+}
+void module_speak_sync(const char *d, size_t b, SPDMessageType t) {
+    (void)d; (void)b; (void)t;
+    module_speak_error();
+}
+void module_speak_begin(void) {}
+void module_speak_end(void)   {}
+void module_speak_pause(void) {}
+void module_speak_stop(void)  {}
+int  module_stop(void)        { return 0; }
+size_t module_pause(void)     { return 0; }
+int    module_set(const char *var, const char *val) {
+    (void)var; (void)val;
+    return 0;
+}
+SPDVoice **module_list_voices(void) { return NULL; }
+int    module_loop(void) { return module_process(STDIN_FILENO, 1); }

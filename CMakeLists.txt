@@ -121,7 +121,7 @@ if(BUILD_SD_MODULE)
 
         # New module (replaces sd_eloquence_old once feature-complete).
         add_executable(sd_eloquence
-            sd_eloquence/src/module_stub.c
+            sd_eloquence/src/module.c
             sd_eloquence/src/eci/runtime.c
             sd_eloquence/src/eci/voices.c
             sd_eloquence/src/eci/languages.c
