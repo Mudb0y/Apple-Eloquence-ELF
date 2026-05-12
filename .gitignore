@@ -37,3 +37,9 @@ eci.ini
 # tracked; the derived .so files do not.
 prebuilt/x86_64/*.so
 prebuilt/aarch64/*.so
+
+# Local worktrees (used by superpowers:using-git-worktrees + subagent-driven-development)
+.worktrees/
+
+# Reference repo cloned next to project; not vendored
+NVDA-IBMTTS-Driver/
