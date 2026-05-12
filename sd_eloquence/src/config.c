@@ -34,7 +34,7 @@ void config_defaults(EloqConfig *c) {
     c->rate_boost        = 0;
     c->pause_mode        = 2;
     c->phrase_prediction = 0;
-    c->send_params       = 1;
+    c->send_params       = 0;
     c->backquote_tags    = 0;
     c->cjk_segv_guard    = 0;
 }

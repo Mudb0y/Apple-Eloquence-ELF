@@ -56,6 +56,20 @@ int engine_open(EciEngine *e,
     e->sample_rate_param = sample_rate_param;
     e->sample_rate_hz    = sample_rate_param_to_hz(sample_rate_param);
 
+    /* Enable annotation parsing so backquote control tags ("`vv82", "`vs55",
+     * "`pp1", "`p<N>", "`l<dialect>", "`ts1", etc.) are interpreted as
+     * directives rather than spoken literally. NVDA's _ibmeci.py does the
+     * same; without these, the prefix injected by send_params/phrase_prediction
+     * gets pronounced as "backquote vv eight two ...".
+     *
+     * eciSynthMode  1 = TTS general text  (vs. 0 = screen-reader mode)
+     * eciInputType  1 = phonetic/annotated  (despite the name, this is what
+     *                  unlocks backquote-tag parsing on Apple's eci.dylib;
+     *                  NVDA's comment notes it's "required to process audio
+     *                  properly"). */
+    e->api.SetParam(e->h, eciSynthMode, 1);
+    e->api.SetParam(e->h, eciInputType, 1);
+
     if (audio_cb)        e->api.RegisterCallback(e->h, audio_cb, cb_data);
     if (pcm_chunk_samples > 0 && pcm_chunk)
         e->api.SetOutputBuffer(e->h, pcm_chunk_samples, pcm_chunk);
