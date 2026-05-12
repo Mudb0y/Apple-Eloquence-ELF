@@ -132,7 +132,8 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/synth/marks.c
             sd_eloquence/src/synth/job.c
             sd_eloquence/src/ssml/ssml.c
-            sd_eloquence/src/filters/filters.c)
+            sd_eloquence/src/filters/filters.c
+            sd_eloquence/src/filters/lang_global.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
@@ -200,6 +201,18 @@ if(BUILD_SD_MODULE)
             ${SPEECHD_INCLUDE_DIR}/speech-dispatcher)
         target_link_libraries(test_ssml PRIVATE ${LIBXML2_LIBRARIES} pthread)
         add_test(NAME test_ssml COMMAND test_ssml)
+
+        add_executable(test_filters
+            sd_eloquence/tests/test_filters.c
+            sd_eloquence/src/filters/filters.c
+            sd_eloquence/src/filters/lang_global.c)
+        target_include_directories(test_filters PRIVATE sd_eloquence/src)
+        if(PCRE2_FOUND)
+            target_compile_definitions(test_filters PRIVATE HAVE_PCRE2 PCRE2_CODE_UNIT_WIDTH=8)
+            target_include_directories(test_filters PRIVATE ${PCRE2_INCLUDE_DIRS})
+            target_link_libraries(test_filters PRIVATE ${PCRE2_LIBRARIES})
+        endif()
+        add_test(NAME test_filters COMMAND test_filters)
 
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
