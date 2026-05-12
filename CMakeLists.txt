@@ -131,6 +131,7 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/audio/sink.c
             sd_eloquence/src/synth/marks.c
             sd_eloquence/src/synth/job.c
+            sd_eloquence/src/synth/worker.c
             sd_eloquence/src/ssml/ssml.c
             sd_eloquence/src/filters/filters.c
             sd_eloquence/src/filters/lang_global.c
