@@ -22,13 +22,6 @@ typedef struct {
     int          use_dictionaries;
     char         dict_dir[ELOQ_PATH_MAX];
     ECIDictHand  dicts[N_LANGS];   /* one per language, lazily loaded */
-    /* Saved at engine_open so engine_switch_language can re-register them
-     * on the fresh handle after Delete+NewEx (used for CJK dialects whose
-     * SetParam-based switch leaves internal state uninitialized). */
-    ECICallback  audio_cb;
-    void        *cb_data;
-    short       *pcm_chunk;
-    int          pcm_chunk_samples;
 } EciEngine;
 
 /* Open eci.so at `eci_so_path`, create the engine handle for `initial_dialect`,
@@ -49,18 +42,9 @@ int  engine_open(EciEngine *e,
  * runtime.c). Safe to call with !e->h. */
 void engine_close(EciEngine *e);
 
-/* Switch to a new language dialect. Non-CJK dialects switch via
- * eciSetParam(eciLanguageDialect, ...); CJK dialects (zh-CN, zh-TW, ja-JP,
- * ko-KR) switch via eciDelete + eciNewEx because their language modules'
- * internal state (notably reset_sent_vars in chsrom/cht) is not properly
- * initialized by SetParam alone — first AddText after a SetParam-based
- * switch to Mandarin SIGSEGVs deep in the engine. NewEx initializes
- * everything cleanly.
- *
- * IMPORTANT: when this returns success for a CJK switch, the engine
- * handle has been REPLACED -- slot-0 voice params have been reset to
- * the language module's defaults. Callers that track per-voice state
- * MUST re-apply it (typically via voice_activate) after the switch. */
+/* Switch to a new language dialect. Uses SetParam(eciLanguageDialect)
+ * rather than Delete+NewEx because the latter crashes Apple's build on
+ * second reload of a language .so. */
 int  engine_switch_language(EciEngine *e, int dialect);
 
 /* Pause / resume via eciPause. */

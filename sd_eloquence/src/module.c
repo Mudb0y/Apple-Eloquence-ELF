@@ -241,15 +241,8 @@ int module_set(const char *var, const char *val) {
     }
     if (!strcasecmp(var, "language")) {
         const LangEntry *L = lang_by_iso(val);
-        if (L && L->eci_dialect != g_engine.current_dialect) {
+        if (L && L->eci_dialect != g_engine.current_dialect)
             engine_switch_language(&g_engine, L->eci_dialect);
-            /* CJK switches Delete+NewEx -- slot-0 voice params got reset
-             * to language defaults. Re-apply the user's selected preset. */
-            voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
-                           g_spd_rate[g_engine.current_voice_slot],
-                           g_spd_pitch[g_engine.current_voice_slot],
-                           g_spd_volume[g_engine.current_voice_slot]);
-        }
         return 0;
     }
     if (!strcasecmp(var, "synthesis_voice")) {
@@ -266,18 +259,13 @@ int module_set(const char *var, const char *val) {
             }
         }
         if (matched < 0) return 0;
-        /* Switch language FIRST (may Delete+NewEx for CJK and reset slot 0),
-         * then apply the voice preset on the resulting handle. */
+        g_engine.current_voice_slot = matched;
+        voice_activate(&g_engine.api, g_engine.h, matched, INT_MIN, INT_MIN, INT_MIN);
         if (val[name_len] == '-' && val[name_len + 1]) {
             const LangEntry *L = lang_by_iso(val + name_len + 1);
             if (L && L->eci_dialect != g_engine.current_dialect)
                 engine_switch_language(&g_engine, L->eci_dialect);
         }
-        g_engine.current_voice_slot = matched;
-        voice_activate(&g_engine.api, g_engine.h, matched,
-                       g_spd_rate[matched],
-                       g_spd_pitch[matched],
-                       g_spd_volume[matched]);
         return 0;
     }
     if (!strcasecmp(var, "punctuation_mode")) {

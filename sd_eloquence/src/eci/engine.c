@@ -70,13 +70,6 @@ int engine_open(EciEngine *e,
     e->api.SetParam(e->h, eciSynthMode, 1);
     e->api.SetParam(e->h, eciInputType, 1);
 
-    /* Save these so engine_switch_language can re-register them on the fresh
-     * handle after a Delete+NewEx (CJK path). */
-    e->audio_cb           = audio_cb;
-    e->cb_data            = cb_data;
-    e->pcm_chunk          = pcm_chunk;
-    e->pcm_chunk_samples  = pcm_chunk_samples;
-
     if (audio_cb)        e->api.RegisterCallback(e->h, audio_cb, cb_data);
     if (pcm_chunk_samples > 0 && pcm_chunk)
         e->api.SetOutputBuffer(e->h, pcm_chunk_samples, pcm_chunk);
@@ -98,47 +91,14 @@ void engine_close(EciEngine *e) {
     eci_runtime_close();
 }
 
-static int dialect_is_cjk(int dialect) {
-    return dialect == eciMandarinChinese    || dialect == eciTaiwaneseMandarin
-        || dialect == eciStandardJapanese   || dialect == eciStandardKorean;
-}
-
 int engine_switch_language(EciEngine *e, int dialect) {
     if (!e->h || dialect == e->current_dialect) return 0;
     e->api.Stop(e->h);
     e->api.Synchronize(e->h);
-
-    if (dialect_is_cjk(dialect)) {
-        /* CJK path: Delete + NewEx. SetParam alone leaves the language
-         * module's internal state (reset_sent_vars in chsrom/cht etc.)
-         * uninitialized, and the FIRST AddText in the new dialect
-         * SIGSEGVs deep inside the engine. NewEx initializes everything
-         * cleanly. Phase 0 confirmed fresh-process NewEx works for all
-         * four CJK dialects. */
-        e->api.Delete(e->h);
-        e->h = e->api.NewEx((enum ECILanguageDialect)dialect);
-        if (!e->h) return -1;
-        /* Re-apply the params engine_open set, on the fresh handle. */
-        if (e->api.SetParam(e->h, eciSampleRate, e->sample_rate_param) < 0) {
-            e->sample_rate_param = 1;
-            e->api.SetParam(e->h, eciSampleRate, 1);
-            e->sample_rate_hz = sample_rate_param_to_hz(1);
-        }
-        e->api.SetParam(e->h, eciSynthMode, 1);
-        e->api.SetParam(e->h, eciInputType, 1);
-        if (e->audio_cb)
-            e->api.RegisterCallback(e->h, e->audio_cb, e->cb_data);
-        if (e->pcm_chunk_samples > 0 && e->pcm_chunk)
-            e->api.SetOutputBuffer(e->h, e->pcm_chunk_samples, e->pcm_chunk);
-        /* The dict cache was tied to the old handle; invalidate so the
-         * load below re-builds against the new one. */
-        memset(e->dicts, 0, sizeof(e->dicts));
-    } else {
-        /* Latin path: SetParam works fine here. SetParam sometimes returns
-         * -1 but the engine still synthesizes in the new dialect; trust it. */
-        e->api.SetParam(e->h, eciLanguageDialect, dialect);
-    }
-
+    /* SetParam sometimes returns -1 but the engine synthesizes in the new
+     * dialect anyway; we trust that path because Delete+NewEx crashes
+     * Apple's build on the second reload of a language .so. */
+    e->api.SetParam(e->h, eciLanguageDialect, dialect);
     e->current_dialect = dialect;
     engine_load_dictionary(e, dialect);
     return 0;

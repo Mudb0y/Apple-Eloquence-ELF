@@ -228,12 +228,6 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                     saved_dialect_stack[++dialect_top] = current_dialect;
                     engine_switch_language(w->engine, f->u.lang.dialect);
                     current_dialect = f->u.lang.dialect;
-                    /* CJK switch may have replaced the engine handle and
-                     * reset slot 0 to language defaults. Re-apply the
-                     * current voice preset on the resulting slot. */
-                    voice_activate(&w->engine->api, w->engine->h,
-                                   w->engine->current_voice_slot,
-                                   INT_MIN, INT_MIN, INT_MIN);
                 }
                 break;
             case FRAME_LANG_POP:
@@ -241,9 +235,6 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                     int d = saved_dialect_stack[dialect_top--];
                     engine_switch_language(w->engine, d);
                     current_dialect = d;
-                    voice_activate(&w->engine->api, w->engine->h,
-                                   w->engine->current_voice_slot,
-                                   INT_MIN, INT_MIN, INT_MIN);
                 }
                 break;
             case FRAME_TEXTMODE:
