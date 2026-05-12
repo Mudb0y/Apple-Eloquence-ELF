@@ -148,6 +148,13 @@ static void exec_break_frame(SynthWorker *w, synth_frame *f) {
 
 static void exec_job(SynthWorker *w, synth_job *j) {
     atomic_store(&w->current_job_seq, j->seq);
+    /* Clear any stop signal left over from a previous cancel that targeted
+     * an already-finished job. Without this, a fast-cancel-then-speak from
+     * Orca (e.g. holding Tab) can land between exec_job returning and the
+     * next dequeue, leaving stop_requested=1 — which would otherwise abort
+     * this fresh utterance before any audio is generated. The signal that
+     * matters for THIS job is set after this point by worker_request_stop. */
+    atomic_store(&w->stop_requested, 0);
 
     int saved_dialect_stack[16] = { 0 };
     int saved_voice_stack[16] = { 0 };
@@ -272,14 +279,12 @@ static void *worker_main(void *ud) {
         pthread_mutex_unlock(&w->lock);
         if (!j) continue;
 
-        if (atomic_load(&w->stop_requested)) {
-            /* Drop pre-canceled job. */
-            module_report_event_stop();
-            marks_release_job(j->seq);
-            synth_job_free(j);
-            atomic_store(&w->stop_requested, 0);
-            continue;
-        }
+        /* No pre-exec stop-flag check here: worker_request_stop drains
+         * the queue itself (reporting event_stop for each job already
+         * queued at cancel time), so anything we successfully dequeue is
+         * a post-cancel submission. exec_job clears stop_requested at
+         * entry to absorb any signal left over from a cancel that landed
+         * after the previous job already finished naturally. */
         exec_job(w, j);
     }
     return NULL;
