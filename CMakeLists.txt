@@ -250,9 +250,11 @@ if(BUILD_EXAMPLES)
     add_executable(speak   examples/speak.c)
     add_executable(version examples/version.c)
     add_executable(mark_probe examples/mark_probe.c)
+    add_executable(cjk_probe examples/cjk_probe.c)
     target_link_libraries(speak   PRIVATE dl)
     target_link_libraries(version PRIVATE dl)
-    set_target_properties(speak version mark_probe PROPERTIES
+    target_link_libraries(cjk_probe PRIVATE dl)
+    set_target_properties(speak version mark_probe cjk_probe PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 endif()
 
