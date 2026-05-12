@@ -249,9 +249,10 @@ option(BUILD_EXAMPLES "Build the speak/version example binaries" ON)
 if(BUILD_EXAMPLES)
     add_executable(speak   examples/speak.c)
     add_executable(version examples/version.c)
+    add_executable(mark_probe examples/mark_probe.c)
     target_link_libraries(speak   PRIVATE dl)
     target_link_libraries(version PRIVATE dl)
-    set_target_properties(speak version PROPERTIES
+    set_target_properties(speak version mark_probe PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 endif()
 
