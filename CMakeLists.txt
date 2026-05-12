@@ -9,6 +9,7 @@ include(GNUInstallDirs)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+enable_testing()
 
 # macho2elf -- the Mach-O -> ELF converter (Python; needs python-lief).
 install(PROGRAMS macho2elf/macho2elf.py
@@ -62,6 +63,26 @@ if(BUILD_SD_MODULE)
                 "Debian: apt install libspeechd-dev).")
         endif()
 
+        # libxml2 -- SSML SAX parser. Required.
+        pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
+
+        # libpcre2-8 -- PCRE2 (Perl-compatible) regex for anti-crash filters.
+        # Optional: -DWITH_PCRE2=OFF makes filters into no-ops.
+        option(WITH_PCRE2 "Build with libpcre2-8 anti-crash filters" ON)
+        set(PCRE2_FOUND FALSE)
+        if(WITH_PCRE2)
+            pkg_check_modules(PCRE2 libpcre2-8)
+            if(NOT PCRE2_FOUND)
+                find_library(PCRE2_LIB NAMES pcre2-8 PATHS /usr/lib /usr/lib64)
+                find_path(PCRE2_INCLUDE_DIR NAMES pcre2.h PATHS /usr/include)
+                if(PCRE2_LIB AND PCRE2_INCLUDE_DIR)
+                    set(PCRE2_FOUND TRUE)
+                    set(PCRE2_LIBRARIES ${PCRE2_LIB})
+                    set(PCRE2_INCLUDE_DIRS ${PCRE2_INCLUDE_DIR})
+                endif()
+            endif()
+        endif()
+
         # Optional libsoxr -- enables output resampling (configurable via
         # eloquence.conf). Some distros ship it with a pkg-config file,
         # others don't; try both.
@@ -97,6 +118,35 @@ if(BUILD_SD_MODULE)
             target_include_directories(sd_eloquence_old PRIVATE ${SOXR_INCLUDE_DIRS})
             target_link_libraries(sd_eloquence_old PRIVATE ${SOXR_LIBRARIES})
         endif()
+
+        # New module (replaces sd_eloquence_old once feature-complete).
+        add_executable(sd_eloquence
+            sd_eloquence/src/module_stub.c)
+        target_include_directories(sd_eloquence PRIVATE
+            sd_eloquence/src
+            ${SPEECHD_INCLUDE_DIR}
+            ${SPEECHD_INCLUDE_DIR}/speech-dispatcher
+            ${LIBXML2_INCLUDE_DIRS})
+        target_compile_definitions(sd_eloquence PRIVATE -DPCRE2_CODE_UNIT_WIDTH=8)
+        target_link_libraries(sd_eloquence PRIVATE
+            ${SPEECHD_MODULE_LIB}
+            ${LIBXML2_LIBRARIES}
+            pthread
+            dl)
+        if(SOXR_FOUND)
+            target_compile_definitions(sd_eloquence PRIVATE HAVE_SOXR)
+            target_include_directories(sd_eloquence PRIVATE ${SOXR_INCLUDE_DIRS})
+            target_link_libraries(sd_eloquence PRIVATE ${SOXR_LIBRARIES})
+        endif()
+        if(PCRE2_FOUND)
+            target_compile_definitions(sd_eloquence PRIVATE HAVE_PCRE2)
+            target_include_directories(sd_eloquence PRIVATE ${PCRE2_INCLUDE_DIRS})
+            target_link_libraries(sd_eloquence PRIVATE ${PCRE2_LIBRARIES})
+        endif()
+        # NOT installed yet -- the install(TARGETS sd_eloquence ...) line is
+        # added in Task H1 once smoke passes; sd_eloquence_old is not
+        # installed either during the transitional period (the eloquence.conf
+        # config file is the only thing currently installed).
 
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
