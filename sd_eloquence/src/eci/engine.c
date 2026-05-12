@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static int sample_rate_param_to_hz(int p) {
     switch (p) { case 0: return 8000; case 1: return 11025; case 2: return 22050; }
@@ -63,6 +64,12 @@ int engine_open(EciEngine *e,
 
 void engine_close(EciEngine *e) {
     if (e->h) {
+        for (int i = 0; i < N_LANGS; i++) {
+            if (e->dicts[i]) {
+                e->api.DeleteDict(e->h, e->dicts[i]);
+                e->dicts[i] = NULL;
+            }
+        }
         e->api.Stop(e->h);
         e->api.Delete(e->h);
         e->h = NULL;
@@ -79,6 +86,7 @@ int engine_switch_language(EciEngine *e, int dialect) {
      * Apple's build on the second reload of a language .so. */
     e->api.SetParam(e->h, eciLanguageDialect, dialect);
     e->current_dialect = dialect;
+    engine_load_dictionary(e, dialect);
     return 0;
 }
 
@@ -94,4 +102,42 @@ char *engine_version(EciEngine *e) {
     char buf[64] = { 0 };
     e->api.Version(buf);
     return strdup(buf);
+}
+
+int engine_load_dictionary(EciEngine *e, int dialect) {
+    if (!e->use_dictionaries) return 0;
+    const LangEntry *L = lang_by_dialect(dialect);
+    if (!L) return 0;
+    int idx = lang_index(L);
+    if (idx < 0) return 0;
+    if (e->dicts[idx]) {
+        e->api.SetDict(e->h, e->dicts[idx]);
+        return 0;
+    }
+    char path[ELOQ_PATH_MAX + 64];
+    int any = 0;
+    ECIDictHand d = e->api.NewDict(e->h);
+    if (!d) return -1;
+    static const struct {
+        const char *suffix;
+        enum ECIDictVolume vol;
+    } files[] = {
+        { "main.dic", eciMainDict },
+        { "root.dic", eciRootDict },
+        { "abbr.dic", eciAbbvDict },
+    };
+    for (size_t i = 0; i < sizeof(files)/sizeof(files[0]); i++) {
+        snprintf(path, sizeof(path), "%s/%s%s", e->dict_dir, L->langid, files[i].suffix);
+        if (access(path, R_OK) == 0) {
+            if (e->api.LoadDict(e->h, d, files[i].vol, path) == DictNoError)
+                any = 1;
+        }
+    }
+    if (!any) {
+        e->api.DeleteDict(e->h, d);
+        return 0;
+    }
+    e->dicts[idx] = d;
+    e->api.SetDict(e->h, d);
+    return 0;
 }

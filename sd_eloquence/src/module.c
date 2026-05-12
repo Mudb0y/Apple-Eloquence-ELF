@@ -97,6 +97,15 @@ int module_init(char **msg) {
                     NULL, NULL, NULL, 0, msg) != 0)
         return -1;
 
+    /* Wire user-dictionary loading. */
+    g_engine.use_dictionaries = g_cfg.use_dictionaries;
+    {
+        const char *dd = config_effective_dict_dir(&g_cfg);
+        strncpy(g_engine.dict_dir, dd, sizeof(g_engine.dict_dir) - 1);
+        g_engine.dict_dir[sizeof(g_engine.dict_dir) - 1] = 0;
+    }
+    engine_load_dictionary(&g_engine, g_engine.current_dialect);
+
     /* Activate the default voice preset into slot 0. */
     voice_activate(&g_engine.api, g_engine.h, g_cfg.default_voice_slot,
                    INT_MIN, INT_MIN, INT_MIN);

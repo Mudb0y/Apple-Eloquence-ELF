@@ -10,6 +10,7 @@
 
 #include "runtime.h"
 #include "languages.h"
+#include "../config.h"
 
 typedef struct {
     EciApi   api;
@@ -18,6 +19,9 @@ typedef struct {
     int      sample_rate_hz;
     int      current_dialect;
     int      current_voice_slot;
+    int          use_dictionaries;
+    char         dict_dir[ELOQ_PATH_MAX];
+    ECIDictHand  dicts[N_LANGS];   /* one per language, lazily loaded */
 } EciEngine;
 
 /* Open eci.so at `eci_so_path`, create the engine handle for `initial_dialect`,
@@ -51,5 +55,10 @@ void engine_stop(EciEngine *e);
 
 /* Returns a heap-allocated version string ("6.1.0.0") via eciVersion. */
 char *engine_version(EciEngine *e);
+
+/* Lookup or lazily load the dictionary for `dialect` and apply it via SetDict.
+ * No-op if e->use_dictionaries is 0 or no dictionary files exist. Returns 0
+ * on success or no-op, -1 on Load/SetDict error. */
+int engine_load_dictionary(EciEngine *e, int dialect);
 
 #endif
