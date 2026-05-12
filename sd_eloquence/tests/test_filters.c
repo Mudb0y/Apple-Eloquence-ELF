@@ -25,6 +25,8 @@ int main(void) {
     check("words .", "words.", eciGeneralAmericanEnglish, "global-space-punc");
     /* E3: English Mc rule (IBM). */
     check("Mc Donald", "McDonald", eciGeneralAmericanEnglish, "en-mc-rule");
+    /* E4: Spanish anticrash ordinal. */
+    check("00\xaa", "00 \xaa", eciCastilianSpanish, "es-anticrash");
 #endif
     /* Filters always preserve identity on pass-through. */
     char *out = filters_apply("plain text", eciGeneralAmericanEnglish);
