@@ -122,7 +122,8 @@ if(BUILD_SD_MODULE)
         # New module (replaces sd_eloquence_old once feature-complete).
         add_executable(sd_eloquence
             sd_eloquence/src/module_stub.c
-            sd_eloquence/src/eci/runtime.c)
+            sd_eloquence/src/eci/runtime.c
+            sd_eloquence/src/eci/voices.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
@@ -148,6 +149,13 @@ if(BUILD_SD_MODULE)
         # added in Task H1 once smoke passes; sd_eloquence_old is not
         # installed either during the transitional period (the eloquence.conf
         # config file is the only thing currently installed).
+
+        # Unit tests for the new sd_eloquence module. These don't need eci.so.
+        add_executable(test_voices
+            sd_eloquence/tests/test_voices.c
+            sd_eloquence/src/eci/voices.c)
+        target_include_directories(test_voices PRIVATE sd_eloquence/src)
+        add_test(NAME test_voices COMMAND test_voices)
 
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
