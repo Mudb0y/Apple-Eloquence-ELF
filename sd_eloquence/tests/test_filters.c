@@ -23,6 +23,8 @@ int main(void) {
     check("hello  ) world", "hello) world", eciGeneralAmericanEnglish, "global-bracket");
     /* Space before punctuation. */
     check("words .", "words.", eciGeneralAmericanEnglish, "global-space-punc");
+    /* E3: English Mc rule (IBM). */
+    check("Mc Donald", "McDonald", eciGeneralAmericanEnglish, "en-mc-rule");
 #endif
     /* Filters always preserve identity on pass-through. */
     char *out = filters_apply("plain text", eciGeneralAmericanEnglish);
