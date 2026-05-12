@@ -109,7 +109,7 @@ sd_eloquence/src/
 - **libxml2** — new, for SAX-based SSML parsing
 - **libpcre2-8** — new, for Perl-compatible anti-crash filters; degrades to no-op if `-DWITH_PCRE2=OFF`
 - speech-dispatcher dev headers (existing)
-- libiconv (transitively from glibc on Linux)
+- libiconv (transitively from glibc on Linux; on musl-based distros the cp932 / cp949 / gb18030 / big5 converters may need `libiconv` explicitly — install script detects and adds the dep)
 
 Install script (`dist/install.sh`) extended to resolve libxml2 and libpcre2 via the host package manager.
 
@@ -160,7 +160,7 @@ typedef struct synth_job {
 
 1. **speechd loop thread**: receives `module_speak_sync(data, len, type)`.
 2. `module.c` calls `ssml_parse(data, len, type, &job)`. For `SPD_MSGTYPE_TEXT`, attempts SAX parse via libxml2; on any parse error, falls back to plain-text path with minimal entity decoding. For `SPD_MSGTYPE_CHAR | KEY | SPELL`, bypasses SSML and produces `FRAME_TEXTMODE(2) + FRAME_TEXT + FRAME_TEXTMODE(restore)`.
-3. `module.c` assigns `job->seq = ++g_job_seq`, calls `worker_submit(job)` (lock + push + cond_signal + unlock).
+3. `module.c` assigns `job->seq = atomic_fetch_add(&g_job_seq, 1) + 1` (atomic_uint), calls `worker_submit(job)` (lock + push + cond_signal + unlock).
 4. `module.c` calls `module_speak_ok()` and returns. speechd-side emits BEGIN.
 5. **Synth thread** wakes, dequeues, walks frames sequentially:
    - `FRAME_TEXT` → `filters_apply(text, dialect)` → `eci.AddText(filtered_utf8 → iconv → target_encoding)`. Check `g_stop_requested` between frames.
@@ -264,7 +264,7 @@ typedef struct {
 #define END_STRING_ID 0xFFFF
 ```
 
-Marks table is a flat array of fixed cap (256 in-flight). When a job is freed, entries are recycled.
+Marks table is a flat array of fixed cap (256 in-flight). When a job is freed, entries are recycled. If a job requests more than 256 marks (extremely rare in practice — Orca typically sends 1–10 per utterance), additional marks are dropped with a debug log and the underlying text still synthesizes normally; only mark-event reporting is lost for the dropped ones.
 
 ### 7.2 Filter ordering per FRAME_TEXT
 
@@ -378,7 +378,7 @@ Debug 0
 
 # Engine data
 EloquenceDataDir         /usr/lib/eloquence
-EloquenceDictionaryDir   /usr/lib/eloquence/dicts
+EloquenceDictionaryDir   /usr/lib/eloquence/dicts   # if unset, derives from EloquenceDataDir/dicts
 
 # Defaults
 EloquenceDefaultLanguage en-US
@@ -432,7 +432,7 @@ The owner restored uncommitted changes to HEAD before the brainstorm, so we star
 1. Branch off `main` → `feat/sd-eloquence-rewrite`.
 2. Land the new tree alongside the old one initially: rename current `sd_eloquence/src/*.c` to `sd_eloquence/src/old/`, update CMake to build it as `sd_eloquence_old` for fallback comparison.
 3. Write the new module under `sd_eloquence/src/` per §4.1, one commit per subsystem in this order: `eci/`, `config.c`, `audio/`, `ssml/`, `filters/` (one commit per language), `synth/`, `module.c`.
-4. Once the new module passes smoke on x86_64 with all 10 Latin languages, flip CMake's default to `sd_eloquence`.
+4. Once the new module passes smoke on x86_64 with all 10 Latin languages (and CI confirms aarch64 builds), flip CMake's default to `sd_eloquence`. Runtime aarch64 smoke happens before tagging release.
 5. CJK phases 0–3 as separate commits on the same branch.
 6. **Decision point:** if CJK works, PR-merge to main, cut v1. If CJK phases 0–3 don't pan out (phase 4 dropped), open fresh discussion to either strip CJK and ship Latin-only v1, or hold the rewrite indefinitely.
 7. Delete `sd_eloquence/src/old/` in same commit that flips CMake.
