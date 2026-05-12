@@ -139,7 +139,8 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/filters/lang_es.c
             sd_eloquence/src/filters/lang_fr.c
             sd_eloquence/src/filters/lang_de.c
-            sd_eloquence/src/filters/lang_pt.c)
+            sd_eloquence/src/filters/lang_pt.c
+            sd_eloquence/src/cjk_atexit_override.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
@@ -151,6 +152,10 @@ if(BUILD_SD_MODULE)
             ${LIBXML2_LIBRARIES}
             pthread
             dl)
+        # -rdynamic so the override above intercepts __cxa_atexit calls
+        # from chsrom/cht/jpnrom (and ld-linux on their behalf) at dlopen
+        # time; without this, libc's symbol wins and our override never fires.
+        target_link_options(sd_eloquence PRIVATE -rdynamic)
         if(SOXR_FOUND)
             target_compile_definitions(sd_eloquence PRIVATE HAVE_SOXR)
             target_include_directories(sd_eloquence PRIVATE ${SOXR_INCLUDE_DIRS})
@@ -250,10 +255,16 @@ if(BUILD_EXAMPLES)
     add_executable(speak   examples/speak.c)
     add_executable(version examples/version.c)
     add_executable(mark_probe examples/mark_probe.c)
-    add_executable(cjk_probe examples/cjk_probe.c)
+    # cjk_probe links the same __cxa_atexit override + -rdynamic that
+    # sd_eloquence uses, so we can validate the in-module fix end to end
+    # without LD_PRELOAD.
+    add_executable(cjk_probe
+        examples/cjk_probe.c
+        sd_eloquence/src/cjk_atexit_override.c)
     target_link_libraries(speak   PRIVATE dl)
     target_link_libraries(version PRIVATE dl)
     target_link_libraries(cjk_probe PRIVATE dl)
+    target_link_options(cjk_probe PRIVATE -rdynamic)
     set_target_properties(speak version mark_probe cjk_probe PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 endif()
