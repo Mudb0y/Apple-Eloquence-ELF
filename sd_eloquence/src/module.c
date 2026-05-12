@@ -77,13 +77,14 @@ int module_init(char **msg) {
     }
     marks_init();
 
-    /* Mark languages: CJK gated for now (Phase 1+ enables case-by-case). */
-    for (int i = 0; i < N_LANGS; i++) {
-        const char *so = g_langs[i].so_name;
-        int is_cjk = (strcmp(so, "jpn.so") == 0 || strcmp(so, "kor.so") == 0 ||
-                      strcmp(so, "chs.so") == 0 || strcmp(so, "cht.so") == 0);
-        g_lang_state[i] = is_cjk ? LANG_DISABLED : LANG_AVAILABLE;
-    }
+    /* Mark all languages available. CJK used to be gated because of
+     * exit-time SIGSEGVs in __cxa_atexit-registered destructors from
+     * chsrom/cht/jpnrom; cjk_atexit_override.c (linked into this binary)
+     * suppresses those registrations at dlopen time. Per-language probe
+     * results live in docs/cjk-investigation/. If a specific dialect
+     * misbehaves at runtime, flip its entry to LANG_DISABLED here. */
+    for (int i = 0; i < N_LANGS; i++)
+        g_lang_state[i] = LANG_AVAILABLE;
 
     if (enter_data_dir(msg) != 0) return -1;
 
