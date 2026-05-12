@@ -98,22 +98,22 @@ plan_packages() {
         debian)
             PKG_MGR="apt-get"
             PKG_INSTALL_CMD="apt-get install -y --no-install-recommends"
-            PKG_LIST="speech-dispatcher libspeechd2 libc++1 libc++abi1 libsoxr0"
+            PKG_LIST="speech-dispatcher libspeechd2 libc++1 libc++abi1 libsoxr0 libxml2 libpcre2-8-0"
             ;;
         fedora)
             PKG_MGR="dnf"
             PKG_INSTALL_CMD="dnf install -y"
-            PKG_LIST="speech-dispatcher libcxx libcxxabi soxr"
+            PKG_LIST="speech-dispatcher libcxx libcxxabi soxr libxml2 pcre2"
             ;;
         arch)
             PKG_MGR="pacman"
             PKG_INSTALL_CMD="pacman -S --noconfirm --needed"
-            PKG_LIST="speech-dispatcher libc++ libc++abi libsoxr"
+            PKG_LIST="speech-dispatcher libc++ libc++abi libsoxr libxml2 pcre2"
             ;;
         suse)
             PKG_MGR="zypper"
             PKG_INSTALL_CMD="zypper install -y --no-confirm"
-            PKG_LIST="speech-dispatcher libc++1 libc++abi1 libsoxr0"
+            PKG_LIST="speech-dispatcher libc++1 libc++abi1 libsoxr0 libxml2-2 libpcre2-8-0"
             ;;
     esac
 }
