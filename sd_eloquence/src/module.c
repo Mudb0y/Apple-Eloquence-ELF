@@ -157,24 +157,144 @@ int module_loglevel_set(const char *v, const char *l)    {
 }
 int module_debug(int e, const char *f)                   { g_cfg.debug = e; (void)f; return 0; }
 
-/* The remaining entry points are stubbed for now; filled in by Task G2. */
 int  module_speak(char *d, size_t b, SPDMessageType t) {
     (void)d; (void)b; (void)t;
     return -1;
 }
-void module_speak_sync(const char *d, size_t b, SPDMessageType t) {
-    (void)d; (void)b; (void)t;
-    module_speak_error();
+
+void module_speak_sync(const char *d, size_t bytes, SPDMessageType t) {
+    if (!g_worker) {
+        module_speak_error();
+        return;
+    }
+    uint32_t seq = atomic_fetch_add(&g_job_seq, 1) + 1;
+    synth_job *job = ssml_parse(d, bytes, t, g_engine.current_dialect, seq);
+    if (!job) {
+        module_speak_error();
+        return;
+    }
+    module_speak_ok();
+    module_report_event_begin();
+    worker_submit(g_worker, job);
 }
+
 void module_speak_begin(void) {}
 void module_speak_end(void)   {}
 void module_speak_pause(void) {}
 void module_speak_stop(void)  {}
-int  module_stop(void)        { return 0; }
-size_t module_pause(void)     { return 0; }
-int    module_set(const char *var, const char *val) {
-    (void)var; (void)val;
+
+int module_stop(void) {
+    if (g_worker) worker_request_stop(g_worker);
     return 0;
 }
-SPDVoice **module_list_voices(void) { return NULL; }
-int    module_loop(void) { return module_process(STDIN_FILENO, 1); }
+
+size_t module_pause(void) {
+    if (g_worker) worker_pause(g_worker);
+    return 0;
+}
+
+int module_set(const char *var, const char *val) {
+    if (!g_worker || !var || !val) return 0;
+
+    if (!strcasecmp(var, "rate")) {
+        int spd = atoi(val);
+        g_spd_rate[g_engine.current_voice_slot] = spd;
+        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
+                       g_spd_rate[g_engine.current_voice_slot],
+                       g_spd_pitch[g_engine.current_voice_slot],
+                       g_spd_volume[g_engine.current_voice_slot]);
+        return 0;
+    }
+    if (!strcasecmp(var, "pitch")) {
+        g_spd_pitch[g_engine.current_voice_slot] = atoi(val);
+        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
+                       g_spd_rate[g_engine.current_voice_slot],
+                       g_spd_pitch[g_engine.current_voice_slot],
+                       g_spd_volume[g_engine.current_voice_slot]);
+        return 0;
+    }
+    if (!strcasecmp(var, "volume")) {
+        g_spd_volume[g_engine.current_voice_slot] = atoi(val);
+        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
+                       g_spd_rate[g_engine.current_voice_slot],
+                       g_spd_pitch[g_engine.current_voice_slot],
+                       g_spd_volume[g_engine.current_voice_slot]);
+        return 0;
+    }
+    if (!strcasecmp(var, "voice_type")) {
+        int slot = voice_find_by_voice_type(val);
+        if (slot >= 0) {
+            g_engine.current_voice_slot = slot;
+            voice_activate(&g_engine.api, g_engine.h, slot, INT_MIN, INT_MIN, INT_MIN);
+        }
+        return 0;
+    }
+    if (!strcasecmp(var, "language")) {
+        const LangEntry *L = lang_by_iso(val);
+        if (L && L->eci_dialect != g_engine.current_dialect)
+            engine_switch_language(&g_engine, L->eci_dialect);
+        return 0;
+    }
+    if (!strcasecmp(var, "synthesis_voice")) {
+        /* "Reed-en-US" / "Jacques-fr-fr" -- parse preset name then dialect. */
+        int matched = -1;
+        size_t name_len = 0;
+        for (int i = 0; i < N_VOICE_PRESETS; i++) {
+            const VoicePreset *p = &g_voice_presets[i];
+            size_t nl = strlen(p->name);
+            if (!strncasecmp(val, p->name, nl)) { matched = i; name_len = nl; break; }
+            if (p->name_fr) {
+                size_t fl = strlen(p->name_fr);
+                if (!strncasecmp(val, p->name_fr, fl)) { matched = i; name_len = fl; break; }
+            }
+        }
+        if (matched < 0) return 0;
+        g_engine.current_voice_slot = matched;
+        voice_activate(&g_engine.api, g_engine.h, matched, INT_MIN, INT_MIN, INT_MIN);
+        if (val[name_len] == '-' && val[name_len + 1]) {
+            const LangEntry *L = lang_by_iso(val + name_len + 1);
+            if (L && L->eci_dialect != g_engine.current_dialect)
+                engine_switch_language(&g_engine, L->eci_dialect);
+        }
+        return 0;
+    }
+    if (!strcasecmp(var, "punctuation_mode")) {
+        int mode = !strcasecmp(val, "all") ? 2 : 0;
+        g_engine.api.SetParam(g_engine.h, eciTextMode, mode);
+        return 0;
+    }
+    return 0;
+}
+
+static void uppercase_region(char *p) {
+    for (; *p; p++) if (*p >= 'a' && *p <= 'z') *p -= 32;
+}
+
+SPDVoice **module_list_voices(void) {
+    int cap = N_LANGS * N_VOICE_PRESETS;
+    SPDVoice **list = calloc(cap + 1, sizeof(SPDVoice *));
+    if (!list) return NULL;
+    int idx = 0;
+    for (int li = 0; li < N_LANGS; li++) {
+        if (g_lang_state[li] != LANG_AVAILABLE) continue;
+        for (int vi = 0; vi < N_VOICE_PRESETS; vi++) {
+            SPDVoice *v = calloc(1, sizeof(SPDVoice));
+            if (!v) continue;
+            char ietf[16];
+            snprintf(ietf, sizeof(ietf), "%s-%s",
+                     g_langs[li].iso_lang, g_langs[li].iso_variant);
+            uppercase_region(ietf + strlen(g_langs[li].iso_lang) + 1);
+            char unique[64];
+            const char *vname = voice_display_name(vi, g_langs[li].iso_lang);
+            snprintf(unique, sizeof(unique), "%s-%s", vname, ietf);
+            v->name     = strdup(unique);
+            v->language = strdup(ietf);
+            v->variant  = strdup(vname);
+            list[idx++] = v;
+        }
+    }
+    list[idx] = NULL;
+    return list;
+}
+
+int module_loop(void) { return module_process(STDIN_FILENO, 1); }
