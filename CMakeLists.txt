@@ -121,7 +121,8 @@ if(BUILD_SD_MODULE)
 
         # New module (replaces sd_eloquence_old once feature-complete).
         add_executable(sd_eloquence
-            sd_eloquence/src/module_stub.c)
+            sd_eloquence/src/module_stub.c
+            sd_eloquence/src/eci/runtime.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
