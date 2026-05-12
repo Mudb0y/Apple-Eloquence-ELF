@@ -130,7 +130,8 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/audio/resampler.c
             sd_eloquence/src/audio/sink.c
             sd_eloquence/src/synth/marks.c
-            sd_eloquence/src/synth/job.c)
+            sd_eloquence/src/synth/job.c
+            sd_eloquence/src/ssml/ssml.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
@@ -184,6 +185,20 @@ if(BUILD_SD_MODULE)
         target_include_directories(test_marks PRIVATE sd_eloquence/src)
         target_link_libraries(test_marks PRIVATE pthread)
         add_test(NAME test_marks COMMAND test_marks)
+
+        add_executable(test_ssml
+            sd_eloquence/tests/test_ssml.c
+            sd_eloquence/src/ssml/ssml.c
+            sd_eloquence/src/synth/job.c
+            sd_eloquence/src/synth/marks.c
+            sd_eloquence/src/eci/voices.c
+            sd_eloquence/src/eci/languages.c)
+        target_include_directories(test_ssml PRIVATE
+            sd_eloquence/src ${LIBXML2_INCLUDE_DIRS}
+            ${SPEECHD_INCLUDE_DIR}
+            ${SPEECHD_INCLUDE_DIR}/speech-dispatcher)
+        target_link_libraries(test_ssml PRIVATE ${LIBXML2_LIBRARIES} pthread)
+        add_test(NAME test_ssml COMMAND test_ssml)
 
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
