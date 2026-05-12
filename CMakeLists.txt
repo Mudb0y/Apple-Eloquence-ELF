@@ -137,7 +137,8 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/filters/lang_en.c
             sd_eloquence/src/filters/lang_es.c
             sd_eloquence/src/filters/lang_fr.c
-            sd_eloquence/src/filters/lang_de.c)
+            sd_eloquence/src/filters/lang_de.c
+            sd_eloquence/src/filters/lang_pt.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
@@ -213,7 +214,8 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/filters/lang_en.c
             sd_eloquence/src/filters/lang_es.c
             sd_eloquence/src/filters/lang_fr.c
-            sd_eloquence/src/filters/lang_de.c)
+            sd_eloquence/src/filters/lang_de.c
+            sd_eloquence/src/filters/lang_pt.c)
         target_include_directories(test_filters PRIVATE sd_eloquence/src)
         if(PCRE2_FOUND)
             target_compile_definitions(test_filters PRIVATE HAVE_PCRE2 PCRE2_CODE_UNIT_WIDTH=8)

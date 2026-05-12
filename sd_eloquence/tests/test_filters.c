@@ -31,6 +31,8 @@ int main(void) {
     check("n\xb0 1", "num\xe9ro 1", eciStandardFrench, "fr-numero");
     /* E6: German anticrash hyphen. */
     check("dane-ben", "dane `0 ben", eciStandardGerman, "de-anticrash");
+    /* E7: Portuguese time parser fix. */
+    check("12:00:30", "12:00 30", eciBrazilianPortuguese, "pt-time");
 #endif
     /* Filters always preserve identity on pass-through. */
     char *out = filters_apply("plain text", eciGeneralAmericanEnglish);
