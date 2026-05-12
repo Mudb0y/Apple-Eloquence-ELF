@@ -161,10 +161,18 @@ if(BUILD_SD_MODULE)
             target_include_directories(sd_eloquence PRIVATE ${PCRE2_INCLUDE_DIRS})
             target_link_libraries(sd_eloquence PRIVATE ${PCRE2_LIBRARIES})
         endif()
-        # NOT installed yet -- the install(TARGETS sd_eloquence ...) line is
-        # added in Task H1 once smoke passes; sd_eloquence_old is not
-        # installed either during the transitional period (the eloquence.conf
-        # config file is the only thing currently installed).
+
+        install(TARGETS sd_eloquence
+            RUNTIME DESTINATION ${SPEECHD_MODULEBINDIR})
+
+        # Install paths:
+        #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
+        #            -- comes from speech-dispatcher's own pkg-config so the
+        #            daemon actually finds it.
+        #   config:  ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf
+        #            -- with prefix=/usr -> /etc/speech-dispatcher/modules.
+        # The old sd_eloquence_old target is still buildable for comparison
+        # but no longer installable; src/old/ gets deleted in the cleanup phase.
 
         # Unit tests for the new sd_eloquence module. These don't need eci.so.
         add_executable(test_voices
@@ -225,20 +233,6 @@ if(BUILD_SD_MODULE)
         endif()
         add_test(NAME test_filters COMMAND test_filters)
 
-        # Install paths:
-        #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
-        #            -- comes from speech-dispatcher's own pkg-config so the
-        #            daemon actually finds it. The new sd_eloquence target
-        #            (added in Task A4 of the rewrite) claims this slot in
-        #            Task H1; until then, the transitional sd_eloquence_old
-        #            target is intentionally NOT installed -- installing a
-        #            binary named sd_eloquence_old at the modulebindir would
-        #            be picked up by neither speech-dispatcher (looks for
-        #            "sd_eloquence") nor dist/install.sh (expects the same).
-        #   config:  ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf
-        #            -- with prefix=/usr -> /etc/speech-dispatcher/modules.
-        #            Config schema is unchanged in the rewrite; install
-        #            stays valid throughout.
         install(FILES sd_eloquence/eloquence.conf
             DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules)
 
