@@ -177,6 +177,13 @@ Full details in `docs/04-internals.md`.
 
 - **The converter** (`macho2elf/`) is original work, licensed under MIT.
   See `LICENSE`.
+- **The speech-dispatcher module** (`sd_eloquence/`) is licensed under
+  **GPL-2.0-or-later**. It incorporates anti-crash regex tables and
+  dictionary-loading patterns derived from the
+  [NVDA-IBMTTS-Driver](https://github.com/davidacm/NVDA-IBMTTS-Driver)
+  project (Copyright (C) 2009-2026 David CM, GPL-2.0). Full GPLv2 text in
+  `sd_eloquence/LICENSE.GPL`. The macho2elf converter and the rest of the
+  project remain MIT.
 - **The shipped Mach-O dylibs** under `vendor/tvOS-18.2/` are unmodified Apple
   binaries extracted from the tvOS 18.2 Simulator Runtime IPSW. SHA256 checksums
   for both the source DMG and each extracted file are in `tools/checksums.txt`.
