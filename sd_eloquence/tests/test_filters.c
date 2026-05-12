@@ -27,6 +27,8 @@ int main(void) {
     check("Mc Donald", "McDonald", eciGeneralAmericanEnglish, "en-mc-rule");
     /* E4: Spanish anticrash ordinal. */
     check("00\xaa", "00 \xaa", eciCastilianSpanish, "es-anticrash");
+    /* E5: French n° -> numéro. */
+    check("n\xb0 1", "num\xe9ro 1", eciStandardFrench, "fr-numero");
 #endif
     /* Filters always preserve identity on pass-through. */
     char *out = filters_apply("plain text", eciGeneralAmericanEnglish);
