@@ -101,11 +101,17 @@ if(BUILD_SD_MODULE)
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
         #            -- comes from speech-dispatcher's own pkg-config so the
-        #            daemon actually finds it.
+        #            daemon actually finds it. The new sd_eloquence target
+        #            (added in Task A4 of the rewrite) claims this slot in
+        #            Task H1; until then, the transitional sd_eloquence_old
+        #            target is intentionally NOT installed -- installing a
+        #            binary named sd_eloquence_old at the modulebindir would
+        #            be picked up by neither speech-dispatcher (looks for
+        #            "sd_eloquence") nor dist/install.sh (expects the same).
         #   config:  ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf
         #            -- with prefix=/usr -> /etc/speech-dispatcher/modules.
-        install(TARGETS sd_eloquence_old
-            RUNTIME DESTINATION ${SPEECHD_MODULEBINDIR})
+        #            Config schema is unchanged in the rewrite; install
+        #            stays valid throughout.
         install(FILES sd_eloquence/eloquence.conf
             DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules)
 

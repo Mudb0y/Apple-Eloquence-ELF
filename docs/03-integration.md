@@ -153,7 +153,7 @@ A complete working example is in `examples/speak.c`.
 
 Engine-wide params (used with `eciSetParam` / `eciGetParam`). The numbering
 has deliberate gaps — slots 4, 6, 11 are unused in ECI 6.x and must not be
-touched. The authoritative declarations live in `sd_eloquence/src/eci.h`.
+touched. The authoritative declarations live in `sd_eloquence/src/eci/eci.h`.
 
 ```c
 #define eciSynthMode               0   /* 0=screen reader, 1=TTS general text */
