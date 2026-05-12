@@ -29,6 +29,8 @@ int main(void) {
     check("00\xaa", "00 \xaa", eciCastilianSpanish, "es-anticrash");
     /* E5: French n° -> numéro. */
     check("n\xb0 1", "num\xe9ro 1", eciStandardFrench, "fr-numero");
+    /* E6: German anticrash hyphen. */
+    check("dane-ben", "dane `0 ben", eciStandardGerman, "de-anticrash");
 #endif
     /* Filters always preserve identity on pass-through. */
     char *out = filters_apply("plain text", eciGeneralAmericanEnglish);

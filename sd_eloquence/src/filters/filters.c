@@ -108,6 +108,5 @@ char *filters_apply(const char *text, int dialect) {
 }
 
 /* STUB rule arrays so filters.c compiles before lang_*.c land.
- * Each will be replaced by a real array in Tasks E5-E7. */
-filter_rule lang_de_rules[]     = { {NULL,NULL,0,NULL} };
+ * Each will be replaced by a real array in Tasks E6-E7. */
 filter_rule lang_pt_rules[]     = { {NULL,NULL,0,NULL} };
