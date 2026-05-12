@@ -127,7 +127,8 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/eci/languages.c
             sd_eloquence/src/eci/engine.c
             sd_eloquence/src/config.c
-            sd_eloquence/src/audio/resampler.c)
+            sd_eloquence/src/audio/resampler.c
+            sd_eloquence/src/audio/sink.c)
         target_include_directories(sd_eloquence PRIVATE
             sd_eloquence/src
             ${SPEECHD_INCLUDE_DIR}
