@@ -22,7 +22,7 @@ FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "minimal_chained_fixup.bi
 
 
 def test_fixture_exists():
-    assert FIXTURE.exists(), "fixture not generated; see Task A2 step 2"
+    assert FIXTURE.exists(), "fixture not generated; see tools/tests/fixtures/"
     assert FIXTURE.stat().st_size > 64, "fixture is implausibly small"
 
 

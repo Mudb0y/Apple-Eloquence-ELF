@@ -26,8 +26,6 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Dict, List
 
-# Ensure the repo root is on sys.path so `from tools.X import ...` works
-# whether this script is run as `python3 tools/audit_relocs.py` or as a module.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
@@ -289,8 +287,7 @@ def _vm_to_site(vm_addr, sections):
 
 
 def write_dump(records: List[FixupRecord], path: Path):
-    """Write a list of FixupRecords as one normalized line per record,
-    sorted by site for deterministic diffs."""
+    """Sort by site for deterministic diffs."""
     lines = sorted(r.normalized_line() for r in records)
     path.write_text("\n".join(lines) + "\n")
 

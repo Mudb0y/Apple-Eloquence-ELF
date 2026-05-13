@@ -77,29 +77,9 @@ int module_init(char **msg) {
     }
     marks_init();
 
-    /* Latin-script dialects: AVAILABLE. CJK: DISABLED.
-     *
-     * CJK Phase 0-2 progress (see docs/cjk-investigation/):
-     *   * Phase 1 + 2 fixed the exit-time SIGSEGVs from __cxa_atexit-registered
-     *     destructors via the in-module override (cjk_atexit_override.c).
-     *     That part still works regardless of this gate -- worth keeping
-     *     because the same destructors fire on every module unload.
-     *   * The remaining (currently un-fixable from the module) crash is
-     *     inside the *converted* chsrom.so / chtrom.so / jpnrom.so themselves:
-     *     a function pointer in chs.so's data is stored as ".m2e_text_start"
-     *     (offset 0 of the text section) instead of the intended function
-     *     entry, so when the engine's SynthThread dereferences it during
-     *     reset_sent_vars() -- on the first AddText after switching to a
-     *     Chinese dialect -- execution jumps into the section header and
-     *     SIGSEGVs. This is a macho2elf converter bug (likely an unrebased
-     *     relocation slot), not a sd_eloquence bug. Until the converter is
-     *     fixed, CJK switches reliably crash the module mid-Orca-session.
-     *     Detailed core-dump trace: docs/cjk-investigation/.
-     *
-     * korrom.so doesn't seem to trigger the same crash in isolated probes
-     * (Phase 0), but we gate it too for parity until someone validates it
-     * under Orca's traffic pattern. Re-enable individual dialects here when
-     * the converter side is fixed. */
+    /* CJK dialects gated out: chs/cht/jpn crash mid-utterance via an
+     * unrebased function pointer in the converted .so files. korrom is
+     * gated for parity until validated. See docs/cjk-investigation/. */
     for (int i = 0; i < N_LANGS; i++) {
         const char *so = g_langs[i].so_name;
         int is_cjk = (strcmp(so, "jpn.so") == 0 || strcmp(so, "kor.so") == 0 ||

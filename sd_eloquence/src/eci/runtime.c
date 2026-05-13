@@ -126,9 +126,6 @@ int eci_runtime_open(const char *eci_so_path, EciApi *api, char **errmsg) {
 }
 
 void eci_runtime_close(void) {
-    /* The ECI engine registers global C++ destructors on dlopen; calling
-     * dlclose can run them in an order that crashes inside libc atexit
-     * (observed on Apple's eci.dylib on Linux). Leave the library mapped
-     * until process exit. */
+    /* See file header: we deliberately leak the dlopen handle. */
     g_handle = NULL;
 }

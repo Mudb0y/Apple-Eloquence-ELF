@@ -43,7 +43,6 @@ static ECICallbackReturn cb(ECIHand h, int msg, long lp, void *d) {
     return eciDataProcessed;
 }
 
-/* Encoding-specific test phrase ("hello"). */
 static const char *phrase_for(int dialect) {
     switch (dialect) {
         case 0x00060000: return "\xC4\xE3\xBA\xC3";  /* 你好 in gb18030 */

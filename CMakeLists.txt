@@ -73,7 +73,6 @@ if(BUILD_SD_MODULE)
                 "Debian: apt install libspeechd-dev).")
         endif()
 
-        # libxml2 -- SSML SAX parser. Required.
         pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
 
         # libpcre2-8 -- PCRE2 (Perl-compatible) regex for anti-crash filters.
@@ -367,9 +366,6 @@ if(INSTALL_PREBUILT_DYLIBS)
         endforeach()
     ")
 
-    # Drop a sensible EloquenceDataDir hint into eloquence.conf is handled
-    # by sd_eloquence itself (its default is /usr/lib/eloquence, matching
-    # this install path); no install-time conf rewrite needed.
 endif()
 
 # Optional: also publish the vendored Apple dylibs (.dylib originals) for

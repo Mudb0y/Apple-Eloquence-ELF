@@ -54,10 +54,6 @@ DARWIN_TO_LINUX = {
     "__stdinp":          "stdin",
 }
 
-# C symbols that exist on both platforms with identical names and semantics.
-# We don't need to rename these — just strip the Mach-O leading underscore.
-# (kept here for documentation / sanity checks)
-
 # ----------------------------------------------------------------------------
 # Mach-O section -> ELF section mapping
 # ----------------------------------------------------------------------------
@@ -185,7 +181,6 @@ def extract_sections(binary: lief.MachO.Binary, sections_dir: Path) -> dict:
     out = {}
     for s in binary.sections:
         key = (s.segment_name, s.name)
-        # Skip zero-sized or special "fill" sections (handled separately)
         if s.size == 0:
             out[key] = {
                 "vaddr": s.virtual_address,
@@ -422,7 +417,7 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
         events_by_section.setdefault((site_seg, site_sect), []).append(
             (site_off, "rebase", (tgt_label, tgt_off)))
         rebases_emitted += 1
-    sym_relocs_emitted = 0  # legacy counter; kept for diag-line compat
+    sym_relocs_emitted = 0
 
     # Sort and deduplicate (in case binding+rebase land on same slot — bindings win)
     for k in events_by_section:
@@ -852,33 +847,27 @@ def main():
     arch_cfg = ARCH_CONFIG[arch]
     print(f"[macho2elf] arch:     {arch}")
 
-    # 1) Extract section blobs
     sections = extract_sections(binary, sections_dir)
     print(f"[macho2elf] extracted {sum(1 for v in sections.values() if v['file']):d} non-empty sections")
 
-    # 2) Collect exports
     exports = collect_exports(binary)
     print(f"[macho2elf] exports: {len(exports)}")
 
-    # 3) Collect imports + bindings per section
     imports, bindings_by_section = collect_bindings_per_section(binary)
     total_bindings = sum(len(v) for v in bindings_by_section.values())
     print(f"[macho2elf] imports: {len(imports)}, total binding sites: {total_bindings}")
     for (seg, sect), bs in bindings_by_section.items():
         print(f"    {seg},{sect}: {len(bs)} bindings")
 
-    # 4) Emit assembly
     asm_path = workdir / "stub.s"
     emitted, skipped = emit_assembly(binary, exports, imports, bindings_by_section,
                                       sections, sections_dir, asm_path)
     print(f"[macho2elf] assembly: {asm_path}  ({emitted} exports emitted, {skipped} skipped)")
 
-    # 5) Emit linker script
     lds_path = workdir / "link.lds"
     emit_linker_script(binary, sections, lds_path, arch_cfg=arch_cfg)
     print(f"[macho2elf] linker script: {lds_path}")
 
-    # 6) Emit runtime stubs
     stubs_path = workdir / "stubs.c"
     emit_runtime_stubs(stubs_path)
     print(f"[macho2elf] runtime stubs: {stubs_path}")
@@ -887,14 +876,13 @@ def main():
         print("[macho2elf] --no-link set; stopping before invocation of gcc")
         return
 
-    # 7) Build
     import subprocess
     print("[macho2elf] building...")
 
     cc = args.cc or arch_cfg["gcc"]
 
-    # Generate empty stub shared objects for libraries the cross-sysroot lacks
-    # (arm64 typically needs this for libc++/libc++abi).
+    # Empty stub .so files for libs the cross-sysroot lacks (arm64 has no
+    # libc++/libc++abi).
     stub_dir = workdir / "stub_libs"
     if arch_cfg.get("stub_libs"):
         stub_dir.mkdir(parents=True, exist_ok=True)
@@ -911,11 +899,10 @@ def main():
                 "-o", str(stub_so),
             ])
 
-    # Compile stubs.c (arch-targeted)
     stubs_o = workdir / "stubs.o"
     subprocess.check_call([cc, "-c", "-fPIC", "-O2", str(stubs_path), "-o", str(stubs_o)])
 
-    # Assemble the stub (cwd = sections dir so .incbin paths resolve)
+    # cwd = sections_dir so the .incbin directives in stub.s resolve.
     stub_o = workdir / "stub.o"
     subprocess.check_call([cc, "-c", "-fPIC", "-xassembler", str(asm_path), "-o", str(stub_o)],
                           cwd=sections_dir)

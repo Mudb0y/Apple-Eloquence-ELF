@@ -43,9 +43,6 @@ run() {
     fi
 }
 
-# Try every place install.sh might have dropped the binary so an
-# upgrade-then-uninstall sequence on different distros still cleans up
-# fully.
 MODULEBINDIR_CANDIDATES=()
 if command -v pkg-config >/dev/null 2>&1; then
     pc="$(pkg-config --variable=modulebindir speech-dispatcher 2>/dev/null || true)"

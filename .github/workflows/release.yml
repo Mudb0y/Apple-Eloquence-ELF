@@ -159,9 +159,7 @@ jobs:
           cp dist/uninstall.sh "${STAGE}/uninstall.sh"
           chmod +x "${STAGE}/install.sh" "${STAGE}/uninstall.sh"
 
-          # Generate the multi-section eci.ini. Path= entries reference
-          # /usr/lib/eloquence (the default install destination); install.sh
-          # respects --prefix but most users will install to /usr.
+          # Path= entries reference /usr/lib/eloquence (install.sh's default).
           python3 - "${STAGE}/eci.ini" <<'PY'
           import sys, pathlib
           DATA_DIR = "/usr/lib/eloquence"

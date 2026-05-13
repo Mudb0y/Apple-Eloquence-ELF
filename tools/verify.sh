@@ -10,6 +10,5 @@ if [ ! -f tools/checksums.txt ]; then
     exit 1
 fi
 
-# Filter out comment / empty lines, then run sha256sum -c
 grep -v '^#' tools/checksums.txt | grep -v '^$' | sha256sum -c --strict --quiet
 echo "All binaries match expected checksums."

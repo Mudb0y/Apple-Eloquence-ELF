@@ -157,7 +157,6 @@ def parse_chained_fixups_blob(
         ))
         return result
 
-    # === Segment starts: array of segment_offset[] preceded by seg_count
     starts_base = header.starts_offset
     seg_count, = struct.unpack_from("<I", blob, starts_base)
     seg_offsets = struct.unpack_from(f"<{seg_count}I", blob, starts_base + 4)

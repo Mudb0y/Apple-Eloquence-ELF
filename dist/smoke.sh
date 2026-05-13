@@ -15,7 +15,6 @@ run() {
     sleep 1.5
 }
 
-# Per-language one-liners.
 run "en-US" -l en-US "American English."
 run "en-GB" -l en-GB "British English."
 run "es-ES" -l es-ES "Hola mundo."
@@ -27,19 +26,15 @@ run "it-IT" -l it-IT "Ciao mondo."
 run "pt-BR" -l pt-BR "Olá mundo."
 run "fi-FI" -l fi-FI "Hei maailma."
 
-# Variants.
 for v in Reed Shelley Sandy Rocko Flo Grandma Grandpa Eddy; do
     run "variant-$v" -y "$v" "Variant $v"
 done
 
-# SSML marks.
 run "ssml-mark" -m '<speak>Before <mark name="here"/> after.</speak>'
 
-# Cancel mid-sentence.
 ( spd-say -o eloquence "This is a very long sentence that should be canceled in the middle." &
   PID=$!; sleep 0.3; kill -INT $PID 2>/dev/null || true ) >>"$OUT" 2>&1 || true
 
-# Pause/resume.
 echo "[pause/resume] manual: ensure spd-say survives a pause/resume cycle" >>"$OUT"
 
 echo "Smoke complete." | tee -a "$OUT"
