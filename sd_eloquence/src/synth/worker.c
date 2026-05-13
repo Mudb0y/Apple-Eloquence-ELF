@@ -267,6 +267,24 @@ static void exec_job(SynthWorker *w, synth_job *j) {
     w->engine->api.Synchronize(w->engine->h);
     audio_sink_flush(w->sink);
 
+    /* Pad with ~100ms of trailing silence at the engine's native rate.
+     * speech-dispatcher's audio backend (pulse/alsa) can clip the last
+     * few ms of an utterance when the stream drains at end-of-job; the
+     * trailing silence absorbs that clip so the real speech reaches
+     * the user intact.  Skip on stop_requested -- a cancel should end
+     * promptly without the extra tail. */
+    if (!atomic_load(&w->stop_requested)) {
+        static const int16_t silence[2205] = { 0 }; /* 100ms at 22050 Hz */
+        int n = w->engine->sample_rate_hz / 10;
+        if (n > (int)(sizeof(silence) / sizeof(silence[0])))
+            n = (int)(sizeof(silence) / sizeof(silence[0]));
+        if (n > 0) {
+            audio_sink_push(w->sink, silence, n);
+            audio_sink_flush(w->sink);
+        }
+    }
+    fflush(stdout);
+
     if (atomic_load(&w->stop_requested))
         module_report_event_stop();
     else
