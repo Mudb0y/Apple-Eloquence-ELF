@@ -1,0 +1,26 @@
+{
+  "ground_truth": {
+    "bind:<resolved-later>": 100,
+    "rebase:__DATA_CONST,__const": 9,
+    "rebase:__TEXT,__text": 71,
+    "rebase:__TEXT,__const": 12,
+    "rebase:__DATA,__common": 3
+  },
+  "lief": {
+    "rebase:__DATA_CONST,__const": 9,
+    "rebase:__TEXT,__text": 71,
+    "rebase:__TEXT,__const": 12,
+    "rebase:__DATA,__common": 3
+  },
+  "converter": {
+    "rebase:__DATA_CONST,__const": 9,
+    "rebase:__TEXT,__text": 71,
+    "rebase:__TEXT,__const": 12,
+    "rebase:__DATA,__common": 3
+  },
+  "totals": {
+    "ground_truth": 195,
+    "lief": 95,
+    "converter": 95
+  }
+}
