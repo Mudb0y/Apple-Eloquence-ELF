@@ -1,8 +1,8 @@
 # apple-eloquence-elf
 
-Convert Apple's bundled ETI Eloquence TTS engine (Mach-O dylibs from the
-TextToSpeechKona framework) to Linux ELF shared objects. The genuine ETI
-Eloquence 6.1 speech synthesizer, running natively on Linux x86_64 and arm64.
+Convert Apple's bundled ETI Eloquence TTS engine (Mach-O dylibs from
+the TextToSpeechKona framework) to Linux ELF shared objects, and ship
+them behind a native speech-dispatcher module.
 
 ```
 $ ./examples/speak ./prebuilt/x86_64/eci.so "Hello world."
@@ -14,206 +14,158 @@ $ aplay -r 11025 -f S16_LE /tmp/eci_out.s16
 
 ## What this is
 
-Apple ships ETI Eloquence as part of VoiceOver across macOS, iOS, iPadOS, and
-tvOS. Inside `TextToSpeechKonaSupport.framework` they bundle a set of dylibs
-that ARE the genuine ETI ECI 6.1 engine (the same C++ source tree ETI /
-Speechworks shipped historically), compiled for Apple platforms. Crucially,
-those dylibs depend only on `libSystem.B.dylib` and `libc++.1.dylib` — no
-Apple-framework deps — which makes them tractable to retarget.
+Apple ships ETI Eloquence as part of VoiceOver across macOS, iOS,
+iPadOS, and tvOS. Inside `TextToSpeechKonaSupport.framework` they
+bundle dylibs that are the ETI ECI 6.1 engine compiled for Apple
+platforms. The dylibs depend only on `libSystem.B.dylib` and
+`libc++.1.dylib`, which makes them tractable to retarget.
 
-> Note on the name: the engine is **Eloquence**, originally from Eloquent
-> Technologies, Inc. (ETI). Speechworks (later ScanSoft, later Nuance,
-> later Microsoft) acquired ETI in 2003. IBM had its own ECI-licensed
-> fork shipped as ViaVoice TTS / IBMTTS, but the mainline engine —
-> including what Apple ships today — descends from the ETI tree.
+> Eloquence originated at Eloquent Technologies, Inc. (ETI).
+> Speechworks (later ScanSoft, Nuance, Microsoft) acquired ETI in
+> 2003. IBM had its own ECI-licensed fork shipped as ViaVoice /
+> IBMTTS; the mainline engine — including what Apple ships — descends
+> from the ETI tree.
 
-This project provides `macho2elf.py`: a Python+LIEF converter that takes
-those Mach-O dylibs and produces ELF `.so` files that load on Linux via
-`dlopen()` and expose the standard ECI C API.
+`macho2elf.py` is the converter: a Python + LIEF tool that produces
+ELF `.so` files exposing the standard ECI C API.
 
 ## Project status
 
-| Architecture | Builds | Runtime tested |
+| Architecture | Builds | Runtime |
 |---|---|---|
-| **x86_64 Linux** | ✅ | ✅ end-to-end speech via sd_eloquence + Orca |
-| **aarch64 Linux** | ✅ | ⚠️ build-verified only; needs real arm64 hw |
+| x86_64 Linux | ✅ | ✅ tested end-to-end with sd_eloquence + Orca |
+| aarch64 Linux | ✅ | ⚠️ build-verified only |
 
-The shipped binaries are built from the **tvOS 18.2 Simulator Runtime**.
+Shipped binaries are built from the tvOS 18.2 Simulator Runtime.
 
-**Languages**: 10 working end-to-end on x86_64 (en-US, en-GB, es-ES,
-es-MX, fr-FR, fr-CA, de-DE, it-IT, pt-BR, fi-FI). The CJK modules
-(ja-JP, ko-KR, zh-CN, zh-TW) are gated out for v1 and deferred to v2.
-Background investigation lives in `docs/cjk-investigation/` and the
-`docs/macho2elf-audit/` tree: the macho2elf converter handles every
-relocation kind correctly, but Apple's framework drives the engine
-via the modern `2`-suffixed ECI API (`eciNew2` / `eciAddText2` /
-`eciRegisterSampleBuffer2` / etc.) rather than the legacy IBM-
-compatible API sd_eloquence uses. The CJK language modules appear to
-require the modern API's initialization codepath; switching
-sd_eloquence to it is v2 work. The four romanizer helpers (`jpnrom`,
-`korrom`, `chsrom`, `chtrom`) ship alongside the primary modules but
-aren't standalone synthesizers.
+Working languages on x86_64: en-US, en-GB, es-ES, es-MX, fr-FR, fr-CA,
+de-DE, it-IT, pt-BR, fi-FI. CJK (ja-JP, ko-KR, zh-CN, zh-TW) is gated
+for v1 — the romanizer init path needs the modern 2-suffixed ECI API
+rather than the legacy one v1 uses. Deferred to v2; background in
+`docs/cjk-investigation/` and `docs/eci-2-api/`.
 
-## Quick start (release tarball)
-
-The fastest path is to grab a release tarball from the
-[GitHub Releases page](../../releases):
+## Install (from the release tarball)
 
 ```bash
 tar -xzf apple-eloquence-elf-*-linux-x86_64.tar.gz
 cd apple-eloquence-elf-*-linux-x86_64
 sudo ./install.sh
-spd-say -o eloquence "Hello from Apple's Eloquence on Linux."
+spd-say -o eloquence "Hello from Eloquence."
 ```
 
-The tarball contains the converted ELFs, the `sd_eloquence` binary, an
-auto-generated `eci.ini`, and an installer that drops everything into
-the standard FHS paths (`/usr/lib/eloquence`, the speech-dispatcher
-module dir, `/etc/speech-dispatcher/modules`).
+`install.sh` detects the host distro family (Debian / Ubuntu /
+Fedora / Arch / openSUSE) and uses the system package manager to
+install every runtime dependency (speech-dispatcher, libc++, libsoxr,
+libxml2, pcre2) before dropping files into `/usr/lib/eloquence/`,
+the speech-dispatcher modulebindir, and
+`/etc/speech-dispatcher/modules/eloquence.conf`.
 
-## System install (any distro)
+Configure the module by editing
+`/etc/speech-dispatcher/modules/eloquence.conf` and restarting
+speech-dispatcher. Audio previews of every libsoxr resampler preset
+ship at `/usr/share/eloquence/resampler-previews/`.
 
-`cmake --install` puts everything in standard FHS paths:
+Uninstall: `sudo ./uninstall.sh` (add `--purge` to also remove the
+conf template).
+
+## Build from source
 
 ```bash
-# Build tools + speech-dispatcher module
 cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build
-
-# Install (needs root for /usr and /etc paths)
 sudo cmake --install build
 ```
 
+`cmake --install` does **not** touch the system package manager.
+Install build and runtime deps yourself: `cmake`, `gcc`, `llvm` (for
+`llvm-lipo`), `python3` with the `lief` package, plus dev packages
+for speech-dispatcher, libc++ / libc++abi, libsoxr, libxml2, and
+libpcre2-8. CMake will name any missing ones at configure time.
+
 Files placed:
 - `/usr/bin/macho2elf` — converter CLI
-- `/usr/lib/speech-dispatcher-modules/sd_eloquence` — speechd module binary
-- `/etc/speech-dispatcher/modules/eloquence.conf` — module config template
+- `<speechd modulebindir>/sd_eloquence` — module binary
+- `/etc/speech-dispatcher/modules/eloquence.conf` — config template
 - `/usr/share/doc/eloquence/` — README + docs
 
-Runtime deps the install does NOT pull in (install via your distro):
-
-| Component | Arch | Debian/Ubuntu | Fedora |
-|---|---|---|---|
-| LIEF (Python) | `python-lief` | `python3-lief` | `python3-lief` |
-| C++ runtime | `libc++ libc++abi` | `libc++1 libc++abi1` | `libcxx libcxxabi` |
-| Resampler (optional) | `libsoxr` | `libsoxr0` | `soxr` |
-| llvm tools (for `llvm-lipo`) | `llvm` | `llvm` | `llvm` |
-| aarch64 cross-build (optional) | `aarch64-linux-gnu-{gcc,binutils}` | `gcc-aarch64-linux-gnu` | `gcc-aarch64-linux-gnu` |
-
-Then convert your own Apple dylibs (see `docs/02-conversion.md`) or grab a prebuilt user tarball from the [GitHub Releases page](../../releases). Each release ships a `linux-x86_64` and `linux-aarch64` tarball containing the converted ELFs, the `sd_eloquence` binary, an `install.sh`, and an autogenerated `eci.ini`. The CI workflow builds them on Linux runners from the `vendor/tvOS-18.2/` dylibs checked into this repo.
-
-See `docs/03-integration.md` for the complete API guide.
-
-Required runtime libraries on x86_64 Linux:
-- glibc (any reasonable version)
-- libc++.so.1 + libc++abi.so.1 (Arch: `pacman -S libc++ libc++abi`; Debian: `apt install libc++1 libc++abi1`)
-
-## Building from scratch (run the converter yourself)
-
-If you want to rebuild from the Apple originals (or convert a different version):
+## Convert your own dylibs
 
 ```bash
-# 1. Get Python deps
 python3 -m venv venv && ./venv/bin/pip install lief
-
-# 2. Convert. The input must already be a single-arch slice — use llvm-lipo
-#    to extract from a universal binary:
 llvm-lipo -extract x86_64 vendor/tvOS-18.2/eci.dylib -output /tmp/eci.x86_64
 ./venv/bin/python3 macho2elf/macho2elf.py /tmp/eci.x86_64 -o /tmp/eci.so
 ```
 
-See `docs/02-conversion.md` for the full recipe.
+Full recipe (including extraction from a tvOS Simulator Runtime DMG):
+`docs/01-extraction.md` and `docs/02-conversion.md`.
+
+## Speech-dispatcher module
+
+`sd_eloquence/` is a native speech-dispatcher output module. It
+exposes the eight Apple voice presets (Reed, Shelley, Sandy, Rocko,
+Flo, Grandma, Grandpa, Eddy; Jacques replaces Reed in French),
+transcribed verbatim from `KonaVoicePresets.plist`. Every supported
+language is selectable on the fly via speech-dispatcher's `language=`
+parameter; no per-language conf edits.
+
+Configuration reference: `docs/03-integration.md` plus the comments
+in `eloquence.conf` itself.
+
+## How it works
+
+The converter walks each section of the Mach-O dylib, emits an
+assembly stub that interleaves `.incbin` of the original code/data
+with section-relative labels for exports and `.quad` references for
+chained-fixup bindings, generates a linker script that pins each
+section at its original Mach-O virtual address (preserving
+RIP-relative offsets), and runs `gcc -shared`. Symbol prefixes are
+stripped (`_atoi` → `atoi`), Darwin-specific symbols are renamed
+(`___error` → `__errno_location`, `___stderrp` → `stderr`), and
+small stub C functions cover names with no direct Linux equivalent
+(`__maskrune`, `__stack_chk_guard`, `_DefaultRuneLocale`).
+
+Details: `docs/04-internals.md`.
 
 ## Repo layout
 
 ```
-macho2elf/macho2elf.py    ~860 LOC Python+LIEF converter (this project's main code, MIT)
-vendor/tvOS-18.2/         Unmodified Apple Mach-O dylibs from tvOS 18.2 Simulator Runtime
-prebuilt/{x86_64,aarch64} Local landing zone for converted ELFs (gitignored;
-                          populate by running macho2elf locally, or unpack a
-                          release tarball into here)
-examples/speak.c          Full TTS C example using dlopen + the ECI callback API
-examples/eci.ini          Minimal config (the engine has built-in voice/phoneme defaults)
-sd_eloquence/             Native Speech Dispatcher module sources. Built by
-                          the root CMakeLists; install drops the binary where
-                          speechd auto-discovers it. Optional libsoxr resampling.
-dist/install.sh           Installer shipped inside release tarballs
-.github/workflows/        Linux-only CI that converts vendor/ -> ELFs and
-                          packages the per-arch release tarballs
-docs/                     Extraction, conversion, integration, internals, troubleshooting
-tools/checksums.txt       SHA256 of the vendored Apple dylibs (release tarballs
-                          carry their own SHA256SUMS)
-tools/verify.sh           Verify vendored dylibs match expected checksums
+macho2elf/macho2elf.py    Python + LIEF converter (MIT)
+sd_eloquence/             speech-dispatcher module (GPL-2.0-or-later)
+vendor/tvOS-18.2/         Unmodified Apple Mach-O dylibs
+prebuilt/{x86_64,aarch64} Converted ELFs (gitignored)
+examples/                 dlopen-based TTS sample (speak.c)
+dist/                     install.sh / uninstall.sh / smoke.sh
+tools/                    Converter audit + checksum tooling
+docs/                     Extraction / conversion / integration / internals / troubleshooting
+.github/workflows/        CI: convert vendor/ -> ELFs, package tarballs
 ```
 
-## Speech Dispatcher integration
+## Licensing
 
-A native speech-dispatcher output module ships in `sd_eloquence/`, built as
-part of the root CMake project. Configure with `-DINSTALL_PREBUILT_DYLIBS=ON`
-and `sudo cmake --install build` drops `eci.so`, the language modules
-(10 working + 4 CJK gated for v1 + 4 romanizer helpers) and a
-multi-section `eci.ini` into `${CMAKE_INSTALL_PREFIX}/lib/eloquence/`
-(typically `/usr/lib/eloquence`). The module's only required config is
-`EloquenceDataDir` (defaults to that path); every supported language is
-then available on the fly through speech-dispatcher's standard
-`language=` setting -- no per-language conf edits.
-
-The 8 voice presets (Reed, Shelley, Sandy, Rocko, Flo, Grandma, Grandpa,
-Eddy -- "Jacques" replaces Reed in French) and their per-voice parameter
-sets are transcribed verbatim from Apple's `KonaVoicePresets.plist`, so
-the voices sound the same as on iOS/tvOS/macOS.
-
-## How it works (the very short version)
-
-The converter walks each section of the Mach-O dylib, emits an assembly stub
-that interleaves `.incbin` of the original code/data bytes with section-relative
-labels for exports and `.quad` references for chained-fixup bindings, generates
-a linker script that pins each section at its original Mach-O virtual address
-(preserving all RIP-relative offsets unchanged), and runs `gcc -shared` to
-produce a valid ELF DSO. Symbol prefixes get stripped (`_atoi` → `atoi`), a
-handful of Darwin-specific symbols get renamed (`___error` → `__errno_location`,
-`___stderrp` → `stderr`), and small stub C functions provide a few names that
-have no direct Linux equivalent (`__maskrune`, `__stack_chk_guard`, the
-`_DefaultRuneLocale` ctype placeholder).
-
-Full details in `docs/04-internals.md`.
-
-## Provenance and licensing
-
-- **The converter** (`macho2elf/`) is original work, licensed under MIT.
-  See `LICENSE`.
-- **The speech-dispatcher module** (`sd_eloquence/`) is licensed under
-  **GPL-2.0-or-later**. It incorporates anti-crash regex tables and
-  dictionary-loading patterns derived from the
+- **`macho2elf/`** is MIT. See `LICENSE`.
+- **`sd_eloquence/`** is GPL-2.0-or-later. It incorporates anti-crash
+  regex tables and dictionary-loading patterns from the
   [NVDA-IBMTTS-Driver](https://github.com/davidacm/NVDA-IBMTTS-Driver)
-  project (Copyright (C) 2009-2026 David CM, GPL-2.0). Full GPLv2 text in
-  `sd_eloquence/LICENSE.GPL`. The macho2elf converter and the rest of the
-  project remain MIT.
-- **The shipped Mach-O dylibs** under `vendor/tvOS-18.2/` are unmodified Apple
-  binaries extracted from the tvOS 18.2 Simulator Runtime IPSW. SHA256 checksums
-  for both the source DMG and each extracted file are in `tools/checksums.txt`.
-  These remain subject to Apple's SDK terms.
-- **The converted `.so` files** are produced by running `macho2elf.py`
-  on those Apple binaries — they are derivative works of Apple's
-  distribution. Not committed to the repo; they live in release tarballs
-  built by CI, or are generated locally into `prebuilt/<arch>/`.
-- **`examples/eci.ini`** is a minimal hand-authored configuration that uses
-  the engine's built-in defaults. It's structured around the ECI 6.1 SDK
-  format and observed in the LevelStar Icon distribution.
+  (Copyright (C) 2009-2026 David CM, GPL-2.0). Full text in
+  `sd_eloquence/LICENSE.GPL`.
+- **`vendor/tvOS-18.2/`** are unmodified Apple binaries from the tvOS
+  18.2 Simulator Runtime IPSW, subject to Apple's SDK terms. SHA256
+  checksums in `tools/checksums.txt`.
+- **Converted `.so` files** are derivative works of Apple's
+  distribution. Not committed; built locally or downloaded from the
+  release tarball.
 
-If you intend to redistribute or productize this, the conservative path is
-to download your own copy of a tvOS Simulator Runtime from Apple's developer
-portal and build locally — see `docs/01-extraction.md`.
+To redistribute or productize, the conservative path is to download
+your own tvOS Simulator Runtime from Apple's developer portal and
+convert locally; see `docs/01-extraction.md`.
 
 ## Acknowledgements
 
-- Eloquent Technologies, Inc. (ETI), and the subsequent Speechworks / ScanSoft /
-  Nuance custodians of the source tree, for the original engine that we're all
-  still enjoying decades later.
-- IBM for the parallel ViaVoice TTS / IBMTTS fork, which contributed back to
-  the mainline ECI codebase in places.
-- LevelStar for keeping a working Linux ECI distribution alive (their Icon
-  product). Their published `eci.ini` informed our minimal template.
-- Agner Fog (`objconv`) and the LIEF project for binary-format tooling that
-  made this tractable.
-- Anthropic's Claude Code agent did most of the engineering pair-programming.
+- ETI / Speechworks / ScanSoft / Nuance — the engine.
+- IBM ViaVoice TTS / IBMTTS, whose contributions to the mainline ECI
+  codebase persist in this build.
+- LevelStar, for keeping a working Linux ECI distribution alive in
+  their Icon product; their `eci.ini` informed our minimal template.
+- Agner Fog (`objconv`) and the LIEF project, for the binary-format
+  tooling that made this tractable.
+- Anthropic's Claude Code did most of the engineering pair-programming.
