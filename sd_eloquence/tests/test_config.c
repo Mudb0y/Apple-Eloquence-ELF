@@ -19,6 +19,7 @@ int main(void) {
     assert(c.use_dictionaries == 1);
     assert(c.load_abbr_dict   == 0);
     assert(c.backquote_tags == 0);
+    assert(c.rate_boost     == 0);
     assert(c.voice_head_size         == ELOQ_VOICE_PARAM_UNSET);
     assert(c.voice_roughness         == ELOQ_VOICE_PARAM_UNSET);
     assert(c.voice_breathiness       == ELOQ_VOICE_PARAM_UNSET);
@@ -40,6 +41,12 @@ int main(void) {
     assert(config_apply_kv(&c, "EloquenceDefaultVoice", "Nobody") == -1);
     assert(config_apply_kv(&c, "EloquenceDefaultLanguage", "xx-XX") == -1);
     assert(config_apply_kv(&c, "Nonsense", "yes") == -1);
+
+    /* RateBoost toggle. */
+    config_defaults(&c);
+    assert(c.rate_boost == 0);
+    assert(config_apply_kv(&c, "EloquenceRateBoost", "1") == 0);
+    assert(c.rate_boost == 1);
 
     /* AbbrDict toggle. */
     config_defaults(&c);

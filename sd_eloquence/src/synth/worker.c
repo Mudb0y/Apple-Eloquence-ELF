@@ -183,8 +183,16 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                 int saved = w->engine->api.GetVoiceParam(w->engine->h, ECI_ACTIVE_SLOT,
                                                         f->u.prosody.param);
                 f->u.prosody.saved_value = saved;
+                int new_val = f->u.prosody.new_value;
+                /* RateBoost: NVDA's 1.6x multiplier on the SSML-driven rate,
+                 * letting fast-reading users break past the natural top end.
+                 * Only applies to eciSpeed; clamped to the engine's 0..200. */
+                if (f->u.prosody.param == eciSpeed && w->cfg->rate_boost) {
+                    new_val = (int)(new_val * 1.6 + 0.5);
+                    if (new_val > 200) new_val = 200;
+                }
                 w->engine->api.SetVoiceParam(w->engine->h, ECI_ACTIVE_SLOT,
-                                             f->u.prosody.param, f->u.prosody.new_value);
+                                             f->u.prosody.param, new_val);
                 break;
             }
             case FRAME_PROSODY_POP:

@@ -34,6 +34,7 @@ typedef struct {
     int  load_abbr_dict;             /* default 0 (opt-in for abbreviations) */
     int  phrase_prediction;          /* default 0 */
     int  backquote_tags;             /* default 0 (security) */
+    int  rate_boost;                 /* default 0; scales SSML-driven rate */
 
     /* Active-voice param overrides; each is 0..100, or ELOQ_VOICE_PARAM_UNSET
      * (the default) to keep the voice preset's own value. When set, the
