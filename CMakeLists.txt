@@ -156,7 +156,7 @@ if(BUILD_SD_MODULE)
         target_link_options(sd_eloquence PRIVATE
             -rdynamic
             "-Wl,-rpath,\$ORIGIN"
-            "-Wl,--no-as-needed,-lgcc_s,--as-needed")
+            "-Wl,--no-as-needed,-lgcc_s,-lstdc++,--as-needed")
         if(SOXR_FOUND)
             target_compile_definitions(sd_eloquence PRIVATE HAVE_SOXR)
             target_include_directories(sd_eloquence PRIVATE ${SOXR_INCLUDE_DIRS})
@@ -185,7 +185,7 @@ if(BUILD_SD_MODULE)
             target_link_libraries(render_resampler_previews PRIVATE
                 ${SOXR_LIBRARIES} dl)
             target_link_options(render_resampler_previews PRIVATE
-                "-Wl,--no-as-needed,-lgcc_s,--as-needed")
+                "-Wl,--no-as-needed,-lgcc_s,-lstdc++,--as-needed")
             set_target_properties(render_resampler_previews PROPERTIES
                 RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
         endif()

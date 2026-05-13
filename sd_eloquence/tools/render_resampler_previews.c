@@ -170,14 +170,7 @@ int main(int argc, char **argv) {
      * The CI workflow drops a one-line ini there pointing at ./enu.so. */
     if (chdir(work_dir) != 0) { perror("chdir"); return 1; }
 
-    /* RTLD_LAZY rather than RTLD_NOW: the converted eci.so references C++
-     * runtime symbols (`_Unwind_Resume`, `std::terminate`, ...) that the
-     * Apple build expected from libc++ but the aarch64 Linux libc++.so.1
-     * doesn't re-export.  None of those fire in the happy-path synthesis
-     * we use the tool for, so deferring their resolution lets us run
-     * cleanly on both arches without bringing the whole C++ runtime
-     * resolution problem into the CI critical path. */
-    void *eci_h = dlopen("./eci.so", RTLD_LAZY);
+    void *eci_h = dlopen("./eci.so", RTLD_NOW);
     if (!eci_h) {
         fprintf(stderr, "dlopen eci.so: %s\n", dlerror());
         return 1;
