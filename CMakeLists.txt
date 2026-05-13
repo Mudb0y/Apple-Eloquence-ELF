@@ -6,6 +6,16 @@ project(apple-eloquence-elf
 
 include(GNUInstallDirs)
 
+# Standardize installed paths on "eloquence" regardless of the project name.
+# GNUInstallDirs' default DOCDIR is share/doc/${PROJECT_NAME}, which would
+# put docs under share/doc/apple-eloquence-elf -- inconsistent with the
+# /usr/lib/eloquence + /etc/speech-dispatcher/modules/eloquence.conf paths
+# the rest of the install uses. Force-override to match.
+set(ELOQUENCE_SHARE_SUBDIR "eloquence")
+set(CMAKE_INSTALL_DOCDIR "${CMAKE_INSTALL_DATADIR}/doc/eloquence" CACHE PATH
+    "Documentation install dir (overrides the GNUInstallDirs default to match the rest of the install layout)"
+    FORCE)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
@@ -16,7 +26,7 @@ install(PROGRAMS macho2elf/macho2elf.py
     DESTINATION ${CMAKE_INSTALL_BINDIR}
     RENAME macho2elf)
 install(FILES macho2elf/requirements.txt
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/apple-eloquence-elf)
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/${ELOQUENCE_SHARE_SUBDIR})
 
 # sd_eloquence -- speech-dispatcher module.
 # Skipped if speech-dispatcher pkg-config isn't available; libsoxr optional.
@@ -348,11 +358,11 @@ endif()
 # Optional: also publish the vendored Apple dylibs (.dylib originals) for
 # reproducibility / re-conversion. Same legal posture as the prebuilts.
 option(INSTALL_APPLE_DYLIBS
-    "Also install the unmodified Apple Mach-O dylibs to ${CMAKE_INSTALL_FULL_DATADIR}/apple-eloquence-elf/vendor/"
+    "Also install the unmodified Apple Mach-O dylibs to ${CMAKE_INSTALL_FULL_DATADIR}/${ELOQUENCE_SHARE_SUBDIR}/vendor/"
     OFF)
 if(INSTALL_APPLE_DYLIBS)
     install(DIRECTORY vendor/tvOS-18.2/
-        DESTINATION ${CMAKE_INSTALL_FULL_DATADIR}/apple-eloquence-elf/vendor/tvOS-18.2
+        DESTINATION ${CMAKE_INSTALL_FULL_DATADIR}/${ELOQUENCE_SHARE_SUBDIR}/vendor/tvOS-18.2
         FILES_MATCHING PATTERN "*.dylib")
 endif()
 
