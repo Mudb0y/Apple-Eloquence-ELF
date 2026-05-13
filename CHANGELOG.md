@@ -5,6 +5,15 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] — 2026-05-13
+
+### Changed
+
+- Release tarballs now ship as `.tar.gz` (gzip) instead of `.tar.zst`
+  (zstd) so they extract with stock `tar` on every distro.  The
+  compression savings of zstd (~30% on a ~10 MB payload) weren't worth
+  asking users on minimal systems to install a prerequisite first.
+
 ## [1.0.1] — 2026-05-13
 
 Patch release that resolves installation failures on Arch and Ubuntu
@@ -25,11 +34,6 @@ cleanly from the 1.0.0 tarball already.
   library (Debian does, in `libspeechd-module0`), and the CI build
   links against an upstream speech-dispatcher 0.12.0 we build from
   source.  Bundling avoids the distro-packaging variance entirely.
-
-### Docs
-
-- `README.md` quick-start now mentions `zstd` as an extraction
-  prerequisite for minimal systems that don't have it preinstalled.
 
 ## [1.0.0] — 2026-05-13
 

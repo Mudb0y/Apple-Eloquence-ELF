@@ -60,9 +60,7 @@ The fastest path is to grab a release tarball from the
 [GitHub Releases page](../../releases):
 
 ```bash
-# zstd is required to unpack -- preinstalled on most desktop systems;
-# minimal containers may need to apt/dnf/pacman install zstd first.
-tar --zstd -xf apple-eloquence-elf-*-linux-x86_64.tar.zst
+tar -xzf apple-eloquence-elf-*-linux-x86_64.tar.gz
 cd apple-eloquence-elf-*-linux-x86_64
 sudo ./install.sh
 spd-say -o eloquence "Hello from Apple's Eloquence on Linux."

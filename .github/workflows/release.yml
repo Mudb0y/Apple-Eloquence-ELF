@@ -53,7 +53,6 @@ jobs:
               libc++-dev libc++abi-dev \
               cmake pkg-config \
               libsoxr-dev \
-              zstd \
               build-essential autoconf automake libtool gettext autopoint \
               intltool texinfo \
               libltdl-dev libdotconf-dev libglib2.0-dev libpulse-dev \
@@ -226,8 +225,10 @@ jobs:
               | sort -z \
               | xargs -0 sha256sum > SHA256SUMS)
 
-          TARBALL="${NAME}.tar.zst"
-          tar --zstd -C stage -cf "${TARBALL}" "${NAME}"
+          # gzip rather than zstd so the tarball extracts with stock
+          # tar on every distro (minimal images don't ship zstd).
+          TARBALL="${NAME}.tar.gz"
+          tar -C stage -czf "${TARBALL}" "${NAME}"
           sha256sum "${TARBALL}" > "${TARBALL}.sha256"
           ls -la "${TARBALL}" "${TARBALL}.sha256"
 
@@ -261,7 +262,7 @@ jobs:
       - name: Assemble release assets
         run: |
           mkdir -p release
-          find artifacts -type f \( -name '*.tar.zst' -o -name '*.sha256' \) \
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.sha256' \) \
               -exec cp {} release/ \;
           ls -la release/
 

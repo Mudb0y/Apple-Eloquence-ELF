@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(apple-eloquence-elf
-    VERSION 1.0.1
+    VERSION 1.0.2
     DESCRIPTION "Convert Apple's bundled ETI Eloquence Mach-O dylibs to Linux ELF; speech-dispatcher integration."
     LANGUAGES C)
 
