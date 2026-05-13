@@ -144,11 +144,18 @@ int main(int argc, char **argv) {
         return 1;
     }
     const char *work_dir = argv[1];
-    const char *out_dir  = argv[2];
+    const char *out_dir_arg = argv[2];
 
-    /* The engine reads ./eci.ini at New() time, so anchor cwd to work_dir.
-     * The CI workflow drops a one-line ini there pointing at ./enu.so. */
-    if (chdir(work_dir) != 0) { perror("chdir"); return 1; }
+    /* Resolve out_dir to an absolute path before the chdir below, otherwise
+     * the relative path passed in resolves against work_dir at write time. */
+    char out_dir[2048];
+    if (out_dir_arg[0] == '/') {
+        snprintf(out_dir, sizeof(out_dir), "%s", out_dir_arg);
+    } else {
+        char cwd[1024];
+        if (!getcwd(cwd, sizeof(cwd))) { perror("getcwd"); return 1; }
+        snprintf(out_dir, sizeof(out_dir), "%s/%s", cwd, out_dir_arg);
+    }
 
     if (mkdir(out_dir, 0755) != 0 && errno != EEXIST) {
         perror("mkdir output dir");
@@ -158,6 +165,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "output dir %s not writable\n", out_dir);
         return 1;
     }
+
+    /* The engine reads ./eci.ini at New() time, so anchor cwd to work_dir.
+     * The CI workflow drops a one-line ini there pointing at ./enu.so. */
+    if (chdir(work_dir) != 0) { perror("chdir"); return 1; }
 
     void *eci_h = dlopen("./eci.so", RTLD_NOW);
     if (!eci_h) {
