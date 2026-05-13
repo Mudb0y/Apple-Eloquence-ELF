@@ -4,7 +4,7 @@
 
 - Host: Arch Linux (CachyOS), kernel 7.0.0-1-cachyos
 - Engine: /usr/lib/eloquence/eci.so (Apple-derived tvOS 18.2 build, 2.0 MB)
-- Probe: build/examples/cjk_probe (from Task I1)
+- Probe: `build/examples/cjk_probe`
 - Tools used: gdb (valgrind unavailable on this host)
 - Symbol map: docs/cjk-investigation/eci-so-symbols.txt (756 symbols; `reset_sent_vars` IS
   stripped — we get addresses only, not function names, for engine-internal crash sites)
@@ -182,8 +182,10 @@ The highest-value next experiment is **Phase 1: confirm that calling `eciDelete`
 process exit silences the atexit crashes for zh-CN, zh-TW, and ja-JP**. If `eciDelete` (or
 `eciUnloadEngine`) tears down the romanizer and unregisters or safely calls its destructors
 before the atexit queue fires, we can determine whether the bug is purely in cleanup ordering.
-If crashes persist after `eciDelete`, the follow-up should patch `sd_eloquence.c` to intercept
-`dlopen`/`dlclose` of romanizer .so files and strip their `.init_array` entries at load time.
+If crashes persist after `eciDelete`, intercepting `dlopen`/`dlclose`
+of the romanizer .so files and stripping their `.init_array` entries
+at load time is the next candidate. (Phase 2 picked an in-module
+`__cxa_atexit` override instead.)
 
 A secondary experiment worth queuing: run the same probe with `LD_PRELOAD` of a small shim
 that replaces `__cxa_atexit` with a no-op, to quantify whether suppressing all atexit

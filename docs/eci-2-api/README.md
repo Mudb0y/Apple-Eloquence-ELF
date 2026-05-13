@@ -109,4 +109,5 @@ the "2" version has the same signature as its legacy counterpart.
 ## Critical-path functions for the migration
 
 (See `docs/superpowers/specs/2026-05-13-eci-2-api-switch-design.md` §5.3 for
-the full list. Tasks RE2-RE16 in the implementation plan cover them.)
+the full list. As of 2026-05-13 this work is deferred to v2; see
+`STATUS.md`.)

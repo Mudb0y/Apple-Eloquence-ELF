@@ -14,9 +14,9 @@ your_app/                                  Or wherever you run from
 └── eci.ini                                 Config file (see below)
 ```
 
-`eci.ini` MUST be in the current working directory of your process. The
-engine looks for it there. It also looks for an optional `eci.dbg` file
-(O_RDWR) — if you create it, the engine writes verbose debug logs to it.
+`eci.ini` MUST be in the current working directory of your process.
+An optional `eci.dbg` in the same dir triggers verbose engine
+diagnostics (see troubleshooting).
 
 ## Minimum eci.ini
 
@@ -33,17 +33,11 @@ to point at your installed module of choice (`enu.so`, `eng.so`,
 `deu.so`, `fra.so`, etc. — see "Language modules available" below).
 
 The engine has fully-tuned built-in voice and phoneme defaults that
-produce intelligible speech without further configuration.
-
-**Why minimal?** The tvOS 18.2 Eloquence build has internal config-table
-buffers that overflow if you include too many `Voice<N>=` or `Phoneme<N>=`
-tuning entries (such as those in LevelStar Icon's eci.ini). The overflow
-silently corrupts a Klatt-hook callback's instance-data slot, and the
-engine then segfaults during `eciAddText`. Stick to the minimal form and
-the engine works cleanly.
-
-If you need to override voice or phoneme parameters, do it at runtime
-via `eciSetVoiceParam` calls — not in eci.ini.
+produce intelligible speech without further configuration. Don't add
+`Voice<N>=` or `Phoneme<N>=` tuning entries — the tvOS 18.2 build
+overflows an internal buffer and segfaults inside `eciAddText`; see
+`docs/05-troubleshooting.md` for the full story. Use
+`eciSetVoiceParam` calls at runtime instead.
 
 **Section-name quirk:** the engine's iniReader also has a 10-byte buffer
 for section names. Names longer than 7 chars (after brackets) crash the

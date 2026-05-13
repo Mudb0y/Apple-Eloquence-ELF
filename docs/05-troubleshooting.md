@@ -108,9 +108,8 @@ top of `macho2elf.py` and rebuild.
 - `Path=` pointing at nonexistent language .so
 - Engine ran out of file descriptors / memory
 
-Create an empty `eci.dbg` file in cwd (must be O_RDWR-able) and re-run.
-The engine writes detailed diagnostic logs there, including which step
-of init failed.
+Create an empty `eci.dbg` file in cwd and re-run. The engine writes
+detailed diagnostic logs there, including which step of init failed.
 
 ### `eciSetOutputBuffer` returns "NULL eciHandle or no callback"
 

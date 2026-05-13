@@ -85,24 +85,6 @@ files, rather than suppressing at runtime via LD_PRELOAD.
 
 ## Next steps
 
-- **Phase 2 (preferred fix):** Patch the `macho2elf` translator to strip or zero
-  `.fini_array` / `DT_FINI` / `DT_FINI_ARRAY` entries in the output ELF for the three
-  affected romanizer .so files (`chsrom.so`, `chtrom.so`, `jpnrom.so`). This is a
-  surgical, one-time fix that requires no runtime shim. Re-run the probe after patching
-  to verify clean exit.
-
-- **Phase 2 (production stopgap):** Plumb the shim logic into `eci_runtime.c` as a
-  `dlopen`-time interception: when loading a romanizer .so, walk its `PT_DYNAMIC`
-  segment, find `DT_FINI_ARRAY`/`DT_FINI` entries, and zero them before the linker
-  processes them. This avoids needing `LD_PRELOAD` in production and works within the
-  existing `sd_eloquence` module architecture.
-
-- **Phase 2 (alternative):** Call `eciDelete` before `exit()` in the probe (and before
-  `eciUnloadEngine` in `sd_eloquence`) to see whether a graceful engine teardown causes
-  the romanizers to unregister or safely call their destructors before the atexit queue
-  fires. This was the other candidate from Phase 0. If `eciDelete` is sufficient, it is
-  the lowest-risk fix.
-
-- **Verification:** After any fix, confirm that `sd_eloquence` does not produce
-  SIGABRT/SIGSEGV in the speech-dispatcher log when the module is unloaded
-  (`speechd --restart`, `systemctl stop speech-dispatcher`).
+Phase 2 implemented the in-module `__cxa_atexit` override approach,
+eliminating the need for `LD_PRELOAD` in production. See
+`2026-05-12-phase2-in-module-override.md`.

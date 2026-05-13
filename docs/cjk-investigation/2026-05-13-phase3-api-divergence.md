@@ -118,7 +118,8 @@ The `relocation-catalog.md` deliverable from the audit plan (Phase C) is
 still worth assembling — it's the durable documentation. But the fix
 loop in Phase D doesn't apply because there are no Bug rows.
 
-## Recommendation
+## Outcome
 
-Drop the macho2elf-audit Phase D fix loop. Pivot the CJK work to switch
-sd_eloquence's engine wrapper to the `2`-suffixed API. Owner decision.
+As of 2026-05-13, this finding deferred CJK support to v2. v1 ships
+Latin-only; the wholesale 2-API switch is parked in
+`docs/eci-2-api/` until/unless v2 work resumes.

@@ -114,14 +114,9 @@ This compares the SHA256 of every file under `vendor/` and `prebuilt/`
 against the expected values in `tools/checksums.txt`. If your extraction
 matches ours, every line will say `OK`.
 
-## Older versions (tvOS 16.4)
+## tvOS 16.4
 
-If you prefer the older 10-language set (no CJK), the same framework path
-exists in the tvOS 16.4 Simulator Runtime. That DMG is simpler (single
-APFS volume, no IPSW-style outer). Extraction is just `7z x` once,
-then copy the framework. The 16.4 Eloquence accepts a fuller eci.ini
-(Voice/Phoneme tuning entries that 18.2 doesn't tolerate — see
-docs/05-troubleshooting.md).
-
-The conversion process (`docs/02-conversion.md`) is identical between
-versions.
+The tvOS 16.4 Simulator Runtime ships the same framework in a simpler
+DMG layout (single APFS volume, `7z x` once) and tolerates the older
+LevelStar-style eci.ini with Voice/Phoneme tuning entries — see
+`docs/05-troubleshooting.md`. Conversion is identical to 18.2.

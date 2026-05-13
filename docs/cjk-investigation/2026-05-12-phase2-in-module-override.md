@@ -61,18 +61,9 @@ ssml / filters) still pass.
 
 ## Follow-up
 
-The bogus destructor registrations are now suppressed inside the
-sd_eloquence binary. The next steps to actually ship CJK working
-end-to-end:
-
-- **Ungate CJK in `module_init`.** `sd_eloquence/src/module.c` currently
-  unconditionally marks `chs/cht/jpn/kor` as `LANG_DISABLED`. Replace
-  that with `LANG_AVAILABLE` once a manual Orca smoke (with the override
-  active) confirms speech works end-to-end. Owner: TBD.
-- **Manual smoke.** Install the new module (`sudo cmake --install build`),
-  restart speech-dispatcher, run `dist/smoke.sh`, and listen for the
-  per-language utterances + the four CJK ones.
-- **Retire `tools/cjk_atexit_shim.c`?** It's the same logic, now shipped
-  in the module. The standalone shim stays useful for ad-hoc debugging
-  (e.g. running CJK probes against an unpatched eci.so on another
-  system), so leaving it in `tools/` is fine.
+Phase 3 ([`2026-05-13-phase3-api-divergence.md`](2026-05-13-phase3-api-divergence.md))
+discovered the remaining CJK crash isn't atexit-related: Apple's
+framework drives the engine via the modern 2-suffixed ECI API, and
+the romanizer initialization path needs that codepath rather than
+the legacy one v1 uses. CJK stays gated in v1; the API switch is
+deferred to v2.
