@@ -5,6 +5,37 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] — 2026-05-13
+
+A "what the config file claims matches what the code actually does"
+audit pass.
+
+### Added
+
+- `eloquence.conf` now documents the five user-tunable knobs that were
+  wired through but undocumented:
+  - `EloquenceUseDictionaries` (default 1) and `EloquenceDictionaryDir`
+    for per-language pronunciation dictionaries.
+  - `EloquencePhrasePrediction` for `​`pp1`​`-driven prosody (NVDA-style).
+  - `EloquenceSendParams` and `EloquenceBackquoteTags` documented under
+    an "Advanced / debugging" heading, with their security and
+    annotation-parsing caveats spelled out.
+
+### Removed
+
+- Three config keys that were parsed and stored on the config struct
+  but never read anywhere in the module:
+  - `EloquenceRateBoost` — would have multiplied eciSpeed; never wired.
+  - `EloquencePauseMode` — would have controlled punctuation pauses;
+    never wired.
+  - `EloquenceCjkSegvGuard` — irrelevant in v1 because CJK is gated
+    out at the language-select layer anyway.
+
+  Setting any of these in `eloquence.conf` now logs an "ignored
+  config" warning at startup (under `Debug 1`) instead of silently
+  no-op-ing.  When the matching features get implemented they'll come
+  back as real working knobs, not stubs.
+
 ## [1.0.2] — 2026-05-13
 
 ### Changed

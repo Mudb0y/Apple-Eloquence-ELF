@@ -47,14 +47,14 @@ int main(void) {
     fprintf(f, "# comment\n\n");
     fprintf(f, "Debug 1\n");
     fprintf(f, "EloquenceBackquoteTags 1\n");
-    fprintf(f, "EloquenceRateBoost 1\n");
+    fprintf(f, "EloquencePhrasePrediction 1\n");
     fprintf(f, "BogusKey something\n");  /* logged but not fatal */
     fclose(f);
     config_defaults(&c);
     assert(config_parse_file(&c, tmp) == 0);
     assert(c.debug == 1);
     assert(c.backquote_tags == 1);
-    assert(c.rate_boost == 1);
+    assert(c.phrase_prediction == 1);
 
     /* Missing file is OK. */
     config_defaults(&c);

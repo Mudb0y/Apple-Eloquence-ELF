@@ -31,12 +31,9 @@ void config_defaults(EloqConfig *c) {
     c->resample_phase   = 0;
     c->resample_steep   = 0;
     c->use_dictionaries  = 1;
-    c->rate_boost        = 0;
-    c->pause_mode        = 2;
     c->phrase_prediction = 0;
     c->send_params       = 0;
     c->backquote_tags    = 0;
-    c->cjk_segv_guard    = 0;
 }
 
 static char *trim(char *s) {
@@ -111,15 +108,10 @@ int config_apply_kv(EloqConfig *c, const char *key, const char *val) {
         int p = parse_phase(val); if (p < 0) return -1; c->resample_phase = p;
     }
     else if (!strcasecmp(key, "EloquenceResampleSteep"))   c->resample_steep   = atoi(val) ? 1 : 0;
-    else if (!strcasecmp(key, "EloquenceUseDictionaries")) c->use_dictionaries = atoi(val) ? 1 : 0;
-    else if (!strcasecmp(key, "EloquenceRateBoost"))       c->rate_boost       = atoi(val) ? 1 : 0;
-    else if (!strcasecmp(key, "EloquencePauseMode")) {
-        int n = atoi(val); if (n < 0 || n > 2) return -1; c->pause_mode = n;
-    }
+    else if (!strcasecmp(key, "EloquenceUseDictionaries"))  c->use_dictionaries  = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquencePhrasePrediction")) c->phrase_prediction = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquenceSendParams"))       c->send_params       = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquenceBackquoteTags"))    c->backquote_tags    = atoi(val) ? 1 : 0;
-    else if (!strcasecmp(key, "EloquenceCjkSegvGuard"))     c->cjk_segv_guard    = atoi(val) ? 1 : 0;
     else return -1;  /* unknown key */
 
 #undef COPY_PATH

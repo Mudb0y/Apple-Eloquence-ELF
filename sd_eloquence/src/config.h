@@ -27,14 +27,9 @@ typedef struct {
 
     /* NVDA-style toggles */
     int  use_dictionaries;           /* default 1 */
-    int  rate_boost;                 /* default 0; eciSpeed multiplier when on */
-    int  pause_mode;                 /* 0=none 1=end-only 2=all; default 2 */
     int  phrase_prediction;          /* default 0 */
-    int  send_params;                /* default 1 */
+    int  send_params;                /* default 0 */
     int  backquote_tags;             /* default 0 (security) */
-
-    /* CJK */
-    int  cjk_segv_guard;             /* default 0 */
 } EloqConfig;
 
 /* Initialize *c with hardcoded defaults. */
