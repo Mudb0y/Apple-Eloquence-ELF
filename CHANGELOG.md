@@ -68,6 +68,30 @@ make existing engine knobs reachable from config without recompiling.
   .phr/.rul`) didn't match what `engine_load_dictionary` actually
   reads.
 
+### Install layout
+
+- `/usr/share/apple-eloquence-elf/` → `/usr/share/eloquence/`
+- `/usr/share/doc/apple-eloquence-elf/` → `/usr/share/doc/eloquence/`
+  Matches the existing `/usr/lib/eloquence/` and
+  `/etc/speech-dispatcher/modules/eloquence.conf` naming.  The
+  upstream project name itself (`apple-eloquence-elf` — repo, release
+  tarball prefix) is unchanged; only on-disk install paths standardize.
+
+### Tooling
+
+- New `sd_eloquence/tools/render_resampler_previews.c`.  The CI release
+  workflow runs it once per build to generate sixteen WAV files
+  covering per-axis sweeps of the four libsoxr knobs:
+    - `rate-{off,16000,22050,32000,44100,48000}.wav`
+    - `quality-{quick,low,medium,high,very-high}.wav`
+    - `phase-{intermediate,linear,minimum}.wav`
+    - `steep-{off,on}.wav`
+  All ship in `/usr/share/eloquence/resampler-previews/`; users
+  audition each preset with `paplay` / `aplay` / a GUI player before
+  setting `EloquenceResampleRate` / `EloquenceResampleQuality` etc in
+  `eloquence.conf`.  The conf file's libsoxr section now points at
+  this directory.
+
 ### Internal
 
 - `voice_activate` gains a trailing `const EloqConfig *cfg` parameter

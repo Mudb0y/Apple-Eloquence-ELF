@@ -166,6 +166,23 @@ if(BUILD_SD_MODULE)
         install(TARGETS sd_eloquence
             RUNTIME DESTINATION ${SPEECHD_MODULEBINDIR})
 
+        # Standalone tool that renders demo WAVs through each
+        # libsoxr resampler preset. CI invokes it once at release-build
+        # time; the resulting share/eloquence/resampler-previews/*.wav
+        # ship in the tarball. Not installed.
+        if(SOXR_FOUND)
+            add_executable(render_resampler_previews
+                sd_eloquence/tools/render_resampler_previews.c
+                sd_eloquence/src/audio/resampler.c)
+            target_compile_definitions(render_resampler_previews PRIVATE HAVE_SOXR)
+            target_include_directories(render_resampler_previews PRIVATE
+                sd_eloquence/src ${SOXR_INCLUDE_DIRS})
+            target_link_libraries(render_resampler_previews PRIVATE
+                ${SOXR_LIBRARIES} dl)
+            set_target_properties(render_resampler_previews PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+        endif()
+
         # Install paths:
         #   binary:  ${SPEECHD_MODULEBINDIR}/sd_eloquence
         #            -- comes from speech-dispatcher's own pkg-config so the

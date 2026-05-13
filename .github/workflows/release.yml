@@ -194,6 +194,22 @@ jobs:
           pathlib.Path(sys.argv[1]).write_text("\n".join(lines))
           PY
 
+          # Resampler audio previews.  Render once per release so users can
+          # audition each EloquenceResampleRate / Quality / Phase / Steep
+          # preset without trial-and-error in eloquence.conf.  The render
+          # tool dlopens the converted eci.so + enu.so against a one-line
+          # ini, synthesizes a fixed pangram at 11025 Hz, then runs that
+          # through sd_eloquence's libsoxr wrapper with each combination.
+          mkdir -p "${STAGE}/share/eloquence/resampler-previews"
+          mkdir -p preview-work
+          cp "${STAGE}/lib/eci.so" "${STAGE}/lib/enu.so" preview-work/
+          cat > preview-work/eci.ini <<'EOI'
+          [1.0]
+          Path=./enu.so
+          Version=6.1
+          EOI
+          ./build/render_resampler_previews preview-work "${STAGE}/share/eloquence/resampler-previews"
+
           cat > "${STAGE}/README.txt" <<EOF
           apple-eloquence-elf ${{ steps.ver.outputs.version }} (${{ matrix.arch }})
 
@@ -208,6 +224,10 @@ jobs:
 
           Customize voice / language / sample rate in:
               /etc/speech-dispatcher/modules/eloquence.conf
+
+          Resampler audio previews (after install):
+              ls /usr/share/eloquence/resampler-previews/
+              paplay /usr/share/eloquence/resampler-previews/rate-44100.wav
 
           Uninstall:
               sudo ./uninstall.sh         (keeps eloquence.conf)

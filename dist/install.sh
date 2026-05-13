@@ -288,6 +288,19 @@ fi
 
 run install -m 0755 "$here/sd_eloquence" "${DESTDIR}${MODULEBINDIR}/sd_eloquence"
 
+# Resampler audio previews -- one WAV per libsoxr preset, generated at
+# release time by render_resampler_previews so users can audition each
+# preset before committing to one in eloquence.conf.
+PREVIEWS_SRC="$here/share/eloquence/resampler-previews"
+PREVIEWS_DEST="${PREFIX}/share/eloquence/resampler-previews"
+if [ -d "$PREVIEWS_SRC" ]; then
+    run install -d -m 0755 "${DESTDIR}${PREVIEWS_DEST}"
+    for f in "$PREVIEWS_SRC"/*.wav; do
+        [ -e "$f" ] || continue
+        run install -m 0644 "$f" "${DESTDIR}${PREVIEWS_DEST}/"
+    done
+fi
+
 # Drop libspeechd_module.so.0 next to sd_eloquence if the tarball ships
 # its own copy.  The binary has RPATH=$ORIGIN so this version wins over
 # any system copy at runtime -- and on Ubuntu noble there is no system

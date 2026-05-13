@@ -67,6 +67,13 @@ for cand in "${MODULEBINDIR_CANDIDATES[@]}"; do
     run rm -f "${DESTDIR}${cand}"/libspeechd_module.so.*
 done
 
+# Resampler previews dropped by install.sh since 1.1.0.  Remove the
+# whole preview dir, then try to remove the parent /usr/share/eloquence
+# if it's empty -- which it will be for tarball installs (cmake source
+# installs additionally drop requirements.txt there and keep it).
+run rm -rf "${DESTDIR}${PREFIX}/share/eloquence/resampler-previews"
+rmdir --ignore-fail-on-non-empty "${DESTDIR}${PREFIX}/share/eloquence" 2>/dev/null || true
+
 if [ "$PURGE" -eq 1 ]; then
     run rm -f "${DESTDIR}${SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf"
 fi
