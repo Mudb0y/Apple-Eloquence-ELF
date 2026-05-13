@@ -17,6 +17,9 @@
     "rebase:__DATA,__bss": 5
   },
   "converter": {
+    "bind:/usr/lib/libSystem.B.dylib": 67,
+    "bind:/usr/lib/libc++.1.dylib": 48,
+    "bind:?": 20,
     "rebase:__DATA,__data": 65,
     "rebase:__DATA_CONST,__const": 9,
     "rebase:__TEXT,__text": 262,
@@ -27,6 +30,6 @@
   "totals": {
     "ground_truth": 1078,
     "lief": 943,
-    "converter": 943
+    "converter": 1078
   }
 }

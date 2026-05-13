@@ -82,6 +82,89 @@ SECTION_LAYOUT = [
 
 # ----------------------------------------------------------------------------
 
+
+def collect_relocation_events(binary):
+    """Walk a LIEF MachO.Binary, return events_by_section.
+
+    Public hook so tools/audit_relocs.py can compare what macho2elf would
+    emit against ground truth, without running gcc. The format of
+    events_by_section matches what the assembly emitter consumes:
+        events_by_section[(seg, sect)] = [
+            (site_offset_within_section, "rebase", (tgt_label, tgt_off, tgt_seg, tgt_sect)),
+            (site_offset_within_section, "symref", (symbol_name, library_name)),
+            ...
+        ]
+
+    Note: the rebase tuple is extended from the existing (tgt_label, tgt_off)
+    form to also carry (tgt_seg, tgt_sect) for the audit's diff machinery.
+    Consumers that don't need the extras can ignore tuple indices 2 and 3.
+    """
+    macho_to_elf_label = {}
+    for seg, sect, elf_name, _, _ in SECTION_LAYOUT:
+        macho_to_elf_label[(seg, sect)] = f"{elf_name}_start"
+    macho_to_elf_label[("__DATA_CONST", "__got")] = ".m2e_got_start"
+    macho_to_elf_label[("__DATA", "__common")] = ".m2e_common_start"
+    macho_to_elf_label[("__DATA", "__bss")] = ".m2e_bss_start"
+
+    events_by_section = {}
+
+    # External bindings (libSystem / libc++ imports)
+    binding_addrs = {bi.address for bi in binary.bindings}
+    for bi in binary.bindings:
+        site_seg = site_sect = None
+        site_off = None
+        for s in binary.sections:
+            if s.virtual_address <= bi.address < s.virtual_address + s.size:
+                site_seg, site_sect = s.segment_name, s.name
+                site_off = bi.address - s.virtual_address
+                break
+        if site_seg is None:
+            continue
+        try:
+            symbol = bi.symbol.name if bi.has_symbol else "<no_sym>"
+        except (AttributeError, RuntimeError):
+            symbol = "<no_sym>"
+        try:
+            library = bi.library.name if hasattr(bi, "library") and bi.library else "?"
+        except (AttributeError, RuntimeError):
+            library = "?"
+        events_by_section.setdefault((site_seg, site_sect), []).append(
+            (site_off, "symref", (symbol, library)))
+
+    # Internal rebases (anything in binary.relocations that ISN'T a binding)
+    for r in binary.relocations:
+        if r.address in binding_addrs:
+            continue
+        site_seg = site_sect = None
+        site_off = None
+        for s in binary.sections:
+            if s.virtual_address <= r.address < s.virtual_address + s.size:
+                site_seg, site_sect = s.segment_name, s.name
+                site_off = r.address - s.virtual_address
+                break
+        if site_seg is None:
+            continue
+        tgt = r.target
+        tgt_seg = tgt_sect = None
+        tgt_off = None
+        for s in binary.sections:
+            if s.virtual_address <= tgt < s.virtual_address + s.size:
+                tgt_seg, tgt_sect = s.segment_name, s.name
+                tgt_off = tgt - s.virtual_address
+                break
+        if tgt_seg is None:
+            continue
+        tgt_label = macho_to_elf_label.get((tgt_seg, tgt_sect))
+        if tgt_label is None:
+            continue
+        events_by_section.setdefault((site_seg, site_sect), []).append(
+            (site_off, "rebase", (tgt_label, tgt_off, tgt_seg, tgt_sect)))
+
+    return events_by_section
+
+
+# ----------------------------------------------------------------------------
+
 def strip_underscore(name: str) -> str:
     """Strip a single leading underscore from a Mach-O symbol name."""
     if name.startswith('_'):

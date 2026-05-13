@@ -225,13 +225,37 @@ def emit_lief(dylib_path: Path) -> List[FixupRecord]:
 
 
 def emit_converter(dylib_path: Path) -> List[FixupRecord]:
-    """Source 3: what macho2elf.py would emit if it converted this dylib.
+    """Source 3: what macho2elf.py would emit. Calls into the converter
+    code without running gcc."""
+    import lief
+    sys.path.insert(0, str(Path(__file__).parent.parent / "macho2elf"))
+    from macho2elf import collect_relocation_events
 
-    B1: returns the same as emit_lief (since the current converter trusts
-    LIEF). Task B3 extends this to call macho2elf's actual event-collection
-    logic directly so we can detect cases where the converter does
-    additional filtering/processing beyond just trusting LIEF."""
-    return emit_lief(dylib_path)
+    b = lief.MachO.parse(str(dylib_path))[0]
+    events = collect_relocation_events(b)
+
+    records = []
+    for (site_seg, site_sect), evlist in events.items():
+        for ev in evlist:
+            off, kind, data = ev[0], ev[1], ev[2]
+            if kind == "rebase":
+                # Tuple is (tgt_label, tgt_off, tgt_seg, tgt_sect)
+                _tgt_label, tgt_off, tgt_seg, tgt_sect = data
+                records.append(FixupRecord(
+                    site_segment=site_seg, site_section=site_sect,
+                    site_offset=off,
+                    kind="rebase",
+                    target_segment=tgt_seg, target_section=tgt_sect,
+                    target_offset=tgt_off,
+                ))
+            elif kind == "symref":
+                symbol, library = data
+                records.append(FixupRecord(
+                    site_segment=site_seg, site_section=site_sect,
+                    site_offset=off,
+                    kind="bind", symbol=symbol, library=library,
+                ))
+    return records
 
 
 def _file_offset_to_site(file_off, dylib_path):
