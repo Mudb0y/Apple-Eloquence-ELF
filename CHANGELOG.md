@@ -5,6 +5,45 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] — 2026-05-13
+
+Patch release that supersedes [1.1.1] -- if you're on 1.1.1 you want
+this one.
+
+### Fixed
+
+- **Word cutoff regression in 1.1.1.** The SIGPIPE handler added in
+  1.1.1 caused a slight cutoff at the end of utterances in
+  pass-through mode (the SIG_IGN disposition was being inherited
+  into engine threads that expected pipe-closed errors to surface
+  normally).  The SIGPIPE handler is fully reverted -- it didn't fix
+  the resampler crash it was intended for anyway (see next item).
+- **Resampler SEGSEGV at high `EloquenceResampleRate`.** Real cause
+  was a libsoxr state-machine misuse: `resampler_flush` ran
+  `soxr_process(NULL, ...)` to drain the polyphase tail but never
+  called `soxr_clear()` afterwards; the next utterance's first
+  `soxr_process()` then dereferenced stale libsoxr state and
+  segfaulted inside `soxr_process` (verified via core-dump stack).
+  `audio_sink_flush` now loops on `resampler_flush` until libsoxr
+  reports 0 samples drained (libsoxr's documented drain pattern,
+  needed for long-tailed filters like very-high-quality + linear
+  phase) and then calls a new `resampler_clear()` to reset for the
+  next stream.
+- **Slight cutoff at end of every utterance** (pre-existing; not a
+  1.1.1 regression).  The pulse / alsa stream-drain trims the last
+  few ms of audio at end-of-stream.  Each utterance now ends with
+  ~100ms of trailing silence at the engine's native rate; the
+  backend trims silence instead of speech.  Cancel paths skip the
+  pad so stop is still snappy.
+
+### Changed
+
+- Release workflow now extracts the per-version section out of
+  `CHANGELOG.md` and uses it as the GitHub Release body, instead of
+  GitHub's auto-generated "What's Changed" list.  Forces the
+  CHANGELOG to be updated before any tag push -- the release build
+  fails if the section is missing.
+
 ## [1.1.1] — 2026-05-13
 
 ### Fixed

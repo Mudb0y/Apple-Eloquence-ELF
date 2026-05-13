@@ -292,9 +292,29 @@ jobs:
               -exec cp {} release/ \;
           ls -la release/
 
+      - name: Extract CHANGELOG section for this tag
+        # Pulls the `## [VERSION] — DATE` section out of CHANGELOG.md so
+        # softprops/action-gh-release uses it as the release body instead
+        # of just the "What's Changed" auto-list.  Fails if the section
+        # isn't there -- forces CHANGELOG.md to be updated alongside any
+        # tag push.
+        run: |
+          VER="${GITHUB_REF_NAME}"
+          awk -v ver="${VER}" '
+              $0 ~ "^## \\[" ver "\\]" { capture=1; next }
+              capture && /^## \[/        { exit }
+              capture                    { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+              echo "::error::CHANGELOG.md has no entry for ${VER}" >&2
+              exit 1
+          fi
+          echo "----- release-notes.md preview -----"
+          cat release-notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: release/*
-          generate_release_notes: true
+          body_path: release-notes.md
           fail_on_unmatched_files: true
