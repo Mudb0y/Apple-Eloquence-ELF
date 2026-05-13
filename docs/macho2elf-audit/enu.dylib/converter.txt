@@ -853,14 +853,14 @@
 [__DATA_CONST,__const + 0x0140]  rebase   __TEXT,__text + 0x1888d6
 [__DATA_CONST,__const + 0x0148]  rebase   __TEXT,__text + 0x188710
 [__DATA_CONST,__const + 0x0150]  rebase   __TEXT,__text + 0x188726
-[__DATA_CONST,__const + 0x0158]  bind     __ZTVN10__cxxabiv117__class_type_infoE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x0160]  bind     __ZTS9SWUnknown  (?)
-[__DATA_CONST,__const + 0x0168]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x0158]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0160]  bind     __ZTS9SWUnknown
+[__DATA_CONST,__const + 0x0168]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 [__DATA_CONST,__const + 0x0170]  rebase   __TEXT,__const + 0x91d0
-[__DATA_CONST,__const + 0x0178]  bind     __ZTI9SWUnknown  (?)
+[__DATA_CONST,__const + 0x0178]  bind     __ZTI9SWUnknown
 [__DATA_CONST,__const + 0x01c0]  rebase   __TEXT,__text + 0x1a2cbf
 [__DATA_CONST,__const + 0x0218]  rebase   __TEXT,__text + 0x1a2cbf
-[__DATA_CONST,__const + 0x0338]  bind     __ZTI10IndexQueue  (?)
+[__DATA_CONST,__const + 0x0338]  bind     __ZTI10IndexQueue
 [__DATA_CONST,__const + 0x0340]  rebase   __TEXT,__text + 0x18b1ba
 [__DATA_CONST,__const + 0x0348]  rebase   __TEXT,__text + 0x1a68f8
 [__DATA_CONST,__const + 0x0350]  rebase   __TEXT,__text + 0x1a662c
@@ -873,13 +873,13 @@
 [__DATA_CONST,__const + 0x0388]  rebase   __TEXT,__text + 0x1a68d0
 [__DATA_CONST,__const + 0x0390]  rebase   __TEXT,__text + 0x18b496
 [__DATA_CONST,__const + 0x0398]  rebase   __TEXT,__text + 0x18b4a0
-[__DATA_CONST,__const + 0x03a0]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x03a8]  bind     __ZTS10EListQueue  (?)
+[__DATA_CONST,__const + 0x03a0]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE
+[__DATA_CONST,__const + 0x03a8]  bind     __ZTS10EListQueue
 [__DATA_CONST,__const + 0x03b8]  rebase   __DATA_CONST,__const + 0x0590
-[__DATA_CONST,__const + 0x03c8]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x03d0]  bind     __ZTS10IndexQueue  (?)
-[__DATA_CONST,__const + 0x03e0]  bind     __ZTI10EListQueue  (?)
-[__DATA_CONST,__const + 0x03f8]  bind     __ZTI10EListQueue  (?)
+[__DATA_CONST,__const + 0x03c8]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE
+[__DATA_CONST,__const + 0x03d0]  bind     __ZTS10IndexQueue
+[__DATA_CONST,__const + 0x03e0]  bind     __ZTI10EListQueue
+[__DATA_CONST,__const + 0x03f8]  bind     __ZTI10EListQueue
 [__DATA_CONST,__const + 0x0400]  rebase   __TEXT,__text + 0x18b440
 [__DATA_CONST,__const + 0x0408]  rebase   __TEXT,__text + 0x1a68f8
 [__DATA_CONST,__const + 0x0410]  rebase   __TEXT,__text + 0x1a662c
@@ -919,17 +919,17 @@
 [__DATA_CONST,__const + 0x0530]  rebase   __TEXT,__text + 0x1a6d82
 [__DATA_CONST,__const + 0x0538]  rebase   __TEXT,__text + 0x1a6d8c
 [__DATA_CONST,__const + 0x0548]  rebase   __DATA_CONST,__const + 0x0568
-[__DATA_CONST,__const + 0x0550]  bind     ___cxa_pure_virtual  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x0558]  bind     ___cxa_pure_virtual  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x0550]  bind     ___cxa_pure_virtual
+[__DATA_CONST,__const + 0x0558]  bind     ___cxa_pure_virtual
 [__DATA_CONST,__const + 0x0560]  rebase   __TEXT,__text + 0x1a662c
-[__DATA_CONST,__const + 0x0568]  bind     __ZTVN10__cxxabiv117__class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x0568]  bind     __ZTVN10__cxxabiv117__class_type_infoE
 [__DATA_CONST,__const + 0x0570]  rebase   __TEXT,__const + 0xaac0
-[__DATA_CONST,__const + 0x0578]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x0580]  bind     __ZTS5EList  (?)
+[__DATA_CONST,__const + 0x0578]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0580]  bind     __ZTS5EList
 [__DATA_CONST,__const + 0x0588]  rebase   __DATA_CONST,__const + 0x0568
-[__DATA_CONST,__const + 0x0590]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x0590]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 [__DATA_CONST,__const + 0x0598]  rebase   __TEXT,__const + 0xaace
-[__DATA_CONST,__const + 0x05a0]  bind     __ZTI5EList  (?)
+[__DATA_CONST,__const + 0x05a0]  bind     __ZTI5EList
 [__DATA_CONST,__const + 0x05b0]  rebase   __DATA_CONST,__const + 0x0620
 [__DATA_CONST,__const + 0x05b8]  rebase   __TEXT,__text + 0x1a66ea
 [__DATA_CONST,__const + 0x05c0]  rebase   __TEXT,__text + 0x1a66fa
@@ -939,17 +939,17 @@
 [__DATA_CONST,__const + 0x05e0]  rebase   __TEXT,__text + 0x1a6704
 [__DATA_CONST,__const + 0x05e8]  rebase   __TEXT,__text + 0x1a6950
 [__DATA_CONST,__const + 0x05f0]  rebase   __TEXT,__text + 0x1a693e
-[__DATA_CONST,__const + 0x05f8]  bind     __ZTVN10__cxxabiv117__class_type_infoE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x0600]  bind     __ZTS9EIterator  (?)
-[__DATA_CONST,__const + 0x0608]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__const + 0x0610]  bind     __ZTS9EListIter  (?)
-[__DATA_CONST,__const + 0x0618]  bind     __ZTI9EIterator  (?)
-[__DATA_CONST,__const + 0x0620]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x05f8]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0600]  bind     __ZTS9EIterator
+[__DATA_CONST,__const + 0x0608]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0610]  bind     __ZTS9EListIter
+[__DATA_CONST,__const + 0x0618]  bind     __ZTI9EIterator
+[__DATA_CONST,__const + 0x0620]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 [__DATA_CONST,__const + 0x0628]  rebase   __TEXT,__const + 0xaadd
-[__DATA_CONST,__const + 0x0630]  bind     __ZTI9EListIter  (?)
-[__DATA_CONST,__const + 0x0638]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x0630]  bind     __ZTI9EListIter
+[__DATA_CONST,__const + 0x0638]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 [__DATA_CONST,__const + 0x0640]  rebase   __TEXT,__const + 0xab00
-[__DATA_CONST,__const + 0x0648]  bind     __ZTI5EList  (?)
+[__DATA_CONST,__const + 0x0648]  bind     __ZTI5EList
 [__DATA_CONST,__const + 0x0658]  rebase   __DATA_CONST,__const + 0x06a0
 [__DATA_CONST,__const + 0x0660]  rebase   __TEXT,__text + 0x1a69a6
 [__DATA_CONST,__const + 0x0668]  rebase   __TEXT,__text + 0x1a69b6
@@ -959,120 +959,120 @@
 [__DATA_CONST,__const + 0x0688]  rebase   __TEXT,__text + 0x1a69c0
 [__DATA_CONST,__const + 0x0690]  rebase   __TEXT,__text + 0x1a6ce4
 [__DATA_CONST,__const + 0x0698]  rebase   __TEXT,__text + 0x1a6cd2
-[__DATA_CONST,__const + 0x06a0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x06a0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 [__DATA_CONST,__const + 0x06a8]  rebase   __TEXT,__const + 0xab08
-[__DATA_CONST,__const + 0x06b0]  bind     __ZTI9EListIter  (?)
+[__DATA_CONST,__const + 0x06b0]  bind     __ZTI9EListIter
 [__DATA_CONST,__const + 0x06c0]  rebase   __DATA_CONST,__const + 0x06f0
 [__DATA_CONST,__const + 0x06c8]  rebase   __TEXT,__text + 0x1a7934
 [__DATA_CONST,__const + 0x06d0]  rebase   __TEXT,__text + 0x1a796a
 [__DATA_CONST,__const + 0x06d8]  rebase   __TEXT,__text + 0x1a7972
 [__DATA_CONST,__const + 0x06e0]  rebase   __TEXT,__text + 0x1a797a
 [__DATA_CONST,__const + 0x06e8]  rebase   __TEXT,__text + 0x1a7980
-[__DATA_CONST,__const + 0x06f0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE  (/usr/lib/libc++.1.dylib)
+[__DATA_CONST,__const + 0x06f0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 [__DATA_CONST,__const + 0x06f8]  rebase   __TEXT,__const + 0xab15
-[__DATA_CONST,__const + 0x0700]  bind     __ZTI9SWUnknown  (?)
-[__DATA_CONST,__got + 0x0000]  bind     __DefaultRuneLocale  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0008]  bind     __Unwind_Resume  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0010]  bind     __ZNKSt3__16locale9use_facetERNS0_2idE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0018]  bind     __ZNKSt3__18ios_base6getlocEv  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0020]  bind     __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEE6__initEmc  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0028]  bind     __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0030]  bind     __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEE5closeEv  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0038]  bind     __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEEC1Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0040]  bind     __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEED1Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0048]  bind     __ZNSt3__113basic_istreamIcNS_11char_traitsIcEEE7getlineEPclc  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0050]  bind     __ZNSt3__113basic_istreamIcNS_11char_traitsIcEEED2Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0058]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE3putEc  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0060]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE5flushEv  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0068]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryC1ERS3_  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0070]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryD1Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0078]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEED2Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0080]  bind     __ZNSt3__114basic_ifstreamIcNS_11char_traitsIcEEE4openEPKcj  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0088]  bind     __ZNSt3__114basic_ofstreamIcNS_11char_traitsIcEEE4openEPKcj  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0090]  bind     __ZNSt3__15ctypeIcE2idE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0098]  bind     __ZNSt3__16localeD1Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00a0]  bind     __ZNSt3__18ios_base33__set_badbit_and_consider_rethrowEv  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00a8]  bind     __ZNSt3__18ios_base4initEPv  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00b0]  bind     __ZNSt3__18ios_base5clearEj  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00b8]  bind     __ZNSt3__19basic_iosIcNS_11char_traitsIcEEED2Ev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00c0]  bind     __ZSt9terminatev  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00c8]  bind     __ZTTNSt3__114basic_ifstreamIcNS_11char_traitsIcEEEE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00d0]  bind     __ZTTNSt3__114basic_ofstreamIcNS_11char_traitsIcEEEE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00d8]  bind     __ZTVNSt3__114basic_ifstreamIcNS_11char_traitsIcEEEE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00e0]  bind     __ZTVNSt3__114basic_ofstreamIcNS_11char_traitsIcEEEE  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x00e8]  bind     __ZdaPv  (?)
-[__DATA_CONST,__got + 0x00f0]  bind     __ZdlPv  (?)
-[__DATA_CONST,__got + 0x00f8]  bind     __Znam  (?)
-[__DATA_CONST,__got + 0x0100]  bind     __Znwm  (?)
-[__DATA_CONST,__got + 0x0108]  bind     ___cxa_begin_catch  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0110]  bind     ___cxa_end_catch  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0118]  bind     ___cxa_guard_abort  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0120]  bind     ___cxa_guard_acquire  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0128]  bind     ___cxa_guard_release  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0130]  bind     ___error  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0138]  bind     ___gxx_personality_v0  (/usr/lib/libc++.1.dylib)
-[__DATA_CONST,__got + 0x0140]  bind     ___maskrune  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0148]  bind     ___memset_chk  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0150]  bind     ___sprintf_chk  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0158]  bind     ___stack_chk_fail  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0160]  bind     ___stack_chk_guard  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0168]  bind     ___stderrp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0170]  bind     ___stdoutp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0178]  bind     ___strcat_chk  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0180]  bind     ___strcpy_chk  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0188]  bind     ___tolower  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0190]  bind     ___vsprintf_chk  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0198]  bind     _atof  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01a0]  bind     _atoi  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01a8]  bind     _atol  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01b0]  bind     _calloc  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01b8]  bind     _chmod  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01c0]  bind     _clock  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01c8]  bind     _cosf  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01d0]  bind     _exit  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01d8]  bind     _exp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01e0]  bind     _exp2  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01e8]  bind     _expf  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01f0]  bind     _fclose  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x01f8]  bind     _feof  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0200]  bind     _fflush  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0208]  bind     _fgetc  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0210]  bind     _fgets  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0218]  bind     _fileno  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0220]  bind     _fopen  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0228]  bind     _fprintf  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0230]  bind     _fputc  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0238]  bind     _fputs  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0240]  bind     _fread  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0248]  bind     _free  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0250]  bind     _fstat  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0258]  bind     _fwrite  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0260]  bind     _getchar  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0268]  bind     _getcwd  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0270]  bind     _getenv  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0278]  bind     _isspace  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0280]  bind     _ldiv  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0288]  bind     _log  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0290]  bind     _longjmp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0298]  bind     _malloc  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02a0]  bind     _memcmp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02a8]  bind     _memcpy  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02b0]  bind     _memmove  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02b8]  bind     _memset  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02c0]  bind     _pow  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02c8]  bind     _realloc  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02d0]  bind     _setjmp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02d8]  bind     _sinf  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02e0]  bind     _sprintf  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02e8]  bind     _sscanf  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02f0]  bind     _stat  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x02f8]  bind     _strchr  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0300]  bind     _strcmp  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0308]  bind     _strcpy  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0310]  bind     _strlen  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0318]  bind     _strncpy  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0320]  bind     _strtod  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0328]  bind     _strtok  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0330]  bind     _strtol  (/usr/lib/libSystem.B.dylib)
-[__DATA_CONST,__got + 0x0338]  bind     _vfprintf  (/usr/lib/libSystem.B.dylib)
+[__DATA_CONST,__const + 0x0700]  bind     __ZTI9SWUnknown
+[__DATA_CONST,__got + 0x0000]  bind     __DefaultRuneLocale
+[__DATA_CONST,__got + 0x0008]  bind     __Unwind_Resume
+[__DATA_CONST,__got + 0x0010]  bind     __ZNKSt3__16locale9use_facetERNS0_2idE
+[__DATA_CONST,__got + 0x0018]  bind     __ZNKSt3__18ios_base6getlocEv
+[__DATA_CONST,__got + 0x0020]  bind     __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEE6__initEmc
+[__DATA_CONST,__got + 0x0028]  bind     __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev
+[__DATA_CONST,__got + 0x0030]  bind     __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEE5closeEv
+[__DATA_CONST,__got + 0x0038]  bind     __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEEC1Ev
+[__DATA_CONST,__got + 0x0040]  bind     __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEED1Ev
+[__DATA_CONST,__got + 0x0048]  bind     __ZNSt3__113basic_istreamIcNS_11char_traitsIcEEE7getlineEPclc
+[__DATA_CONST,__got + 0x0050]  bind     __ZNSt3__113basic_istreamIcNS_11char_traitsIcEEED2Ev
+[__DATA_CONST,__got + 0x0058]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE3putEc
+[__DATA_CONST,__got + 0x0060]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE5flushEv
+[__DATA_CONST,__got + 0x0068]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryC1ERS3_
+[__DATA_CONST,__got + 0x0070]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEE6sentryD1Ev
+[__DATA_CONST,__got + 0x0078]  bind     __ZNSt3__113basic_ostreamIcNS_11char_traitsIcEEED2Ev
+[__DATA_CONST,__got + 0x0080]  bind     __ZNSt3__114basic_ifstreamIcNS_11char_traitsIcEEE4openEPKcj
+[__DATA_CONST,__got + 0x0088]  bind     __ZNSt3__114basic_ofstreamIcNS_11char_traitsIcEEE4openEPKcj
+[__DATA_CONST,__got + 0x0090]  bind     __ZNSt3__15ctypeIcE2idE
+[__DATA_CONST,__got + 0x0098]  bind     __ZNSt3__16localeD1Ev
+[__DATA_CONST,__got + 0x00a0]  bind     __ZNSt3__18ios_base33__set_badbit_and_consider_rethrowEv
+[__DATA_CONST,__got + 0x00a8]  bind     __ZNSt3__18ios_base4initEPv
+[__DATA_CONST,__got + 0x00b0]  bind     __ZNSt3__18ios_base5clearEj
+[__DATA_CONST,__got + 0x00b8]  bind     __ZNSt3__19basic_iosIcNS_11char_traitsIcEEED2Ev
+[__DATA_CONST,__got + 0x00c0]  bind     __ZSt9terminatev
+[__DATA_CONST,__got + 0x00c8]  bind     __ZTTNSt3__114basic_ifstreamIcNS_11char_traitsIcEEEE
+[__DATA_CONST,__got + 0x00d0]  bind     __ZTTNSt3__114basic_ofstreamIcNS_11char_traitsIcEEEE
+[__DATA_CONST,__got + 0x00d8]  bind     __ZTVNSt3__114basic_ifstreamIcNS_11char_traitsIcEEEE
+[__DATA_CONST,__got + 0x00e0]  bind     __ZTVNSt3__114basic_ofstreamIcNS_11char_traitsIcEEEE
+[__DATA_CONST,__got + 0x00e8]  bind     __ZdaPv
+[__DATA_CONST,__got + 0x00f0]  bind     __ZdlPv
+[__DATA_CONST,__got + 0x00f8]  bind     __Znam
+[__DATA_CONST,__got + 0x0100]  bind     __Znwm
+[__DATA_CONST,__got + 0x0108]  bind     ___cxa_begin_catch
+[__DATA_CONST,__got + 0x0110]  bind     ___cxa_end_catch
+[__DATA_CONST,__got + 0x0118]  bind     ___cxa_guard_abort
+[__DATA_CONST,__got + 0x0120]  bind     ___cxa_guard_acquire
+[__DATA_CONST,__got + 0x0128]  bind     ___cxa_guard_release
+[__DATA_CONST,__got + 0x0130]  bind     ___error
+[__DATA_CONST,__got + 0x0138]  bind     ___gxx_personality_v0
+[__DATA_CONST,__got + 0x0140]  bind     ___maskrune
+[__DATA_CONST,__got + 0x0148]  bind     ___memset_chk
+[__DATA_CONST,__got + 0x0150]  bind     ___sprintf_chk
+[__DATA_CONST,__got + 0x0158]  bind     ___stack_chk_fail
+[__DATA_CONST,__got + 0x0160]  bind     ___stack_chk_guard
+[__DATA_CONST,__got + 0x0168]  bind     ___stderrp
+[__DATA_CONST,__got + 0x0170]  bind     ___stdoutp
+[__DATA_CONST,__got + 0x0178]  bind     ___strcat_chk
+[__DATA_CONST,__got + 0x0180]  bind     ___strcpy_chk
+[__DATA_CONST,__got + 0x0188]  bind     ___tolower
+[__DATA_CONST,__got + 0x0190]  bind     ___vsprintf_chk
+[__DATA_CONST,__got + 0x0198]  bind     _atof
+[__DATA_CONST,__got + 0x01a0]  bind     _atoi
+[__DATA_CONST,__got + 0x01a8]  bind     _atol
+[__DATA_CONST,__got + 0x01b0]  bind     _calloc
+[__DATA_CONST,__got + 0x01b8]  bind     _chmod
+[__DATA_CONST,__got + 0x01c0]  bind     _clock
+[__DATA_CONST,__got + 0x01c8]  bind     _cosf
+[__DATA_CONST,__got + 0x01d0]  bind     _exit
+[__DATA_CONST,__got + 0x01d8]  bind     _exp
+[__DATA_CONST,__got + 0x01e0]  bind     _exp2
+[__DATA_CONST,__got + 0x01e8]  bind     _expf
+[__DATA_CONST,__got + 0x01f0]  bind     _fclose
+[__DATA_CONST,__got + 0x01f8]  bind     _feof
+[__DATA_CONST,__got + 0x0200]  bind     _fflush
+[__DATA_CONST,__got + 0x0208]  bind     _fgetc
+[__DATA_CONST,__got + 0x0210]  bind     _fgets
+[__DATA_CONST,__got + 0x0218]  bind     _fileno
+[__DATA_CONST,__got + 0x0220]  bind     _fopen
+[__DATA_CONST,__got + 0x0228]  bind     _fprintf
+[__DATA_CONST,__got + 0x0230]  bind     _fputc
+[__DATA_CONST,__got + 0x0238]  bind     _fputs
+[__DATA_CONST,__got + 0x0240]  bind     _fread
+[__DATA_CONST,__got + 0x0248]  bind     _free
+[__DATA_CONST,__got + 0x0250]  bind     _fstat
+[__DATA_CONST,__got + 0x0258]  bind     _fwrite
+[__DATA_CONST,__got + 0x0260]  bind     _getchar
+[__DATA_CONST,__got + 0x0268]  bind     _getcwd
+[__DATA_CONST,__got + 0x0270]  bind     _getenv
+[__DATA_CONST,__got + 0x0278]  bind     _isspace
+[__DATA_CONST,__got + 0x0280]  bind     _ldiv
+[__DATA_CONST,__got + 0x0288]  bind     _log
+[__DATA_CONST,__got + 0x0290]  bind     _longjmp
+[__DATA_CONST,__got + 0x0298]  bind     _malloc
+[__DATA_CONST,__got + 0x02a0]  bind     _memcmp
+[__DATA_CONST,__got + 0x02a8]  bind     _memcpy
+[__DATA_CONST,__got + 0x02b0]  bind     _memmove
+[__DATA_CONST,__got + 0x02b8]  bind     _memset
+[__DATA_CONST,__got + 0x02c0]  bind     _pow
+[__DATA_CONST,__got + 0x02c8]  bind     _realloc
+[__DATA_CONST,__got + 0x02d0]  bind     _setjmp
+[__DATA_CONST,__got + 0x02d8]  bind     _sinf
+[__DATA_CONST,__got + 0x02e0]  bind     _sprintf
+[__DATA_CONST,__got + 0x02e8]  bind     _sscanf
+[__DATA_CONST,__got + 0x02f0]  bind     _stat
+[__DATA_CONST,__got + 0x02f8]  bind     _strchr
+[__DATA_CONST,__got + 0x0300]  bind     _strcmp
+[__DATA_CONST,__got + 0x0308]  bind     _strcpy
+[__DATA_CONST,__got + 0x0310]  bind     _strlen
+[__DATA_CONST,__got + 0x0318]  bind     _strncpy
+[__DATA_CONST,__got + 0x0320]  bind     _strtod
+[__DATA_CONST,__got + 0x0328]  bind     _strtok
+[__DATA_CONST,__got + 0x0330]  bind     _strtol
+[__DATA_CONST,__got + 0x0338]  bind     _vfprintf
 [__DATA_CONST,__got + 0x0340]  rebase   __DATA,__data + 0x7170

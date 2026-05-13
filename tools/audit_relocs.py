@@ -46,10 +46,18 @@ class FixupRecord:
     library: str = ""
 
     def normalized_line(self) -> str:
-        """Single-line canonical form used by all three dumps for diffing."""
+        """Single-line canonical form used by all three dumps for diffing.
+
+        The library name is intentionally omitted: it varies by source
+        (LIEF reports "/usr/lib/libc++.1.dylib"; our chained-fixup walker
+        emits "<resolved-later>" because resolving lib_ordinal to a name
+        requires a separate pass over LC_LOAD_DYLIB commands). Library
+        name is preserved in summary.json for diagnostic purposes; what
+        matters for converter accuracy is whether the bind/rebase target
+        is correctly identified, not which dylib we annotated it from."""
         site = f"[{self.site_segment},{self.site_section} + {self.site_offset:#06x}]"
         if self.kind == "bind":
-            return f"{site}  bind     {self.symbol}  ({self.library})"
+            return f"{site}  bind     {self.symbol}"
         return (f"{site}  rebase   {self.target_segment},{self.target_section}"
                 f" + {self.target_offset:#06x}")
 
