@@ -198,15 +198,23 @@ jobs:
           # tool dlopens the converted eci.so + enu.so against a one-line
           # ini, synthesizes a fixed pangram at 11025 Hz, then runs that
           # through sd_eloquence's libsoxr wrapper with each combination.
-          mkdir -p "${STAGE}/share/eloquence/resampler-previews"
-          mkdir -p preview-work
-          cp "${STAGE}/lib/eci.so" "${STAGE}/lib/enu.so" preview-work/
-          cat > preview-work/eci.ini <<'EOI'
+          #
+          # Only runs on x86_64: the aarch64-converted eci.so has runtime
+          # issues that match the README's "build-verified only" caveat
+          # for aarch64.  The aarch64 tarball ships without previews;
+          # install.sh's preview-install block no-ops when the source
+          # dir is absent.
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+              mkdir -p "${STAGE}/share/eloquence/resampler-previews"
+              mkdir -p preview-work
+              cp "${STAGE}/lib/eci.so" "${STAGE}/lib/enu.so" preview-work/
+              cat > preview-work/eci.ini <<'EOI'
           [1.0]
           Path=./enu.so
           Version=6.1
           EOI
-          ./build/render_resampler_previews preview-work "${STAGE}/share/eloquence/resampler-previews"
+              ./build/render_resampler_previews preview-work "${STAGE}/share/eloquence/resampler-previews"
+          fi
 
           cat > "${STAGE}/README.txt" <<EOF
           apple-eloquence-elf ${{ steps.ver.outputs.version }} (${{ matrix.arch }})
