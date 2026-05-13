@@ -4,6 +4,16 @@ Convert Apple's bundled ETI Eloquence TTS engine (Mach-O dylibs from
 the TextToSpeechKona framework) to Linux ELF shared objects, and ship
 them behind a native speech-dispatcher module.
 
+> [!IMPORTANT]
+> **AI-assisted development.** Most of this project was implemented in
+> pair-programming sessions with Anthropic's Claude. Every change is
+> human-reviewed and validated through end-to-end speech testing with
+> Orca + speech-dispatcher and container-based install testing on
+> Arch, Debian, Ubuntu, and Fedora — but the implementation work
+> itself is largely AI-generated. The `Co-Authored-By` trailer on
+> each commit makes the split visible. Decide whether you're
+> comfortable with that posture before depending on it.
+
 ```
 $ ./examples/speak ./prebuilt/x86_64/eci.so "Hello world."
 eciVersion: '6.1.0.0'
