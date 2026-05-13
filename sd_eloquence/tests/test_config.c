@@ -48,6 +48,15 @@ int main(void) {
     assert(config_apply_kv(&c, "EloquenceRateBoost", "1") == 0);
     assert(c.rate_boost == 1);
 
+    /* PauseMode default + validation. */
+    config_defaults(&c);
+    assert(c.pause_mode == 2);
+    assert(config_apply_kv(&c, "EloquencePauseMode", "0") == 0 && c.pause_mode == 0);
+    assert(config_apply_kv(&c, "EloquencePauseMode", "1") == 0 && c.pause_mode == 1);
+    assert(config_apply_kv(&c, "EloquencePauseMode", "2") == 0 && c.pause_mode == 2);
+    assert(config_apply_kv(&c, "EloquencePauseMode", "3") == -1);
+    assert(config_apply_kv(&c, "EloquencePauseMode", "-1") == -1);
+
     /* AbbrDict toggle. */
     config_defaults(&c);
     assert(c.load_abbr_dict == 0);

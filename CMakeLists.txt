@@ -112,6 +112,7 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/synth/marks.c
             sd_eloquence/src/synth/job.c
             sd_eloquence/src/synth/worker.c
+            sd_eloquence/src/synth/pause_mode.c
             sd_eloquence/src/ssml/ssml.c
             sd_eloquence/src/filters/filters.c
             sd_eloquence/src/filters/lang_global.c
@@ -203,6 +204,17 @@ if(BUILD_SD_MODULE)
             ${SPEECHD_INCLUDE_DIR}/speech-dispatcher)
         target_link_libraries(test_ssml PRIVATE ${LIBXML2_LIBRARIES} pthread)
         add_test(NAME test_ssml COMMAND test_ssml)
+
+        add_executable(test_pause_mode
+            sd_eloquence/tests/test_pause_mode.c
+            sd_eloquence/src/synth/pause_mode.c)
+        target_include_directories(test_pause_mode PRIVATE sd_eloquence/src)
+        if(PCRE2_FOUND)
+            target_compile_definitions(test_pause_mode PRIVATE HAVE_PCRE2 PCRE2_CODE_UNIT_WIDTH=8)
+            target_include_directories(test_pause_mode PRIVATE ${PCRE2_INCLUDE_DIRS})
+            target_link_libraries(test_pause_mode PRIVATE ${PCRE2_LIBRARIES})
+        endif()
+        add_test(NAME test_pause_mode COMMAND test_pause_mode)
 
         add_executable(test_filters
             sd_eloquence/tests/test_filters.c

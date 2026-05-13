@@ -8,6 +8,7 @@
 #include "worker.h"
 
 #include "marks.h"
+#include "pause_mode.h"
 #include "../filters/filters.h"
 #include "../eci/voices.h"
 #include "../eci/languages.h"
@@ -109,9 +110,17 @@ static void exec_text_frame(SynthWorker *w, synth_frame *f, int dialect) {
     if (!f->u.text.text) return;
     char *filtered = filters_apply(f->u.text.text, dialect);
     if (!filtered) return;
-    /* Backquote sanitization. */
+    /* Backquote sanitization on user-supplied text -- has to happen before
+     * the pause rewrite below, so our injected `​`p1` annotations survive. */
     if (!w->cfg->backquote_tags) {
         for (char *p = filtered; *p; p++) if (*p == '`') *p = ' ';
+    }
+    /* PauseMode 2: rewrite punctuation pauses to `​`p1` (NVDA-style). */
+    if (w->cfg->pause_mode == 2) {
+        char *rewritten = pause_mode_rewrite(filtered);
+        free(filtered);
+        filtered = rewritten;
+        if (!filtered) return;
     }
     char *enc = transcode(filtered, lang_encoding_for(dialect));
     free(filtered);
@@ -244,6 +253,12 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                 break;
         }
     }
+
+    /* PauseMode 1: a single short pause at the very end of the utterance,
+     * shortening the long inter-utterance pause the engine would otherwise
+     * emit at a final period.  NVDA-IBMTTS does the same. */
+    if (w->cfg->pause_mode == 1)
+        w->engine->api.AddText(w->engine->h, "`p1 ");
 
     /* End-of-string mark to detect completion. */
     w->engine->api.InsertIndex(w->engine->h, (int)marks_make_end(j->seq));
