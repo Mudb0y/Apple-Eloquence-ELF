@@ -62,6 +62,9 @@ MODULEBINDIR_CANDIDATES+=(\
 run rm -rf "${DESTDIR}${PREFIX}/lib/eloquence"
 for cand in "${MODULEBINDIR_CANDIDATES[@]}"; do
     run rm -f "${DESTDIR}${cand}/sd_eloquence"
+    # libspeechd_module bundled by install.sh for tarball-based installs
+    # since 1.0.1.  Glob removes .so.0 and the .so.0.0.0 alias if present.
+    run rm -f "${DESTDIR}${cand}"/libspeechd_module.so.*
 done
 
 if [ "$PURGE" -eq 1 ]; then

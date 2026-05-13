@@ -5,6 +5,32 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] — 2026-05-13
+
+Patch release that resolves installation failures on Arch and Ubuntu
+24.04 surfaced by container-based testing of 1.0.0 on Arch, Debian
+trixie, Ubuntu 24.04, and Fedora 44.  Debian and Fedora install
+cleanly from the 1.0.0 tarball already.
+
+### Fixed
+
+- **Arch:** `install.sh` now installs `libxml2-legacy` instead of
+  `libxml2`.  Arch bumped libxml2 to 2.15 in 2025 and the new package
+  ships `libxml2.so.16`; the legacy SONAME (`.so.2`) that
+  `sd_eloquence` links against is in the `libxml2-legacy` package.
+- **Ubuntu noble:** the release tarball now bundles
+  `libspeechd_module.so.0` alongside the `sd_eloquence` binary, and
+  `sd_eloquence` is linked with `RPATH=$ORIGIN` so it finds the bundled
+  copy.  Ubuntu's `libspeechd-dev` package does not ship this helper
+  library (Debian does, in `libspeechd-module0`), and the CI build
+  links against an upstream speech-dispatcher 0.12.0 we build from
+  source.  Bundling avoids the distro-packaging variance entirely.
+
+### Docs
+
+- `README.md` quick-start now mentions `zstd` as an extraction
+  prerequisite for minimal systems that don't have it preinstalled.
+
 ## [1.0.0] — 2026-05-13
 
 First public release.

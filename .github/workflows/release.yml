@@ -148,6 +148,13 @@ jobs:
           mkdir -p "${STAGE}/lib"
           cp elfs/*.so "${STAGE}/lib/"
           cp build/sd_eloquence "${STAGE}/"
+          # Bundle libspeechd_module.so.0 next to sd_eloquence: Ubuntu
+          # noble's distro package doesn't ship this helper as a shared
+          # library at all, even though sd_eloquence (built against our
+          # upstream speech-dispatcher 0.12.0 install) needs it.  The
+          # binary has RPATH=$ORIGIN, so a copy next to it on disk wins.
+          # -P preserves the symlink chain (so.0 -> so.0.0.0).
+          cp -P /usr/local/lib/libspeechd_module.so.0* "${STAGE}/"
           cp sd_eloquence/eloquence.conf "${STAGE}/"
           cp dist/install.sh "${STAGE}/install.sh"
           cp dist/uninstall.sh "${STAGE}/uninstall.sh"

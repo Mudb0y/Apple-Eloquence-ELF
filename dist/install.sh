@@ -109,7 +109,11 @@ plan_packages() {
         arch)
             PKG_MGR="pacman"
             PKG_INSTALL_CMD="pacman -S --noconfirm --needed"
-            PKG_LIST="speech-dispatcher libc++ libc++abi libsoxr libxml2 pcre2"
+            # Arch bumped libxml2 to 2.15 (SONAME .so.16) in 2025; the
+            # sd_eloquence binary links libxml2.so.2 like every other
+            # distro still ships, which is now in the libxml2-legacy
+            # package.
+            PKG_LIST="speech-dispatcher libc++ libc++abi libsoxr libxml2-legacy pcre2"
             ;;
         suse)
             PKG_MGR="zypper"
@@ -283,6 +287,16 @@ if [ -e "$here/eci.ini" ]; then
 fi
 
 run install -m 0755 "$here/sd_eloquence" "${DESTDIR}${MODULEBINDIR}/sd_eloquence"
+
+# Drop libspeechd_module.so.0 next to sd_eloquence if the tarball ships
+# its own copy.  The binary has RPATH=$ORIGIN so this version wins over
+# any system copy at runtime -- and on Ubuntu noble there is no system
+# copy at all, so without this the daemon's modulebindir entry would
+# fail to load.
+for f in "$here"/libspeechd_module.so.*; do
+    [ -e "$f" ] || continue
+    run install -m 0644 "$f" "${DESTDIR}${MODULEBINDIR}/$(basename "$f")"
+done
 
 # eloquence.conf -- only drop on a fresh install so we don't clobber
 # the user's tuning. Speech-dispatcher auto-discovers the module from

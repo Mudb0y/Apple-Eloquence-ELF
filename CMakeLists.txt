@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(apple-eloquence-elf
-    VERSION 1.0.0
+    VERSION 1.0.1
     DESCRIPTION "Convert Apple's bundled ETI Eloquence Mach-O dylibs to Linux ELF; speech-dispatcher integration."
     LANGUAGES C)
 
@@ -135,7 +135,12 @@ if(BUILD_SD_MODULE)
         # -rdynamic so the override above intercepts __cxa_atexit calls
         # from chsrom/cht/jpnrom (and ld-linux on their behalf) at dlopen
         # time; without this, libc's symbol wins and our override never fires.
-        target_link_options(sd_eloquence PRIVATE -rdynamic)
+        # $ORIGIN RPATH so the release tarball can bundle libspeechd_module.so.0
+        # next to sd_eloquence (Ubuntu noble doesn't package it; we ship our
+        # own copy built from upstream speech-dispatcher 0.12.0).
+        target_link_options(sd_eloquence PRIVATE
+            -rdynamic
+            "-Wl,-rpath,\$ORIGIN")
         if(SOXR_FOUND)
             target_compile_definitions(sd_eloquence PRIVATE HAVE_SOXR)
             target_include_directories(sd_eloquence PRIVATE ${SOXR_INCLUDE_DIRS})
