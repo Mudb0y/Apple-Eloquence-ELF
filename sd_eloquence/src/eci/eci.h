@@ -8,9 +8,10 @@
  * (EciApi) lives in eci/runtime.h because we dlopen the engine at
  * runtime.
  *
- * IBM's BSD license is reproduced in the project LICENSE; this file is
- * an independent reimplementation of the public ABI declarations and
- * is GPLv2 in the sd_eloquence subtree.
+ * IBM's BSD-3-Clause notice is reproduced in the root LICENSE file
+ * under "Third-party notices" (and verbatim at docs/ibm-sdk/eci.h);
+ * this file is an independent reimplementation of the public ABI
+ * declarations and is GPLv2 in the sd_eloquence subtree.
  *
  * Apple's eci.dylib mostly follows the IBM ABI but with quirks worth
  * remembering:

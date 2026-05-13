@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Walk a Mach-O LC_DYLD_CHAINED_FIXUPS load command's chains.
 
 Apple's chained-fixups format (see <mach-o/fixup-chains.h>) packs rebase and

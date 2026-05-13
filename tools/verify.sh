@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # verify.sh -- check that all shipped binaries match tools/checksums.txt
 set -euo pipefail
 

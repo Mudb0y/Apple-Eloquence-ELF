@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * version.c -- minimal smoke test. Just calls eciVersion.
  * Build:  gcc version.c -o version -ldl
  * Run:    ./version /path/to/eci.so

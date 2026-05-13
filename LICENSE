@@ -34,3 +34,72 @@ that same legal posture.
 
 If you intend to redistribute or productize this work, build the converted
 binaries from your own copy of the simulator runtime (see docs/01-extraction.md).
+
+---
+
+THIRD-PARTY NOTICES
+
+This project incorporates code, declarations, or build artifacts derived from
+the following third-party sources. Each notice below is reproduced as required
+by the upstream license.
+
+1) ECI 6.x C API constants and enum declarations
+   -------------------------------------------------------------------------
+   The enum values and struct declarations in `sd_eloquence/src/eci/eci.h`
+   are an independent reimplementation of the public ABI declarations from
+   IBM's ECI 6.x SDK (specifically `eci.h` from pyibmtts-sdk, also reproduced
+   verbatim at `docs/ibm-sdk/eci.h`). The signatures are byte-for-byte
+   identical to IBM's so the same compiled engine binaries link cleanly, but
+   the declarations themselves are not copied verbatim.
+
+   Out of respect for IBM's attribution requirements on the original
+   declarations, the following copyright and BSD-3-Clause notice from
+   `docs/ibm-sdk/eci.h` is reproduced here in full:
+
+   Copyright (c) 2005, 2006, IBM Corp. All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions
+   are met:
+
+       * Redistributions of source code must retain the above copyright
+         notice, this list of conditions and the following disclaimer.
+       * Redistributions in binary form must reproduce the above copyright
+         notice, this list of conditions and the following disclaimer in
+         the documentation and/or other materials provided with the
+         distribution.
+       * Neither the name of IBM Corp. nor the names of its contributors
+         may be used to endorse or promote products derived from this
+         software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+   IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+   TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+   PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+2) NVDA-IBMTTS-Driver anti-crash regex tables
+   -------------------------------------------------------------------------
+   The per-language regex tables under `sd_eloquence/src/filters/` (specifically
+   `lang_global.c`, `lang_en.c`, `lang_es.c`, `lang_fr.c`, `lang_de.c`,
+   `lang_pt.c`) are derived from the NVDA-IBMTTS-Driver project's
+   `addon/synthDrivers/ibmeci.py` module, which is
+
+       Copyright (C) 2009-2026 David CM (dhf360@gmail.com) and contributors
+
+   and is released under the GNU General Public License version 2. Because
+   those tables carry GPLv2 obligations forward, the entire `sd_eloquence/`
+   subtree of this project is licensed under GPL-2.0-or-later (full text at
+   `sd_eloquence/LICENSE.GPL`). All other parts of this project — including
+   `macho2elf/`, `tools/`, `examples/`, `dist/`, and `docs/` — remain MIT
+   per the license at the top of this file.
+
+3) Apple ETI Eloquence dylibs (`vendor/tvOS-18.2/*.dylib`)
+   -------------------------------------------------------------------------
+   See the NOTE ON BINARY ARTIFACTS section above.

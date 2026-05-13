@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Reverses what install.sh did.  Leaves eloquence.conf in place so users
 # don't lose tuning across upgrades; pass --purge to remove that too.
 

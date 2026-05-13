@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: MIT
  *
  * mark_probe -- send a sentence with three <mark>s through spd-say and
  * verify the IndexReply callback fires the right names. Manual; not in CI.

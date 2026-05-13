@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # sd_eloquence smoke test -- run after install, before tagging release.
 set -euo pipefail
 

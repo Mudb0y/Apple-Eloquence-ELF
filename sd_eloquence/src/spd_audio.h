@@ -1,10 +1,12 @@
 /*
- * spd_audio.h -- vendored to provide AudioTrack / AudioFormat when the
- * system speech-dispatcher package doesn't ship spd_audio.h (e.g. Arch).
- * The ABI matches what libspeechd_module.so expects from
- * module_tts_output_server().
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * SPDX-License-Identifier: MIT
+ * spd_audio.h -- provides AudioTrack / AudioFormat types matching the
+ * ABI that libspeechd_module.so's module_tts_output_server() expects.
+ * Originally written from observed ABI because the system
+ * speech-dispatcher package (e.g. Arch) doesn't ship spd_audio.h.
+ *
+ * Copyright (C) 2026 Mudb0y / Stas Przecinek
  */
 
 #ifndef SD_ELOQUENCE_SPD_AUDIO_H

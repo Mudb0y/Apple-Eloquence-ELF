@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Unit tests for tools/dump_chained_fixups.py.
 
 The fixture `minimal_chained_fixup.bin` is the raw LC_DYLD_CHAINED_FIXUPS

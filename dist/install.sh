@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Installer for apple-eloquence-elf release tarballs.
 #
 # Drops the converted ECI runtime into /usr/lib/eloquence, the

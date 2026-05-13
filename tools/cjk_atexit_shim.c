@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: MIT
  *
  * cjk_atexit_shim.c -- LD_PRELOAD shim that suppresses __cxa_atexit
  * registrations originating from the converted romanizer .so files

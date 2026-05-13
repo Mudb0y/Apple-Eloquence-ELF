@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: MIT
+ *
  * speak.c — full TTS smoke test using the converted Apple Eloquence engine.
  *
  * Usage:

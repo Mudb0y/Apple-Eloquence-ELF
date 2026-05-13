@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Per-module Mach-O relocation audit.
 
 For a given .dylib, produce six artifacts in <workdir>:

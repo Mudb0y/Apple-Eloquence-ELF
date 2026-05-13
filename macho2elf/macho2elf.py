@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """
 macho2elf — Convert a libc-only Mach-O dylib to a Linux ELF .so
 

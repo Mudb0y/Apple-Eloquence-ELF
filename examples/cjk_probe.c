@@ -1,6 +1,8 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: MIT
  *
  * cjk_probe -- minimum reproducer for the CJK first-AddText crashes.
+ * Source is MIT; when linked against sd_eloquence/src/cjk_atexit_override.c
+ * (which is GPL-2.0-or-later), the resulting binary is GPL-2.0-or-later.
  *
  * Usage: cjk_probe <path/to/eci.so> <dialect-hex>
  *   e.g. cjk_probe /usr/lib/eloquence/eci.so 0x00060000   # zh-CN Mandarin
