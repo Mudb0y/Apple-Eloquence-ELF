@@ -12,6 +12,7 @@
 #include "../filters/filters.h"
 #include "../eci/voices.h"
 #include "../eci/languages.h"
+#include "../spd_session.h"
 
 #include <speech-dispatcher/spd_module_main.h>
 
@@ -219,7 +220,8 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                 if (voice_top + 1 < (int)(sizeof(saved_voice_stack)/sizeof(int))) {
                     saved_voice_stack[++voice_top] = w->engine->current_voice_slot;
                     voice_activate(&w->engine->api, w->engine->h, f->u.voice.slot,
-                                   INT_MIN, INT_MIN, INT_MIN, w->cfg);
+                                   spd_session_rate(), spd_session_pitch(),
+                                   spd_session_volume(), w->cfg);
                     w->engine->current_voice_slot = f->u.voice.slot;
                 }
                 break;
@@ -227,7 +229,8 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                 if (voice_top >= 0) {
                     int s = saved_voice_stack[voice_top--];
                     voice_activate(&w->engine->api, w->engine->h, s,
-                                   INT_MIN, INT_MIN, INT_MIN, w->cfg);
+                                   spd_session_rate(), spd_session_pitch(),
+                                   spd_session_volume(), w->cfg);
                     w->engine->current_voice_slot = s;
                 }
                 break;
@@ -267,15 +270,18 @@ static void exec_job(SynthWorker *w, synth_job *j) {
     w->engine->api.Synchronize(w->engine->h);
     audio_sink_flush(w->sink);
 
-    /* Pad with ~100ms of trailing silence at the engine's native rate.
-     * speech-dispatcher's audio backend (pulse/alsa) can clip the last
-     * few ms of an utterance when the stream drains at end-of-job; the
-     * trailing silence absorbs that clip so the real speech reaches
-     * the user intact.  Skip on stop_requested -- a cancel should end
-     * promptly without the extra tail. */
-    if (!atomic_load(&w->stop_requested)) {
-        static const int16_t silence[2205] = { 0 }; /* 100ms at 22050 Hz */
-        int n = w->engine->sample_rate_hz / 10;
+    /* Pad utterance tail with EloquenceUtteranceTailMs of silence at the
+     * engine's native rate.  Absorbs the pulse/alsa stream-drain trim
+     * that would otherwise clip the last few samples of audio.  Smaller
+     * values feel snappier when Orca chains utterances back-to-back;
+     * larger values fully protect the speech but add an audible gap
+     * between chained utterances.  25ms is the default sweet spot; the
+     * user can dial 0..200ms in eloquence.conf.  Skipped on
+     * stop_requested -- a cancel should end promptly without the tail. */
+    if (!atomic_load(&w->stop_requested) && w->cfg->utterance_tail_ms > 0) {
+        /* Buffer sized for the max (200ms at 22050Hz = 4410 samples). */
+        static const int16_t silence[4410] = { 0 };
+        int n = w->engine->sample_rate_hz * w->cfg->utterance_tail_ms / 1000;
         if (n > (int)(sizeof(silence) / sizeof(silence[0])))
             n = (int)(sizeof(silence) / sizeof(silence[0]));
         if (n > 0) {

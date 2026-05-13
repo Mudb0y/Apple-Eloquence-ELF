@@ -36,6 +36,7 @@ typedef struct {
     int  backquote_tags;             /* default 0 (security) */
     int  rate_boost;                 /* default 0; scales SSML-driven rate */
     int  pause_mode;                 /* 0=engine native, 1=trailing, 2=all punctuation; default 2 */
+    int  utterance_tail_ms;          /* trailing-silence pad, 0..200; default 25 */
 
     /* Active-voice param overrides; each is 0..100, or ELOQ_VOICE_PARAM_UNSET
      * (the default) to keep the voice preset's own value. When set, the

@@ -33,10 +33,16 @@ static AudioSink    g_sink;
 static SynthWorker *g_worker = NULL;
 static _Atomic uint32_t g_job_seq = 0;
 
-/* Per-voice SPD rate/pitch/volume overrides; INT_MIN = use preset default. */
-static int g_spd_rate[N_VOICE_PRESETS];
-static int g_spd_pitch[N_VOICE_PRESETS];
-static int g_spd_volume[N_VOICE_PRESETS];
+/* speech-dispatcher session state.  SSIP's SET RATE / PITCH / VOLUME
+ * are global per session and must survive voice and language changes;
+ * INT_MIN = not yet set by the client (preset default wins). */
+static int g_spd_rate   = INT_MIN;
+static int g_spd_pitch  = INT_MIN;
+static int g_spd_volume = INT_MIN;
+
+int spd_session_rate(void)   { return g_spd_rate;   }
+int spd_session_pitch(void)  { return g_spd_pitch;  }
+int spd_session_volume(void) { return g_spd_volume; }
 
 static int enter_data_dir(char **errmsg) {
     char p[1024];
@@ -70,11 +76,6 @@ int module_config(const char *configfile) {
 }
 
 int module_init(char **msg) {
-    for (int i = 0; i < N_VOICE_PRESETS; i++) {
-        g_spd_rate[i]   = INT_MIN;
-        g_spd_pitch[i]  = INT_MIN;
-        g_spd_volume[i] = INT_MIN;
-    }
     marks_init();
 
     /* CJK dialects gated out: chs/cht/jpn crash mid-utterance via an
@@ -208,47 +209,36 @@ size_t module_pause(void) {
 int module_set(const char *var, const char *val) {
     if (!g_worker || !var || !val) return 0;
 
-    if (!strcasecmp(var, "rate")) {
-        int spd = atoi(val);
-        g_spd_rate[g_engine.current_voice_slot] = spd;
-        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
-                       g_spd_rate[g_engine.current_voice_slot],
-                       g_spd_pitch[g_engine.current_voice_slot],
-                       g_spd_volume[g_engine.current_voice_slot],
-                       &g_cfg);
-        return 0;
-    }
-    if (!strcasecmp(var, "pitch")) {
-        g_spd_pitch[g_engine.current_voice_slot] = atoi(val);
-        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
-                       g_spd_rate[g_engine.current_voice_slot],
-                       g_spd_pitch[g_engine.current_voice_slot],
-                       g_spd_volume[g_engine.current_voice_slot],
-                       &g_cfg);
-        return 0;
-    }
-    if (!strcasecmp(var, "volume")) {
-        g_spd_volume[g_engine.current_voice_slot] = atoi(val);
-        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
-                       g_spd_rate[g_engine.current_voice_slot],
-                       g_spd_pitch[g_engine.current_voice_slot],
-                       g_spd_volume[g_engine.current_voice_slot],
-                       &g_cfg);
-        return 0;
-    }
+    /* Re-applies the current voice slot with the session rate/pitch/volume.
+     * Called after any change that needs the engine's voice params back
+     * in sync with the SSIP session (rate/pitch/volume update, voice
+     * switch, language switch).  Using session globals here means a SET
+     * VOICE_TYPE / SET LANGUAGE that arrives after SET RATE doesn't wipe
+     * the rate -- speech-dispatcher sends those in arbitrary order per
+     * utterance. */
+    #define REAPPLY_VOICE() \
+        voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot, \
+                       g_spd_rate, g_spd_pitch, g_spd_volume, &g_cfg)
+
+    if (!strcasecmp(var, "rate"))   { g_spd_rate   = atoi(val); REAPPLY_VOICE(); return 0; }
+    if (!strcasecmp(var, "pitch"))  { g_spd_pitch  = atoi(val); REAPPLY_VOICE(); return 0; }
+    if (!strcasecmp(var, "volume")) { g_spd_volume = atoi(val); REAPPLY_VOICE(); return 0; }
     if (!strcasecmp(var, "voice_type")) {
         int slot = voice_find_by_voice_type(val);
         if (slot >= 0) {
             g_engine.current_voice_slot = slot;
-            voice_activate(&g_engine.api, g_engine.h, slot,
-                           INT_MIN, INT_MIN, INT_MIN, &g_cfg);
+            REAPPLY_VOICE();
         }
         return 0;
     }
     if (!strcasecmp(var, "language")) {
         const LangEntry *L = lang_by_iso(val);
-        if (L && L->eci_dialect != g_engine.current_dialect)
+        if (L && L->eci_dialect != g_engine.current_dialect) {
             engine_switch_language(&g_engine, L->eci_dialect);
+            /* Apple's engine sometimes resets voice params when the
+             * dialect changes; re-apply to be sure. */
+            REAPPLY_VOICE();
+        }
         return 0;
     }
     if (!strcasecmp(var, "synthesis_voice")) {
@@ -266,15 +256,17 @@ int module_set(const char *var, const char *val) {
         }
         if (matched < 0) return 0;
         g_engine.current_voice_slot = matched;
-        voice_activate(&g_engine.api, g_engine.h, matched,
-                       INT_MIN, INT_MIN, INT_MIN, &g_cfg);
+        REAPPLY_VOICE();
         if (val[name_len] == '-' && val[name_len + 1]) {
             const LangEntry *L = lang_by_iso(val + name_len + 1);
-            if (L && L->eci_dialect != g_engine.current_dialect)
+            if (L && L->eci_dialect != g_engine.current_dialect) {
                 engine_switch_language(&g_engine, L->eci_dialect);
+                REAPPLY_VOICE();
+            }
         }
         return 0;
     }
+    #undef REAPPLY_VOICE
     if (!strcasecmp(var, "punctuation_mode")) {
         int mode = !strcasecmp(val, "all") ? 2 : 0;
         g_engine.api.SetParam(g_engine.h, eciTextMode, mode);

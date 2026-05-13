@@ -36,6 +36,7 @@ void config_defaults(EloqConfig *c) {
     c->backquote_tags    = 0;
     c->rate_boost        = 0;
     c->pause_mode        = 2;
+    c->utterance_tail_ms = 25;
 
     c->voice_head_size         = ELOQ_VOICE_PARAM_UNSET;
     c->voice_roughness         = ELOQ_VOICE_PARAM_UNSET;
@@ -132,6 +133,9 @@ int config_apply_kv(EloqConfig *c, const char *key, const char *val) {
     else if (!strcasecmp(key, "EloquenceRateBoost"))        c->rate_boost        = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquencePauseMode")) {
         int n = atoi(val); if (n < 0 || n > 2) return -1; c->pause_mode = n;
+    }
+    else if (!strcasecmp(key, "EloquenceUtteranceTailMs")) {
+        int n = atoi(val); if (n < 0 || n > 200) return -1; c->utterance_tail_ms = n;
     }
     else if (!strcasecmp(key, "EloquenceHeadSize"))         return parse_voice_param(val, &c->voice_head_size);
     else if (!strcasecmp(key, "EloquenceRoughness"))        return parse_voice_param(val, &c->voice_roughness);

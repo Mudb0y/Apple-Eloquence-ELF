@@ -57,6 +57,15 @@ int main(void) {
     assert(config_apply_kv(&c, "EloquencePauseMode", "3") == -1);
     assert(config_apply_kv(&c, "EloquencePauseMode", "-1") == -1);
 
+    /* UtteranceTailMs default + validation. */
+    config_defaults(&c);
+    assert(c.utterance_tail_ms == 25);
+    assert(config_apply_kv(&c, "EloquenceUtteranceTailMs", "0")   == 0 && c.utterance_tail_ms == 0);
+    assert(config_apply_kv(&c, "EloquenceUtteranceTailMs", "100") == 0 && c.utterance_tail_ms == 100);
+    assert(config_apply_kv(&c, "EloquenceUtteranceTailMs", "200") == 0 && c.utterance_tail_ms == 200);
+    assert(config_apply_kv(&c, "EloquenceUtteranceTailMs", "201") == -1);
+    assert(config_apply_kv(&c, "EloquenceUtteranceTailMs", "-1")  == -1);
+
     /* AbbrDict toggle. */
     config_defaults(&c);
     assert(c.load_abbr_dict == 0);
