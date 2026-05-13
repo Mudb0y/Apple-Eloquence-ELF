@@ -1,5 +1,5 @@
---- docs/macho2elf-audit/chsrom.dylib/ground-truth.txt	2026-05-13 13:26:50.983998761 +0200
-+++ docs/macho2elf-audit/chsrom.dylib/converter.txt	2026-05-13 13:26:50.984368813 +0200
+--- docs/macho2elf-audit/chsrom.dylib/ground-truth.txt	2026-05-13 13:30:11.461510991 +0200
++++ docs/macho2elf-audit/chsrom.dylib/converter.txt	2026-05-13 13:30:11.461892588 +0200
 @@ -10,11 +10,7 @@
  [__DATA_CONST,__const + 0x0038]  rebase   __TEXT,__text + 0x0c78
  [__DATA_CONST,__const + 0x0040]  rebase   __TEXT,__text + 0x0c84

@@ -55,16 +55,27 @@ class FixupRecord:
 
 
 def emit_ground_truth(dylib_path: Path) -> List[FixupRecord]:
-    """Source 1: our hand-rolled walker. This is THE TRUTH.
+    """Source 1: our hand-rolled walker + llvm-otool's classic-reloc table.
 
-    For now this is dump_chained_fixups only. Task B2 extends with
-    llvm-otool's classic-reloc table for kinds that chained-fixups don't
-    cover."""
+    Modern tvOS dylibs use chained fixups for most relocations, but a
+    classic reloc table may still exist for things chained fixups don't
+    cover (e.g., bindings that the linker emitted as external relocs
+    instead of chained-bind slots). We merge both sources into one
+    canonical record list, with chained-fixup records winning on
+    conflicts (their target_offset values are more precise)."""
+    records = _gather_chained_fixups(dylib_path)
+    classic = _gather_classic_relocs(dylib_path)
+    return _merge_dedupe(records + classic)
+
+
+def _gather_chained_fixups(dylib_path):
     from tools.dump_chained_fixups import parse_dylib, ChainedRebase, ChainedBind
-    result = parse_dylib(dylib_path)
+    try:
+        result = parse_dylib(dylib_path)
+    except RuntimeError:
+        return []  # no LC_DYLD_CHAINED_FIXUPS in this dylib
     records = []
     for fx in result.fixups:
-        # Resolve file_offset back to (segment, section, offset_within)
         site = _file_offset_to_site(fx.file_offset, dylib_path)
         if site is None:
             continue
@@ -78,7 +89,7 @@ def emit_ground_truth(dylib_path: Path) -> List[FixupRecord]:
                 target_section=fx.target_section,
                 target_offset=fx.target_offset,
             ))
-        elif isinstance(fx, ChainedBind):
+        else:
             records.append(FixupRecord(
                 site_segment=site_seg, site_section=site_sect,
                 site_offset=site_off,
@@ -86,6 +97,82 @@ def emit_ground_truth(dylib_path: Path) -> List[FixupRecord]:
                 symbol=fx.symbol, library=fx.library or "?",
             ))
     return records
+
+
+def _gather_classic_relocs(dylib_path):
+    """Parse llvm-otool -rv. Output format varies by version but typically:
+
+        File: <path> (architecture <arch>)
+        Relocation information (__SEGMENT,__section) <N> entries
+        address     pcrel length extern type    scattered symbolnum/value
+        00000000    False  3      True   X86_64_RELOC_BRANCH      0x00000007 _foo
+        ...
+
+    Robustly skip any unrecognized lines; this is best-effort enrichment."""
+    try:
+        out = subprocess.run(
+            ["llvm-otool", "-rv", str(dylib_path)],
+            capture_output=True, text=True, check=False).stdout
+    except FileNotFoundError:
+        return []
+
+    records = []
+    cur_section = None
+    for raw_line in out.splitlines():
+        line = raw_line.strip()
+        if not line:
+            cur_section = None
+            continue
+        # Section header: "Relocation information (__TEXT,__text) N entries"
+        if line.startswith("Relocation information ("):
+            inner = line[len("Relocation information ("):]
+            # Trim trailing ") N entries" or just ")"
+            close = inner.find(")")
+            if close < 0:
+                continue
+            tag = inner[:close]
+            if "," in tag:
+                seg, sect = tag.split(",", 1)
+                cur_section = (seg.strip(), sect.strip())
+            continue
+        if line.startswith("address") or not cur_section:
+            continue
+        parts = line.split()
+        # Tolerate format variation; need at least: addr, pcrel, length, extern, type, symbol
+        if len(parts) < 6:
+            continue
+        try:
+            addr = int(parts[0], 16)
+        except ValueError:
+            continue
+        # Find the "extern" boolean -- typically column 3 (0-indexed)
+        extern_token = parts[3].lower()
+        extern = extern_token in ("true", "1")
+        # Symbol/section is typically the last column
+        symbol = parts[-1]
+        kind = "bind" if extern else "rebase"
+        records.append(FixupRecord(
+            site_segment=cur_section[0], site_section=cur_section[1],
+            site_offset=addr,
+            kind=kind,
+            symbol=symbol if extern else "",
+            library="?" if extern else "",
+        ))
+    return records
+
+
+def _merge_dedupe(records):
+    """Dedupe by (site, kind). Chained-fixup records appear first in the
+    merged list (because _gather_chained_fixups runs first); they win on
+    conflicts because their target_offset values are more precise."""
+    seen = {}
+    out = []
+    for r in records:
+        key = (r.site_segment, r.site_section, r.site_offset, r.kind)
+        if key not in seen:
+            seen[key] = True
+            out.append(r)
+    return out
 
 
 def emit_lief(dylib_path: Path) -> List[FixupRecord]:
