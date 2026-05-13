@@ -130,7 +130,7 @@ int module_init(char **msg) {
 
     /* Activate the default voice preset into slot 0. */
     voice_activate(&g_engine.api, g_engine.h, g_cfg.default_voice_slot,
-                   INT_MIN, INT_MIN, INT_MIN);
+                   INT_MIN, INT_MIN, INT_MIN, &g_cfg);
     g_engine.current_voice_slot = g_cfg.default_voice_slot;
 
     char *re_err = NULL;
@@ -233,7 +233,8 @@ int module_set(const char *var, const char *val) {
         voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
                        g_spd_rate[g_engine.current_voice_slot],
                        g_spd_pitch[g_engine.current_voice_slot],
-                       g_spd_volume[g_engine.current_voice_slot]);
+                       g_spd_volume[g_engine.current_voice_slot],
+                       &g_cfg);
         return 0;
     }
     if (!strcasecmp(var, "pitch")) {
@@ -241,7 +242,8 @@ int module_set(const char *var, const char *val) {
         voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
                        g_spd_rate[g_engine.current_voice_slot],
                        g_spd_pitch[g_engine.current_voice_slot],
-                       g_spd_volume[g_engine.current_voice_slot]);
+                       g_spd_volume[g_engine.current_voice_slot],
+                       &g_cfg);
         return 0;
     }
     if (!strcasecmp(var, "volume")) {
@@ -249,14 +251,16 @@ int module_set(const char *var, const char *val) {
         voice_activate(&g_engine.api, g_engine.h, g_engine.current_voice_slot,
                        g_spd_rate[g_engine.current_voice_slot],
                        g_spd_pitch[g_engine.current_voice_slot],
-                       g_spd_volume[g_engine.current_voice_slot]);
+                       g_spd_volume[g_engine.current_voice_slot],
+                       &g_cfg);
         return 0;
     }
     if (!strcasecmp(var, "voice_type")) {
         int slot = voice_find_by_voice_type(val);
         if (slot >= 0) {
             g_engine.current_voice_slot = slot;
-            voice_activate(&g_engine.api, g_engine.h, slot, INT_MIN, INT_MIN, INT_MIN);
+            voice_activate(&g_engine.api, g_engine.h, slot,
+                           INT_MIN, INT_MIN, INT_MIN, &g_cfg);
         }
         return 0;
     }
@@ -281,7 +285,8 @@ int module_set(const char *var, const char *val) {
         }
         if (matched < 0) return 0;
         g_engine.current_voice_slot = matched;
-        voice_activate(&g_engine.api, g_engine.h, matched, INT_MIN, INT_MIN, INT_MIN);
+        voice_activate(&g_engine.api, g_engine.h, matched,
+                       INT_MIN, INT_MIN, INT_MIN, &g_cfg);
         if (val[name_len] == '-' && val[name_len + 1]) {
             const LangEntry *L = lang_by_iso(val + name_len + 1);
             if (L && L->eci_dialect != g_engine.current_dialect)

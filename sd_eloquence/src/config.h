@@ -11,6 +11,10 @@
 
 #define ELOQ_PATH_MAX 512
 
+/* Sentinel for voice-param-override fields: "no override, use the preset's
+ * value." Picked outside the 0..100 valid range. */
+#define ELOQ_VOICE_PARAM_UNSET (-1)
+
 typedef struct {
     int  debug;
     char data_dir[ELOQ_PATH_MAX];
@@ -29,6 +33,16 @@ typedef struct {
     int  use_dictionaries;           /* default 1 */
     int  phrase_prediction;          /* default 0 */
     int  backquote_tags;             /* default 0 (security) */
+
+    /* Active-voice param overrides; each is 0..100, or ELOQ_VOICE_PARAM_UNSET
+     * (the default) to keep the voice preset's own value. When set, the
+     * override is applied as a second SetVoiceParam after voice_activate
+     * writes the preset row. */
+    int  voice_head_size;
+    int  voice_roughness;
+    int  voice_breathiness;
+    int  voice_pitch_baseline;
+    int  voice_pitch_fluctuation;
 } EloqConfig;
 
 /* Initialize *c with hardcoded defaults. */

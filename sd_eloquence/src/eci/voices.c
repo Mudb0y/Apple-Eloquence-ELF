@@ -45,7 +45,8 @@ static int spd_to_eci_speed(int v) {
 }
 
 void voice_activate(const EciApi *eci, ECIHand h, int slot,
-                    int spd_rate, int spd_pitch, int spd_volume) {
+                    int spd_rate, int spd_pitch, int spd_volume,
+                    const EloqConfig *cfg) {
     if (slot < 0 || slot >= N_VOICE_PRESETS) return;
     const VoicePreset *v = &g_voice_presets[slot];
 
@@ -63,6 +64,23 @@ void voice_activate(const EciApi *eci, ECIHand h, int slot,
     eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciBreathiness,      v->breathiness);
     eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciSpeed,            speed_val);
     eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciVolume,           vol_val);
+
+    /* User overrides from eloquence.conf -- applied after the preset row
+     * so any non-UNSET value wins. Speed and Volume aren't here: they flow
+     * through the SSML prosody path and the spd_rate/spd_volume args
+     * above respectively. */
+    if (cfg) {
+        if (cfg->voice_head_size != ELOQ_VOICE_PARAM_UNSET)
+            eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciHeadSize,         cfg->voice_head_size);
+        if (cfg->voice_roughness != ELOQ_VOICE_PARAM_UNSET)
+            eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciRoughness,        cfg->voice_roughness);
+        if (cfg->voice_breathiness != ELOQ_VOICE_PARAM_UNSET)
+            eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciBreathiness,      cfg->voice_breathiness);
+        if (cfg->voice_pitch_baseline != ELOQ_VOICE_PARAM_UNSET)
+            eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchBaseline,    cfg->voice_pitch_baseline);
+        if (cfg->voice_pitch_fluctuation != ELOQ_VOICE_PARAM_UNSET)
+            eci->SetVoiceParam(h, ECI_ACTIVE_SLOT, eciPitchFluctuation, cfg->voice_pitch_fluctuation);
+    }
 }
 
 int voice_find_by_name(const char *name) {

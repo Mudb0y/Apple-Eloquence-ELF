@@ -202,7 +202,7 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                 if (voice_top + 1 < (int)(sizeof(saved_voice_stack)/sizeof(int))) {
                     saved_voice_stack[++voice_top] = w->engine->current_voice_slot;
                     voice_activate(&w->engine->api, w->engine->h, f->u.voice.slot,
-                                   INT_MIN, INT_MIN, INT_MIN);
+                                   INT_MIN, INT_MIN, INT_MIN, w->cfg);
                     w->engine->current_voice_slot = f->u.voice.slot;
                 }
                 break;
@@ -210,7 +210,7 @@ static void exec_job(SynthWorker *w, synth_job *j) {
                 if (voice_top >= 0) {
                     int s = saved_voice_stack[voice_top--];
                     voice_activate(&w->engine->api, w->engine->h, s,
-                                   INT_MIN, INT_MIN, INT_MIN);
+                                   INT_MIN, INT_MIN, INT_MIN, w->cfg);
                     w->engine->current_voice_slot = s;
                 }
                 break;

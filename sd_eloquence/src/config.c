@@ -33,6 +33,21 @@ void config_defaults(EloqConfig *c) {
     c->use_dictionaries  = 1;
     c->phrase_prediction = 0;
     c->backquote_tags    = 0;
+
+    c->voice_head_size         = ELOQ_VOICE_PARAM_UNSET;
+    c->voice_roughness         = ELOQ_VOICE_PARAM_UNSET;
+    c->voice_breathiness       = ELOQ_VOICE_PARAM_UNSET;
+    c->voice_pitch_baseline    = ELOQ_VOICE_PARAM_UNSET;
+    c->voice_pitch_fluctuation = ELOQ_VOICE_PARAM_UNSET;
+}
+
+static int parse_voice_param(const char *v, int *out) {
+    char *end = NULL;
+    long n = strtol(v, &end, 10);
+    if (!end || *end != 0) return -1;
+    if (n < 0 || n > 100)  return -1;
+    *out = (int)n;
+    return 0;
 }
 
 static char *trim(char *s) {
@@ -110,6 +125,11 @@ int config_apply_kv(EloqConfig *c, const char *key, const char *val) {
     else if (!strcasecmp(key, "EloquenceUseDictionaries"))  c->use_dictionaries  = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquencePhrasePrediction")) c->phrase_prediction = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquenceBackquoteTags"))    c->backquote_tags    = atoi(val) ? 1 : 0;
+    else if (!strcasecmp(key, "EloquenceHeadSize"))         return parse_voice_param(val, &c->voice_head_size);
+    else if (!strcasecmp(key, "EloquenceRoughness"))        return parse_voice_param(val, &c->voice_roughness);
+    else if (!strcasecmp(key, "EloquenceBreathiness"))      return parse_voice_param(val, &c->voice_breathiness);
+    else if (!strcasecmp(key, "EloquencePitchBaseline"))    return parse_voice_param(val, &c->voice_pitch_baseline);
+    else if (!strcasecmp(key, "EloquencePitchFluctuation")) return parse_voice_param(val, &c->voice_pitch_fluctuation);
     else return -1;  /* unknown key */
 
 #undef COPY_PATH

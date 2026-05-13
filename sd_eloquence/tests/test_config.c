@@ -18,6 +18,11 @@ int main(void) {
     assert(c.default_language == eciGeneralAmericanEnglish);
     assert(c.use_dictionaries == 1);
     assert(c.backquote_tags == 0);
+    assert(c.voice_head_size         == ELOQ_VOICE_PARAM_UNSET);
+    assert(c.voice_roughness         == ELOQ_VOICE_PARAM_UNSET);
+    assert(c.voice_breathiness       == ELOQ_VOICE_PARAM_UNSET);
+    assert(c.voice_pitch_baseline    == ELOQ_VOICE_PARAM_UNSET);
+    assert(c.voice_pitch_fluctuation == ELOQ_VOICE_PARAM_UNSET);
 
     /* Single key=value updates. */
     assert(config_apply_kv(&c, "Debug", "1") == 0 && c.debug == 1);
@@ -34,6 +39,23 @@ int main(void) {
     assert(config_apply_kv(&c, "EloquenceDefaultVoice", "Nobody") == -1);
     assert(config_apply_kv(&c, "EloquenceDefaultLanguage", "xx-XX") == -1);
     assert(config_apply_kv(&c, "Nonsense", "yes") == -1);
+
+    /* Voice param overrides parse + range-check. */
+    config_defaults(&c);
+    assert(config_apply_kv(&c, "EloquenceHeadSize",         "60") == 0);
+    assert(c.voice_head_size == 60);
+    assert(config_apply_kv(&c, "EloquenceRoughness",         "0") == 0);
+    assert(c.voice_roughness == 0);
+    assert(config_apply_kv(&c, "EloquenceBreathiness",     "100") == 0);
+    assert(c.voice_breathiness == 100);
+    assert(config_apply_kv(&c, "EloquencePitchBaseline",    "55") == 0);
+    assert(c.voice_pitch_baseline == 55);
+    assert(config_apply_kv(&c, "EloquencePitchFluctuation", "40") == 0);
+    assert(c.voice_pitch_fluctuation == 40);
+    /* Out-of-range and non-integer rejected. */
+    assert(config_apply_kv(&c, "EloquenceHeadSize",   "101") == -1);
+    assert(config_apply_kv(&c, "EloquenceRoughness",   "-1") == -1);
+    assert(config_apply_kv(&c, "EloquenceBreathiness", "x")  == -1);
 
     /* Effective dict dir. */
     config_defaults(&c);
