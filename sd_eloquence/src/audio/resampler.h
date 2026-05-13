@@ -28,9 +28,15 @@ int  resampler_process(Resampler *r,
                        const int16_t *in, int in_samples,
                        int16_t *out, int out_cap);
 
-/* End-of-utterance flush — drains the polyphase tail. Returns count written
- * to `out`. */
+/* End-of-utterance drain — pulls one chunk of the polyphase tail from
+ * libsoxr.  Returns count written to `out` (0 when fully drained, -1 on
+ * error).  Call in a loop until it returns 0. */
 int  resampler_flush(Resampler *r, int16_t *out, int out_cap);
+
+/* Reset libsoxr's internal state so the resampler is ready for a new
+ * stream.  Call once after resampler_flush() has returned 0, before any
+ * further resampler_process() calls. */
+void resampler_clear(Resampler *r);
 
 /* True if the resampler is active (not pass-through). */
 int  resampler_is_active(const Resampler *r);

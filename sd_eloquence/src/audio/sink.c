@@ -75,7 +75,19 @@ int audio_sink_push(AudioSink *s, const int16_t *in, int n) {
 
 void audio_sink_flush(AudioSink *s) {
     if (!s->resampler || !resampler_is_active(s->resampler) || !s->scratch) return;
-    int got = resampler_flush(s->resampler, s->scratch, s->scratch_cap);
-    if (got > 0)
-        forward(s->scratch, got, resampler_output_rate(s->resampler));
+    int rate = resampler_output_rate(s->resampler);
+    /* libsoxr's drain is iterative: each soxr_process(NULL,...) call
+     * pulls up to out_cap samples of polyphase tail; if the tail is
+     * larger we have to keep calling until it returns 0.  A single
+     * call drops the rest -- audibly clipping the last few ms of
+     * every utterance. */
+    for (;;) {
+        int got = resampler_flush(s->resampler, s->scratch, s->scratch_cap);
+        if (got <= 0) break;
+        forward(s->scratch, got, rate);
+    }
+    /* Now reset the resampler so the next utterance's first
+     * resampler_process() doesn't hit libsoxr's "stream ended"
+     * state. */
+    resampler_clear(s->resampler);
 }

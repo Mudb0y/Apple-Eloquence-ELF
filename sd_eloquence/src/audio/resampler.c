@@ -106,11 +106,18 @@ int resampler_flush(Resampler *r, int16_t *out, int out_cap) {
 #ifdef HAVE_SOXR
     size_t out_done = 0;
     soxr_error_t err = soxr_process(r->soxr, NULL, 0, NULL, out, out_cap, &out_done);
-    if (err) return 0;
+    if (err) return -1;
     return (int)out_done;
 #else
     (void)out; (void)out_cap;
     return 0;
+#endif
+}
+
+void resampler_clear(Resampler *r) {
+    if (!r || !r->active) return;
+#ifdef HAVE_SOXR
+    if (r->soxr) soxr_clear(r->soxr);
 #endif
 }
 
