@@ -1,0 +1,35 @@
+{
+  "ground_truth": {
+    "bind:<resolved-later>": 135,
+    "rebase:__DATA,__data": 63,
+    "rebase:__DATA_CONST,__const": 9,
+    "rebase:__TEXT,__text": 258,
+    "rebase:__TEXT,__const": 8,
+    "rebase:__TEXT,__cstring": 551,
+    "rebase:__DATA,__bss": 5
+  },
+  "lief": {
+    "rebase:__DATA,__data": 63,
+    "rebase:__DATA_CONST,__const": 9,
+    "rebase:__TEXT,__text": 258,
+    "rebase:__TEXT,__const": 8,
+    "rebase:__TEXT,__cstring": 551,
+    "rebase:__DATA,__bss": 5
+  },
+  "converter": {
+    "bind:/usr/lib/libSystem.B.dylib": 67,
+    "bind:/usr/lib/libc++.1.dylib": 48,
+    "bind:?": 20,
+    "rebase:__DATA,__data": 63,
+    "rebase:__DATA_CONST,__const": 9,
+    "rebase:__TEXT,__text": 258,
+    "rebase:__TEXT,__const": 8,
+    "rebase:__TEXT,__cstring": 551,
+    "rebase:__DATA,__bss": 5
+  },
+  "totals": {
+    "ground_truth": 1029,
+    "lief": 894,
+    "converter": 1029
+  }
+}

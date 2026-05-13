@@ -1,24 +1,24 @@
---- docs/macho2elf-audit/enu.dylib/ground-truth.txt	2026-05-13 13:41:36.266943729 +0200
-+++ docs/macho2elf-audit/enu.dylib/lief.txt	2026-05-13 13:41:36.268023258 +0200
-@@ -853,14 +853,9 @@
- [__DATA_CONST,__const + 0x0140]  rebase   __TEXT,__text + 0x1888d6
- [__DATA_CONST,__const + 0x0148]  rebase   __TEXT,__text + 0x188710
- [__DATA_CONST,__const + 0x0150]  rebase   __TEXT,__text + 0x188726
+--- docs/macho2elf-audit/cht.dylib/ground-truth.txt	2026-05-13 13:40:23.434704770 +0200
++++ docs/macho2elf-audit/cht.dylib/lief.txt	2026-05-13 13:40:23.435653811 +0200
+@@ -793,14 +793,9 @@
+ [__DATA_CONST,__const + 0x0140]  rebase   __TEXT,__text + 0x91972
+ [__DATA_CONST,__const + 0x0148]  rebase   __TEXT,__text + 0x917ac
+ [__DATA_CONST,__const + 0x0150]  rebase   __TEXT,__text + 0x917c2
 -[__DATA_CONST,__const + 0x0158]  bind     __ZTVN10__cxxabiv117__class_type_infoE
 -[__DATA_CONST,__const + 0x0160]  bind     __ZTS9SWUnknown
 -[__DATA_CONST,__const + 0x0168]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
- [__DATA_CONST,__const + 0x0170]  rebase   __TEXT,__const + 0x91d0
+ [__DATA_CONST,__const + 0x0170]  rebase   __TEXT,__const + 0x0580
 -[__DATA_CONST,__const + 0x0178]  bind     __ZTI9SWUnknown
- [__DATA_CONST,__const + 0x01c0]  rebase   __TEXT,__text + 0x1a2cbf
- [__DATA_CONST,__const + 0x0218]  rebase   __TEXT,__text + 0x1a2cbf
+ [__DATA_CONST,__const + 0x01c0]  rebase   __TEXT,__text + 0xabd5b
+ [__DATA_CONST,__const + 0x0218]  rebase   __TEXT,__text + 0xabd5b
 -[__DATA_CONST,__const + 0x0338]  bind     __ZTI10IndexQueue
- [__DATA_CONST,__const + 0x0340]  rebase   __TEXT,__text + 0x18b1ba
- [__DATA_CONST,__const + 0x0348]  rebase   __TEXT,__text + 0x1a68f8
- [__DATA_CONST,__const + 0x0350]  rebase   __TEXT,__text + 0x1a662c
-@@ -873,13 +868,7 @@
- [__DATA_CONST,__const + 0x0388]  rebase   __TEXT,__text + 0x1a68d0
- [__DATA_CONST,__const + 0x0390]  rebase   __TEXT,__text + 0x18b496
- [__DATA_CONST,__const + 0x0398]  rebase   __TEXT,__text + 0x18b4a0
+ [__DATA_CONST,__const + 0x0340]  rebase   __TEXT,__text + 0x94256
+ [__DATA_CONST,__const + 0x0348]  rebase   __TEXT,__text + 0xaf994
+ [__DATA_CONST,__const + 0x0350]  rebase   __TEXT,__text + 0xaf6c8
+@@ -813,13 +808,7 @@
+ [__DATA_CONST,__const + 0x0388]  rebase   __TEXT,__text + 0xaf96c
+ [__DATA_CONST,__const + 0x0390]  rebase   __TEXT,__text + 0x94532
+ [__DATA_CONST,__const + 0x0398]  rebase   __TEXT,__text + 0x9453c
 -[__DATA_CONST,__const + 0x03a0]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE
 -[__DATA_CONST,__const + 0x03a8]  bind     __ZTS10EListQueue
  [__DATA_CONST,__const + 0x03b8]  rebase   __DATA_CONST,__const + 0x0590
@@ -26,60 +26,60 @@
 -[__DATA_CONST,__const + 0x03d0]  bind     __ZTS10IndexQueue
 -[__DATA_CONST,__const + 0x03e0]  bind     __ZTI10EListQueue
 -[__DATA_CONST,__const + 0x03f8]  bind     __ZTI10EListQueue
- [__DATA_CONST,__const + 0x0400]  rebase   __TEXT,__text + 0x18b440
- [__DATA_CONST,__const + 0x0408]  rebase   __TEXT,__text + 0x1a68f8
- [__DATA_CONST,__const + 0x0410]  rebase   __TEXT,__text + 0x1a662c
-@@ -919,17 +908,10 @@
- [__DATA_CONST,__const + 0x0530]  rebase   __TEXT,__text + 0x1a6d82
- [__DATA_CONST,__const + 0x0538]  rebase   __TEXT,__text + 0x1a6d8c
+ [__DATA_CONST,__const + 0x0400]  rebase   __TEXT,__text + 0x944dc
+ [__DATA_CONST,__const + 0x0408]  rebase   __TEXT,__text + 0xaf994
+ [__DATA_CONST,__const + 0x0410]  rebase   __TEXT,__text + 0xaf6c8
+@@ -859,17 +848,10 @@
+ [__DATA_CONST,__const + 0x0530]  rebase   __TEXT,__text + 0xafe1e
+ [__DATA_CONST,__const + 0x0538]  rebase   __TEXT,__text + 0xafe28
  [__DATA_CONST,__const + 0x0548]  rebase   __DATA_CONST,__const + 0x0568
 -[__DATA_CONST,__const + 0x0550]  bind     ___cxa_pure_virtual
 -[__DATA_CONST,__const + 0x0558]  bind     ___cxa_pure_virtual
- [__DATA_CONST,__const + 0x0560]  rebase   __TEXT,__text + 0x1a662c
+ [__DATA_CONST,__const + 0x0560]  rebase   __TEXT,__text + 0xaf6c8
 -[__DATA_CONST,__const + 0x0568]  bind     __ZTVN10__cxxabiv117__class_type_infoE
- [__DATA_CONST,__const + 0x0570]  rebase   __TEXT,__const + 0xaac0
+ [__DATA_CONST,__const + 0x0570]  rebase   __TEXT,__const + 0x1e70
 -[__DATA_CONST,__const + 0x0578]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 -[__DATA_CONST,__const + 0x0580]  bind     __ZTS5EList
  [__DATA_CONST,__const + 0x0588]  rebase   __DATA_CONST,__const + 0x0568
 -[__DATA_CONST,__const + 0x0590]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
- [__DATA_CONST,__const + 0x0598]  rebase   __TEXT,__const + 0xaace
+ [__DATA_CONST,__const + 0x0598]  rebase   __TEXT,__const + 0x1e7e
 -[__DATA_CONST,__const + 0x05a0]  bind     __ZTI5EList
  [__DATA_CONST,__const + 0x05b0]  rebase   __DATA_CONST,__const + 0x0620
- [__DATA_CONST,__const + 0x05b8]  rebase   __TEXT,__text + 0x1a66ea
- [__DATA_CONST,__const + 0x05c0]  rebase   __TEXT,__text + 0x1a66fa
-@@ -939,17 +921,8 @@
- [__DATA_CONST,__const + 0x05e0]  rebase   __TEXT,__text + 0x1a6704
- [__DATA_CONST,__const + 0x05e8]  rebase   __TEXT,__text + 0x1a6950
- [__DATA_CONST,__const + 0x05f0]  rebase   __TEXT,__text + 0x1a693e
+ [__DATA_CONST,__const + 0x05b8]  rebase   __TEXT,__text + 0xaf786
+ [__DATA_CONST,__const + 0x05c0]  rebase   __TEXT,__text + 0xaf796
+@@ -879,17 +861,8 @@
+ [__DATA_CONST,__const + 0x05e0]  rebase   __TEXT,__text + 0xaf7a0
+ [__DATA_CONST,__const + 0x05e8]  rebase   __TEXT,__text + 0xaf9ec
+ [__DATA_CONST,__const + 0x05f0]  rebase   __TEXT,__text + 0xaf9da
 -[__DATA_CONST,__const + 0x05f8]  bind     __ZTVN10__cxxabiv117__class_type_infoE
 -[__DATA_CONST,__const + 0x0600]  bind     __ZTS9EIterator
 -[__DATA_CONST,__const + 0x0608]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
 -[__DATA_CONST,__const + 0x0610]  bind     __ZTS9EListIter
 -[__DATA_CONST,__const + 0x0618]  bind     __ZTI9EIterator
 -[__DATA_CONST,__const + 0x0620]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
- [__DATA_CONST,__const + 0x0628]  rebase   __TEXT,__const + 0xaadd
+ [__DATA_CONST,__const + 0x0628]  rebase   __TEXT,__const + 0x1e8d
 -[__DATA_CONST,__const + 0x0630]  bind     __ZTI9EListIter
 -[__DATA_CONST,__const + 0x0638]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
- [__DATA_CONST,__const + 0x0640]  rebase   __TEXT,__const + 0xab00
+ [__DATA_CONST,__const + 0x0640]  rebase   __TEXT,__const + 0x1eb0
 -[__DATA_CONST,__const + 0x0648]  bind     __ZTI5EList
  [__DATA_CONST,__const + 0x0658]  rebase   __DATA_CONST,__const + 0x06a0
- [__DATA_CONST,__const + 0x0660]  rebase   __TEXT,__text + 0x1a69a6
- [__DATA_CONST,__const + 0x0668]  rebase   __TEXT,__text + 0x1a69b6
-@@ -959,120 +932,12 @@
- [__DATA_CONST,__const + 0x0688]  rebase   __TEXT,__text + 0x1a69c0
- [__DATA_CONST,__const + 0x0690]  rebase   __TEXT,__text + 0x1a6ce4
- [__DATA_CONST,__const + 0x0698]  rebase   __TEXT,__text + 0x1a6cd2
+ [__DATA_CONST,__const + 0x0660]  rebase   __TEXT,__text + 0xafa42
+ [__DATA_CONST,__const + 0x0668]  rebase   __TEXT,__text + 0xafa52
+@@ -899,119 +872,12 @@
+ [__DATA_CONST,__const + 0x0688]  rebase   __TEXT,__text + 0xafa5c
+ [__DATA_CONST,__const + 0x0690]  rebase   __TEXT,__text + 0xafd80
+ [__DATA_CONST,__const + 0x0698]  rebase   __TEXT,__text + 0xafd6e
 -[__DATA_CONST,__const + 0x06a0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
- [__DATA_CONST,__const + 0x06a8]  rebase   __TEXT,__const + 0xab08
+ [__DATA_CONST,__const + 0x06a8]  rebase   __TEXT,__const + 0x1eb8
 -[__DATA_CONST,__const + 0x06b0]  bind     __ZTI9EListIter
  [__DATA_CONST,__const + 0x06c0]  rebase   __DATA_CONST,__const + 0x06f0
- [__DATA_CONST,__const + 0x06c8]  rebase   __TEXT,__text + 0x1a7934
- [__DATA_CONST,__const + 0x06d0]  rebase   __TEXT,__text + 0x1a796a
- [__DATA_CONST,__const + 0x06d8]  rebase   __TEXT,__text + 0x1a7972
- [__DATA_CONST,__const + 0x06e0]  rebase   __TEXT,__text + 0x1a797a
- [__DATA_CONST,__const + 0x06e8]  rebase   __TEXT,__text + 0x1a7980
+ [__DATA_CONST,__const + 0x06c8]  rebase   __TEXT,__text + 0xb09d0
+ [__DATA_CONST,__const + 0x06d0]  rebase   __TEXT,__text + 0xb0a06
+ [__DATA_CONST,__const + 0x06d8]  rebase   __TEXT,__text + 0xb0a0e
+ [__DATA_CONST,__const + 0x06e0]  rebase   __TEXT,__text + 0xb0a16
+ [__DATA_CONST,__const + 0x06e8]  rebase   __TEXT,__text + 0xb0a1c
 -[__DATA_CONST,__const + 0x06f0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
- [__DATA_CONST,__const + 0x06f8]  rebase   __TEXT,__const + 0xab15
+ [__DATA_CONST,__const + 0x06f8]  rebase   __TEXT,__const + 0x1ec5
 -[__DATA_CONST,__const + 0x0700]  bind     __ZTI9SWUnknown
 -[__DATA_CONST,__got + 0x0000]  bind     __DefaultRuneLocale
 -[__DATA_CONST,__got + 0x0008]  bind     __Unwind_Resume
@@ -169,20 +169,19 @@
 -[__DATA_CONST,__got + 0x02a8]  bind     _memcpy
 -[__DATA_CONST,__got + 0x02b0]  bind     _memmove
 -[__DATA_CONST,__got + 0x02b8]  bind     _memset
--[__DATA_CONST,__got + 0x02c0]  bind     _pow
--[__DATA_CONST,__got + 0x02c8]  bind     _realloc
--[__DATA_CONST,__got + 0x02d0]  bind     _setjmp
--[__DATA_CONST,__got + 0x02d8]  bind     _sinf
--[__DATA_CONST,__got + 0x02e0]  bind     _sprintf
--[__DATA_CONST,__got + 0x02e8]  bind     _sscanf
--[__DATA_CONST,__got + 0x02f0]  bind     _stat
--[__DATA_CONST,__got + 0x02f8]  bind     _strchr
--[__DATA_CONST,__got + 0x0300]  bind     _strcmp
--[__DATA_CONST,__got + 0x0308]  bind     _strcpy
--[__DATA_CONST,__got + 0x0310]  bind     _strlen
--[__DATA_CONST,__got + 0x0318]  bind     _strncpy
--[__DATA_CONST,__got + 0x0320]  bind     _strtod
--[__DATA_CONST,__got + 0x0328]  bind     _strtok
--[__DATA_CONST,__got + 0x0330]  bind     _strtol
--[__DATA_CONST,__got + 0x0338]  bind     _vfprintf
- [__DATA_CONST,__got + 0x0340]  rebase   __DATA,__data + 0x7170
+-[__DATA_CONST,__got + 0x02c0]  bind     _realloc
+-[__DATA_CONST,__got + 0x02c8]  bind     _setjmp
+-[__DATA_CONST,__got + 0x02d0]  bind     _sinf
+-[__DATA_CONST,__got + 0x02d8]  bind     _sprintf
+-[__DATA_CONST,__got + 0x02e0]  bind     _sscanf
+-[__DATA_CONST,__got + 0x02e8]  bind     _stat
+-[__DATA_CONST,__got + 0x02f0]  bind     _strchr
+-[__DATA_CONST,__got + 0x02f8]  bind     _strcmp
+-[__DATA_CONST,__got + 0x0300]  bind     _strcpy
+-[__DATA_CONST,__got + 0x0308]  bind     _strlen
+-[__DATA_CONST,__got + 0x0310]  bind     _strncpy
+-[__DATA_CONST,__got + 0x0318]  bind     _strtod
+-[__DATA_CONST,__got + 0x0320]  bind     _strtok
+-[__DATA_CONST,__got + 0x0328]  bind     _strtol
+-[__DATA_CONST,__got + 0x0330]  bind     _vfprintf
+ [__DATA_CONST,__got + 0x0338]  rebase   __DATA,__data + 0x2320

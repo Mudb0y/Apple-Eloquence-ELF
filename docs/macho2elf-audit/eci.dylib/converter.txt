@@ -1,0 +1,638 @@
+[__DATA,__data + 0x0000]  rebase   __TEXT,__cstring + 0x3406
+[__DATA,__data + 0x0018]  rebase   __TEXT,__text + 0x14514
+[__DATA,__data + 0x0020]  rebase   __TEXT,__text + 0x1456f
+[__DATA,__data + 0x0028]  rebase   __TEXT,__text + 0x14659
+[__DATA,__data + 0x0030]  rebase   __TEXT,__text + 0x1466b
+[__DATA,__data + 0x0038]  rebase   __TEXT,__text + 0x1467d
+[__DATA,__data + 0x0040]  rebase   __TEXT,__text + 0x1476f
+[__DATA,__data + 0x0048]  rebase   __TEXT,__text + 0x14863
+[__DATA,__data + 0x0050]  rebase   __TEXT,__text + 0x14886
+[__DATA,__data + 0x0058]  rebase   __TEXT,__text + 0x15404
+[__DATA,__data + 0x0060]  rebase   __TEXT,__text + 0x1540a
+[__DATA,__data + 0x0068]  rebase   __TEXT,__text + 0x1541a
+[__DATA,__data + 0x0070]  rebase   __TEXT,__text + 0x15425
+[__DATA,__data + 0x0078]  rebase   __TEXT,__text + 0x15430
+[__DATA,__data + 0x0080]  rebase   __TEXT,__text + 0x15438
+[__DATA,__data + 0x0088]  rebase   __TEXT,__text + 0x15446
+[__DATA,__data + 0x0090]  rebase   __TEXT,__text + 0x15463
+[__DATA,__data + 0x0098]  rebase   __TEXT,__cstring + 0x340a
+[__DATA,__data + 0x00b0]  rebase   __TEXT,__text + 0x14933
+[__DATA,__data + 0x00b8]  rebase   __TEXT,__text + 0x1498e
+[__DATA,__data + 0x00c0]  rebase   __TEXT,__text + 0x14a78
+[__DATA,__data + 0x00c8]  rebase   __TEXT,__text + 0x14a8a
+[__DATA,__data + 0x00d0]  rebase   __TEXT,__text + 0x14a9c
+[__DATA,__data + 0x00d8]  rebase   __TEXT,__text + 0x14b8e
+[__DATA,__data + 0x00e0]  rebase   __TEXT,__text + 0x14c81
+[__DATA,__data + 0x00e8]  rebase   __TEXT,__text + 0x14ca4
+[__DATA,__data + 0x00f0]  rebase   __TEXT,__text + 0x15404
+[__DATA,__data + 0x00f8]  rebase   __TEXT,__text + 0x1540a
+[__DATA,__data + 0x0100]  rebase   __TEXT,__text + 0x1541a
+[__DATA,__data + 0x0108]  rebase   __TEXT,__text + 0x15425
+[__DATA,__data + 0x0110]  rebase   __TEXT,__text + 0x15430
+[__DATA,__data + 0x0118]  rebase   __TEXT,__text + 0x15438
+[__DATA,__data + 0x0120]  rebase   __TEXT,__text + 0x15446
+[__DATA,__data + 0x0128]  rebase   __TEXT,__text + 0x15463
+[__DATA,__data + 0x0130]  rebase   __TEXT,__cstring + 0x3419
+[__DATA,__data + 0x0148]  rebase   __TEXT,__text + 0x1546e
+[__DATA,__data + 0x0150]  rebase   __TEXT,__text + 0x154d4
+[__DATA,__data + 0x0158]  rebase   __TEXT,__text + 0x156d6
+[__DATA,__data + 0x0160]  rebase   __TEXT,__text + 0x156f7
+[__DATA,__data + 0x0168]  rebase   __TEXT,__text + 0x15720
+[__DATA,__data + 0x0170]  rebase   __TEXT,__text + 0x1595b
+[__DATA,__data + 0x0178]  rebase   __TEXT,__text + 0x15ba5
+[__DATA,__data + 0x0180]  rebase   __TEXT,__text + 0x15c7f
+[__DATA,__data + 0x0188]  rebase   __TEXT,__text + 0x15404
+[__DATA,__data + 0x0190]  rebase   __TEXT,__text + 0x1540a
+[__DATA,__data + 0x0198]  rebase   __TEXT,__text + 0x1541a
+[__DATA,__data + 0x01a0]  rebase   __TEXT,__text + 0x15425
+[__DATA,__data + 0x01a8]  rebase   __TEXT,__text + 0x15430
+[__DATA,__data + 0x01b0]  rebase   __TEXT,__text + 0x15438
+[__DATA,__data + 0x01b8]  rebase   __TEXT,__text + 0x15446
+[__DATA,__data + 0x01c0]  rebase   __TEXT,__text + 0x15463
+[__DATA,__data + 0x01c8]  rebase   __TEXT,__cstring + 0x341c
+[__DATA,__data + 0x01e0]  rebase   __TEXT,__text + 0x1546e
+[__DATA,__data + 0x01e8]  rebase   __TEXT,__text + 0x154d4
+[__DATA,__data + 0x01f0]  rebase   __TEXT,__text + 0x156d6
+[__DATA,__data + 0x01f8]  rebase   __TEXT,__text + 0x156f7
+[__DATA,__data + 0x0200]  rebase   __TEXT,__text + 0x15720
+[__DATA,__data + 0x0208]  rebase   __TEXT,__text + 0x1595b
+[__DATA,__data + 0x0210]  rebase   __TEXT,__text + 0x15ba5
+[__DATA,__data + 0x0218]  rebase   __TEXT,__text + 0x15c7f
+[__DATA,__data + 0x0220]  rebase   __TEXT,__text + 0x15404
+[__DATA,__data + 0x0228]  rebase   __TEXT,__text + 0x1540a
+[__DATA,__data + 0x0230]  rebase   __TEXT,__text + 0x1541a
+[__DATA,__data + 0x0238]  rebase   __TEXT,__text + 0x15425
+[__DATA,__data + 0x0240]  rebase   __TEXT,__text + 0x15430
+[__DATA,__data + 0x0248]  rebase   __TEXT,__text + 0x15438
+[__DATA,__data + 0x0250]  rebase   __TEXT,__text + 0x15446
+[__DATA,__data + 0x0258]  rebase   __TEXT,__text + 0x15463
+[__DATA,__data + 0x0260]  rebase   __TEXT,__cstring + 0x3425
+[__DATA,__data + 0x0278]  rebase   __TEXT,__text + 0x15f9c
+[__DATA,__data + 0x0280]  rebase   __TEXT,__text + 0x16029
+[__DATA,__data + 0x0288]  rebase   __TEXT,__text + 0x16354
+[__DATA,__data + 0x0290]  rebase   __TEXT,__text + 0x16375
+[__DATA,__data + 0x0298]  rebase   __TEXT,__text + 0x1639b
+[__DATA,__data + 0x02a0]  rebase   __TEXT,__text + 0x165b0
+[__DATA,__data + 0x02a8]  rebase   __TEXT,__text + 0x16730
+[__DATA,__data + 0x02b0]  rebase   __TEXT,__text + 0x1692f
+[__DATA,__data + 0x02b8]  rebase   __TEXT,__text + 0x15404
+[__DATA,__data + 0x02c0]  rebase   __TEXT,__text + 0x16982
+[__DATA,__data + 0x02c8]  rebase   __TEXT,__text + 0x1541a
+[__DATA,__data + 0x02d0]  rebase   __TEXT,__text + 0x15425
+[__DATA,__data + 0x02d8]  rebase   __TEXT,__text + 0x15430
+[__DATA,__data + 0x02e0]  rebase   __TEXT,__text + 0x15438
+[__DATA,__data + 0x02e8]  rebase   __TEXT,__text + 0x15446
+[__DATA,__data + 0x02f0]  rebase   __TEXT,__text + 0x15463
+[__DATA_CONST,__const + 0x0008]  bind     __ZTI18ETIappMessageQueue
+[__DATA_CONST,__const + 0x0010]  rebase   __TEXT,__text + 0x94d6
+[__DATA_CONST,__const + 0x0018]  rebase   __TEXT,__text + 0x9418
+[__DATA_CONST,__const + 0x0020]  rebase   __TEXT,__text + 0x957a
+[__DATA_CONST,__const + 0x0028]  rebase   __TEXT,__text + 0x042c
+[__DATA_CONST,__const + 0x0030]  rebase   __TEXT,__text + 0x0436
+[__DATA_CONST,__const + 0x0038]  rebase   __TEXT,__text + 0x0440
+[__DATA_CONST,__const + 0x0040]  rebase   __TEXT,__text + 0x96a2
+[__DATA_CONST,__const + 0x0048]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0050]  bind     __ZTS18ETIappMessageQueue
+[__DATA_CONST,__const + 0x0058]  rebase   __DATA_CONST,__const + 0x0208
+[__DATA_CONST,__const + 0x0068]  bind     __ZTIN15ETImessageQueue5QueueE
+[__DATA_CONST,__const + 0x0070]  rebase   __TEXT,__text + 0x0468
+[__DATA_CONST,__const + 0x0078]  rebase   __TEXT,__text + 0x0472
+[__DATA_CONST,__const + 0x0080]  rebase   __TEXT,__text + 0x1330a
+[__DATA_CONST,__const + 0x0088]  rebase   __TEXT,__text + 0x13404
+[__DATA_CONST,__const + 0x0090]  rebase   __TEXT,__text + 0x13432
+[__DATA_CONST,__const + 0x0098]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x00a0]  bind     __ZTSN15ETImessageQueue5QueueE
+[__DATA_CONST,__const + 0x00a8]  rebase   __DATA_CONST,__const + 0x0fe0
+[__DATA_CONST,__const + 0x00b8]  bind     __ZTI10ETImsgUser
+[__DATA_CONST,__const + 0x00c0]  rebase   __TEXT,__text + 0x051c
+[__DATA_CONST,__const + 0x00c8]  rebase   __TEXT,__text + 0x0526
+[__DATA_CONST,__const + 0x00d0]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x00d8]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x00e0]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x00e8]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x00f0]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x00f8]  rebase   __TEXT,__text + 0x05da
+[__DATA_CONST,__const + 0x0100]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0108]  bind     __ZTS10ETImessage
+[__DATA_CONST,__const + 0x0110]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0118]  bind     __ZTS10ETImsgUser
+[__DATA_CONST,__const + 0x0120]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0130]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0138]  rebase   __TEXT,__text + 0x10934
+[__DATA_CONST,__const + 0x0140]  rebase   __TEXT,__text + 0x0600
+[__DATA_CONST,__const + 0x0148]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0150]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0158]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0160]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0168]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0170]  bind     ___cxa_pure_virtual
+[__DATA_CONST,__const + 0x0180]  rebase   __DATA_CONST,__const + 0x01a8
+[__DATA_CONST,__const + 0x0188]  rebase   __TEXT,__text + 0x8b7a
+[__DATA_CONST,__const + 0x0190]  rebase   __TEXT,__text + 0x8b84
+[__DATA_CONST,__const + 0x0198]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x01a0]  bind     __ZTS14EngineListData
+[__DATA_CONST,__const + 0x01a8]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x01b0]  rebase   __TEXT,__const + 0x0214
+[__DATA_CONST,__const + 0x01b8]  bind     __ZTI14EngineListData
+[__DATA_CONST,__const + 0x01c8]  rebase   __DATA_CONST,__const + 0x0208
+[__DATA_CONST,__const + 0x01d0]  rebase   __TEXT,__text + 0x94d6
+[__DATA_CONST,__const + 0x01d8]  rebase   __TEXT,__text + 0x9418
+[__DATA_CONST,__const + 0x01e0]  rebase   __TEXT,__text + 0x957a
+[__DATA_CONST,__const + 0x01e8]  rebase   __TEXT,__text + 0x962a
+[__DATA_CONST,__const + 0x01f0]  rebase   __TEXT,__text + 0x9678
+[__DATA_CONST,__const + 0x01f8]  rebase   __TEXT,__text + 0x0440
+[__DATA_CONST,__const + 0x0200]  rebase   __TEXT,__text + 0x96a2
+[__DATA_CONST,__const + 0x0208]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0210]  rebase   __TEXT,__const + 0x0232
+[__DATA_CONST,__const + 0x0220]  rebase   __DATA_CONST,__const + 0x0260
+[__DATA_CONST,__const + 0x0228]  rebase   __TEXT,__text + 0x984e
+[__DATA_CONST,__const + 0x0230]  rebase   __TEXT,__text + 0x9858
+[__DATA_CONST,__const + 0x0238]  rebase   __TEXT,__text + 0x97ae
+[__DATA_CONST,__const + 0x0240]  rebase   __TEXT,__text + 0x104f8
+[__DATA_CONST,__const + 0x0248]  rebase   __TEXT,__text + 0x970c
+[__DATA_CONST,__const + 0x0250]  rebase   __TEXT,__text + 0x10548
+[__DATA_CONST,__const + 0x0258]  rebase   __TEXT,__text + 0x9886
+[__DATA_CONST,__const + 0x0260]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0268]  rebase   __TEXT,__const + 0x0244
+[__DATA_CONST,__const + 0x0270]  rebase   __DATA_CONST,__const + 0x1028
+[__DATA_CONST,__const + 0x0280]  bind     __ZTI10ETImsgQuit
+[__DATA_CONST,__const + 0x0288]  rebase   __TEXT,__text + 0x98b8
+[__DATA_CONST,__const + 0x0290]  rebase   __TEXT,__text + 0x98c2
+[__DATA_CONST,__const + 0x0298]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x02a0]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x02a8]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x02b0]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x02b8]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x02c0]  rebase   __TEXT,__text + 0x98f0
+[__DATA_CONST,__const + 0x02c8]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x02d0]  bind     __ZTS10ETImsgQuit
+[__DATA_CONST,__const + 0x02d8]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x02e8]  rebase   __DATA_CONST,__const + 0x0300
+[__DATA_CONST,__const + 0x02f0]  rebase   __TEXT,__text + 0x9c40
+[__DATA_CONST,__const + 0x02f8]  rebase   __TEXT,__text + 0x9c4a
+[__DATA_CONST,__const + 0x0300]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0308]  rebase   __TEXT,__const + 0x0269
+[__DATA_CONST,__const + 0x0310]  bind     __ZTI14EngineListData
+[__DATA_CONST,__const + 0x0330]  rebase   __TEXT,__cstring + 0x33a3
+[__DATA_CONST,__const + 0x0360]  rebase   __DATA_CONST,__const + 0x03a0
+[__DATA_CONST,__const + 0x0368]  rebase   __TEXT,__text + 0xb446
+[__DATA_CONST,__const + 0x0370]  rebase   __TEXT,__text + 0xb450
+[__DATA_CONST,__const + 0x0378]  rebase   __TEXT,__text + 0x97ae
+[__DATA_CONST,__const + 0x0380]  rebase   __TEXT,__text + 0x104f8
+[__DATA_CONST,__const + 0x0388]  rebase   __TEXT,__text + 0x970c
+[__DATA_CONST,__const + 0x0390]  rebase   __TEXT,__text + 0x10548
+[__DATA_CONST,__const + 0x0398]  rebase   __TEXT,__text + 0x9886
+[__DATA_CONST,__const + 0x03a0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x03a8]  rebase   __TEXT,__const + 0x0390
+[__DATA_CONST,__const + 0x03b0]  rebase   __DATA_CONST,__const + 0x0260
+[__DATA_CONST,__const + 0x03c0]  bind     __ZTI31ETImsgSoundFileSetIndexCallback
+[__DATA_CONST,__const + 0x03c8]  rebase   __TEXT,__text + 0xbb54
+[__DATA_CONST,__const + 0x03d0]  rebase   __TEXT,__text + 0xbb5e
+[__DATA_CONST,__const + 0x03d8]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x03e0]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x03e8]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x03f0]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x03f8]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0400]  rebase   __TEXT,__text + 0xbb8c
+[__DATA_CONST,__const + 0x0408]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0410]  bind     __ZTS31ETImsgSoundFileSetIndexCallback
+[__DATA_CONST,__const + 0x0418]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0428]  bind     __ZTI19ETImsgSoundFilePoll
+[__DATA_CONST,__const + 0x0430]  rebase   __TEXT,__text + 0xbc92
+[__DATA_CONST,__const + 0x0438]  rebase   __TEXT,__text + 0xbc9c
+[__DATA_CONST,__const + 0x0440]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0448]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0450]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0458]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0460]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0468]  rebase   __TEXT,__text + 0xbcca
+[__DATA_CONST,__const + 0x0470]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0478]  bind     __ZTS19ETImsgSoundFilePoll
+[__DATA_CONST,__const + 0x0480]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0490]  bind     __ZTI19ETImsgSoundFileOpen
+[__DATA_CONST,__const + 0x0498]  rebase   __TEXT,__text + 0xbd0c
+[__DATA_CONST,__const + 0x04a0]  rebase   __TEXT,__text + 0xbd16
+[__DATA_CONST,__const + 0x04a8]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x04b0]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x04b8]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x04c0]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x04c8]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x04d0]  rebase   __TEXT,__text + 0xbd44
+[__DATA_CONST,__const + 0x04d8]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x04e0]  bind     __ZTS19ETImsgSoundFileOpen
+[__DATA_CONST,__const + 0x04e8]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x04f8]  bind     __ZTI20ETImsgSoundFileSetup
+[__DATA_CONST,__const + 0x0500]  rebase   __TEXT,__text + 0xbdd6
+[__DATA_CONST,__const + 0x0508]  rebase   __TEXT,__text + 0xbde0
+[__DATA_CONST,__const + 0x0510]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0518]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0520]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0528]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0530]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0538]  rebase   __TEXT,__text + 0xbe0e
+[__DATA_CONST,__const + 0x0540]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0548]  bind     __ZTS20ETImsgSoundFileSetup
+[__DATA_CONST,__const + 0x0550]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0560]  bind     __ZTI20ETImsgSoundFileClose
+[__DATA_CONST,__const + 0x0568]  rebase   __TEXT,__text + 0xbe8a
+[__DATA_CONST,__const + 0x0570]  rebase   __TEXT,__text + 0xbe94
+[__DATA_CONST,__const + 0x0578]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0580]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0588]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0590]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0598]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x05a0]  rebase   __TEXT,__text + 0xbec2
+[__DATA_CONST,__const + 0x05a8]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x05b0]  bind     __ZTS20ETImsgSoundFileClose
+[__DATA_CONST,__const + 0x05b8]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x05c8]  bind     __ZTI20ETImsgSoundFileFlush
+[__DATA_CONST,__const + 0x05d0]  rebase   __TEXT,__text + 0xbf3e
+[__DATA_CONST,__const + 0x05d8]  rebase   __TEXT,__text + 0xbf48
+[__DATA_CONST,__const + 0x05e0]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x05e8]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x05f0]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x05f8]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0600]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0608]  rebase   __TEXT,__text + 0xbf76
+[__DATA_CONST,__const + 0x0610]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0618]  bind     __ZTS20ETImsgSoundFileFlush
+[__DATA_CONST,__const + 0x0620]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0630]  bind     __ZTI21ETImsgSoundFileStatus
+[__DATA_CONST,__const + 0x0638]  rebase   __TEXT,__text + 0xbfc6
+[__DATA_CONST,__const + 0x0640]  rebase   __TEXT,__text + 0xbfd0
+[__DATA_CONST,__const + 0x0648]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0650]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0658]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0660]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0668]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0670]  rebase   __TEXT,__text + 0xbffe
+[__DATA_CONST,__const + 0x0678]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0680]  bind     __ZTS21ETImsgSoundFileStatus
+[__DATA_CONST,__const + 0x0688]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0698]  bind     __ZTI19ETImsgSoundFileHold
+[__DATA_CONST,__const + 0x06a0]  rebase   __TEXT,__text + 0xc05e
+[__DATA_CONST,__const + 0x06a8]  rebase   __TEXT,__text + 0xc068
+[__DATA_CONST,__const + 0x06b0]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x06b8]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x06c0]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x06c8]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x06d0]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x06d8]  rebase   __TEXT,__text + 0xc096
+[__DATA_CONST,__const + 0x06e0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x06e8]  bind     __ZTS19ETImsgSoundFileHold
+[__DATA_CONST,__const + 0x06f0]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0700]  bind     __ZTI20ETImsgSoundFileReset
+[__DATA_CONST,__const + 0x0708]  rebase   __TEXT,__text + 0xc0ea
+[__DATA_CONST,__const + 0x0710]  rebase   __TEXT,__text + 0xc0f4
+[__DATA_CONST,__const + 0x0718]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0720]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0728]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0730]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0738]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0740]  rebase   __TEXT,__text + 0xc122
+[__DATA_CONST,__const + 0x0748]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0750]  bind     __ZTS20ETImsgSoundFileReset
+[__DATA_CONST,__const + 0x0758]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0768]  bind     __ZTI26ETImsgSoundFileInsertIndex
+[__DATA_CONST,__const + 0x0770]  rebase   __TEXT,__text + 0xc182
+[__DATA_CONST,__const + 0x0778]  rebase   __TEXT,__text + 0xc18c
+[__DATA_CONST,__const + 0x0780]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0788]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0790]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0798]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x07a0]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x07a8]  rebase   __TEXT,__text + 0xc1ba
+[__DATA_CONST,__const + 0x07b0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x07b8]  bind     __ZTS26ETImsgSoundFileInsertIndex
+[__DATA_CONST,__const + 0x07c0]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x07d0]  bind     __ZTI20ETImsgSoundFileWrite
+[__DATA_CONST,__const + 0x07d8]  rebase   __TEXT,__text + 0xc234
+[__DATA_CONST,__const + 0x07e0]  rebase   __TEXT,__text + 0xc23e
+[__DATA_CONST,__const + 0x07e8]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x07f0]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x07f8]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0800]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0808]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0810]  rebase   __TEXT,__text + 0xc26c
+[__DATA_CONST,__const + 0x0818]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0820]  bind     __ZTS20ETImsgSoundFileWrite
+[__DATA_CONST,__const + 0x0828]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0838]  rebase   __DATA_CONST,__const + 0x0878
+[__DATA_CONST,__const + 0x0840]  rebase   __TEXT,__text + 0xcc7a
+[__DATA_CONST,__const + 0x0848]  rebase   __TEXT,__text + 0xcc84
+[__DATA_CONST,__const + 0x0850]  rebase   __TEXT,__text + 0x97ae
+[__DATA_CONST,__const + 0x0858]  rebase   __TEXT,__text + 0x104f8
+[__DATA_CONST,__const + 0x0860]  rebase   __TEXT,__text + 0x970c
+[__DATA_CONST,__const + 0x0868]  rebase   __TEXT,__text + 0x10548
+[__DATA_CONST,__const + 0x0870]  rebase   __TEXT,__text + 0x9886
+[__DATA_CONST,__const + 0x0878]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0880]  rebase   __TEXT,__const + 0x04aa
+[__DATA_CONST,__const + 0x0888]  rebase   __DATA_CONST,__const + 0x0260
+[__DATA_CONST,__const + 0x0898]  bind     __ZTI10IndexQueue
+[__DATA_CONST,__const + 0x08a0]  rebase   __TEXT,__text + 0xea06
+[__DATA_CONST,__const + 0x08a8]  rebase   __TEXT,__text + 0x12c06
+[__DATA_CONST,__const + 0x08b0]  rebase   __TEXT,__text + 0x1293a
+[__DATA_CONST,__const + 0x08b8]  rebase   __TEXT,__text + 0x106d2
+[__DATA_CONST,__const + 0x08c0]  rebase   __TEXT,__text + 0x106dc
+[__DATA_CONST,__const + 0x08c8]  rebase   __TEXT,__text + 0x12a6a
+[__DATA_CONST,__const + 0x08d0]  rebase   __TEXT,__text + 0x12ab8
+[__DATA_CONST,__const + 0x08d8]  rebase   __TEXT,__text + 0x12b5a
+[__DATA_CONST,__const + 0x08e0]  rebase   __TEXT,__text + 0x12bb6
+[__DATA_CONST,__const + 0x08e8]  rebase   __TEXT,__text + 0x12bde
+[__DATA_CONST,__const + 0x08f0]  rebase   __TEXT,__text + 0xc500
+[__DATA_CONST,__const + 0x08f8]  rebase   __TEXT,__text + 0x106e6
+[__DATA_CONST,__const + 0x0900]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE
+[__DATA_CONST,__const + 0x0908]  bind     __ZTS10EListQueue
+[__DATA_CONST,__const + 0x0918]  rebase   __DATA_CONST,__const + 0x0e80
+[__DATA_CONST,__const + 0x0928]  bind     __ZTVN10__cxxabiv121__vmi_class_type_infoE
+[__DATA_CONST,__const + 0x0930]  bind     __ZTS10IndexQueue
+[__DATA_CONST,__const + 0x0940]  bind     __ZTI10EListQueue
+[__DATA_CONST,__const + 0x0958]  bind     __ZTI10EListQueue
+[__DATA_CONST,__const + 0x0960]  rebase   __TEXT,__text + 0x10714
+[__DATA_CONST,__const + 0x0968]  rebase   __TEXT,__text + 0x12c06
+[__DATA_CONST,__const + 0x0970]  rebase   __TEXT,__text + 0x1293a
+[__DATA_CONST,__const + 0x0978]  rebase   __TEXT,__text + 0x106d2
+[__DATA_CONST,__const + 0x0980]  rebase   __TEXT,__text + 0x106dc
+[__DATA_CONST,__const + 0x0988]  rebase   __TEXT,__text + 0x12a6a
+[__DATA_CONST,__const + 0x0990]  rebase   __TEXT,__text + 0x12ab8
+[__DATA_CONST,__const + 0x0998]  rebase   __TEXT,__text + 0x12b5a
+[__DATA_CONST,__const + 0x09a0]  rebase   __TEXT,__text + 0x12bb6
+[__DATA_CONST,__const + 0x09a8]  rebase   __TEXT,__text + 0x12bde
+[__DATA_CONST,__const + 0x09b0]  rebase   __TEXT,__text + 0x10724
+[__DATA_CONST,__const + 0x09b8]  rebase   __TEXT,__text + 0x1072e
+[__DATA_CONST,__const + 0x09c8]  bind     __ZTI24ETImsgSetPhonemeIndicies
+[__DATA_CONST,__const + 0x09d0]  rebase   __TEXT,__text + 0x10888
+[__DATA_CONST,__const + 0x09d8]  rebase   __TEXT,__text + 0x10892
+[__DATA_CONST,__const + 0x09e0]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x09e8]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x09f0]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x09f8]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0a00]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0a08]  rebase   __TEXT,__text + 0x1091e
+[__DATA_CONST,__const + 0x0a10]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0a18]  bind     __ZTS24ETImsgSetPhonemeIndicies
+[__DATA_CONST,__const + 0x0a20]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0a30]  bind     __ZTI13ETImsgAddText
+[__DATA_CONST,__const + 0x0a38]  rebase   __TEXT,__text + 0x109f8
+[__DATA_CONST,__const + 0x0a40]  rebase   __TEXT,__text + 0x10a02
+[__DATA_CONST,__const + 0x0a48]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0a50]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0a58]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0a60]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0a68]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0a70]  rebase   __TEXT,__text + 0x10a30
+[__DATA_CONST,__const + 0x0a78]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0a80]  bind     __ZTS13ETImsgAddText
+[__DATA_CONST,__const + 0x0a88]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0a98]  bind     __ZTI14ETImsgAddParam
+[__DATA_CONST,__const + 0x0aa0]  rebase   __TEXT,__text + 0x10b1c
+[__DATA_CONST,__const + 0x0aa8]  rebase   __TEXT,__text + 0x10b26
+[__DATA_CONST,__const + 0x0ab0]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0ab8]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0ac0]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0ac8]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0ad0]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0ad8]  rebase   __TEXT,__text + 0x10b54
+[__DATA_CONST,__const + 0x0ae0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0ae8]  bind     __ZTS14ETImsgAddParam
+[__DATA_CONST,__const + 0x0af0]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0b00]  bind     __ZTI20ETImsgChangeRomParam
+[__DATA_CONST,__const + 0x0b08]  rebase   __TEXT,__text + 0x10bfa
+[__DATA_CONST,__const + 0x0b10]  rebase   __TEXT,__text + 0x10c04
+[__DATA_CONST,__const + 0x0b18]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0b20]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0b28]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0b30]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0b38]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0b40]  rebase   __TEXT,__text + 0x10c32
+[__DATA_CONST,__const + 0x0b48]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0b50]  bind     __ZTS20ETImsgChangeRomParam
+[__DATA_CONST,__const + 0x0b58]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0b68]  bind     __ZTI20ETImsgChangeLanguage
+[__DATA_CONST,__const + 0x0b70]  rebase   __TEXT,__text + 0x10cb6
+[__DATA_CONST,__const + 0x0b78]  rebase   __TEXT,__text + 0x10cc0
+[__DATA_CONST,__const + 0x0b80]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0b88]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0b90]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0b98]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0ba0]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0ba8]  rebase   __TEXT,__text + 0x10cee
+[__DATA_CONST,__const + 0x0bb0]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0bb8]  bind     __ZTS20ETImsgChangeLanguage
+[__DATA_CONST,__const + 0x0bc0]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0bd0]  bind     __ZTI17ETImsgInsertIndex
+[__DATA_CONST,__const + 0x0bd8]  rebase   __TEXT,__text + 0x10d4c
+[__DATA_CONST,__const + 0x0be0]  rebase   __TEXT,__text + 0x10d56
+[__DATA_CONST,__const + 0x0be8]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0bf0]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0bf8]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0c00]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0c08]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0c10]  rebase   __TEXT,__text + 0x10d84
+[__DATA_CONST,__const + 0x0c18]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0c20]  bind     __ZTS17ETImsgInsertIndex
+[__DATA_CONST,__const + 0x0c28]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0c38]  bind     __ZTI11ETImsgBlock
+[__DATA_CONST,__const + 0x0c40]  rebase   __TEXT,__text + 0x10dc8
+[__DATA_CONST,__const + 0x0c48]  rebase   __TEXT,__text + 0x10dd2
+[__DATA_CONST,__const + 0x0c50]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0c58]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0c60]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0c68]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0c70]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0c78]  rebase   __TEXT,__text + 0x10e00
+[__DATA_CONST,__const + 0x0c80]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0c88]  bind     __ZTS11ETImsgBlock
+[__DATA_CONST,__const + 0x0c90]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0ca0]  bind     __ZTI16ETImsgSynthesize
+[__DATA_CONST,__const + 0x0ca8]  rebase   __TEXT,__text + 0x10e4c
+[__DATA_CONST,__const + 0x0cb0]  rebase   __TEXT,__text + 0x10e56
+[__DATA_CONST,__const + 0x0cb8]  rebase   __TEXT,__text + 0x108c0
+[__DATA_CONST,__const + 0x0cc0]  rebase   __TEXT,__text + 0x0554
+[__DATA_CONST,__const + 0x0cc8]  rebase   __TEXT,__text + 0x05a4
+[__DATA_CONST,__const + 0x0cd0]  rebase   __TEXT,__text + 0x10900
+[__DATA_CONST,__const + 0x0cd8]  rebase   __TEXT,__text + 0x05ae
+[__DATA_CONST,__const + 0x0ce0]  rebase   __TEXT,__text + 0x10e84
+[__DATA_CONST,__const + 0x0ce8]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0cf0]  bind     __ZTS16ETImsgSynthesize
+[__DATA_CONST,__const + 0x0cf8]  bind     __ZTI10ETImessage
+[__DATA_CONST,__const + 0x0d08]  rebase   __DATA_CONST,__const + 0x0d38
+[__DATA_CONST,__const + 0x0d10]  rebase   __TEXT,__text + 0x113cc
+[__DATA_CONST,__const + 0x0d18]  rebase   __TEXT,__text + 0x113d6
+[__DATA_CONST,__const + 0x0d20]  rebase   __TEXT,__text + 0x1171e
+[__DATA_CONST,__const + 0x0d28]  rebase   __TEXT,__text + 0x13a9e
+[__DATA_CONST,__const + 0x0d30]  rebase   __TEXT,__text + 0x11648
+[__DATA_CONST,__const + 0x0d38]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0d40]  rebase   __TEXT,__const + 0x0571
+[__DATA_CONST,__const + 0x0d48]  rebase   __DATA_CONST,__const + 0x1028
+[__DATA_CONST,__const + 0x0d58]  rebase   __DATA_CONST,__const + 0x0e80
+[__DATA_CONST,__const + 0x0d60]  rebase   __TEXT,__text + 0x13004
+[__DATA_CONST,__const + 0x0d68]  rebase   __TEXT,__text + 0x12c06
+[__DATA_CONST,__const + 0x0d70]  rebase   __TEXT,__text + 0x1293a
+[__DATA_CONST,__const + 0x0d78]  rebase   __TEXT,__text + 0x106d2
+[__DATA_CONST,__const + 0x0d80]  rebase   __TEXT,__text + 0x106dc
+[__DATA_CONST,__const + 0x0d88]  rebase   __TEXT,__text + 0x12a6a
+[__DATA_CONST,__const + 0x0d90]  rebase   __TEXT,__text + 0x12ab8
+[__DATA_CONST,__const + 0x0d98]  rebase   __TEXT,__text + 0x12b5a
+[__DATA_CONST,__const + 0x0da0]  rebase   __TEXT,__text + 0x12bb6
+[__DATA_CONST,__const + 0x0da8]  rebase   __TEXT,__text + 0x12bde
+[__DATA_CONST,__const + 0x0db0]  rebase   __TEXT,__text + 0x13014
+[__DATA_CONST,__const + 0x0db8]  rebase   __TEXT,__text + 0x1301e
+[__DATA_CONST,__const + 0x0dc8]  rebase   __DATA_CONST,__const + 0x0f28
+[__DATA_CONST,__const + 0x0dd0]  rebase   __TEXT,__text + 0x1306c
+[__DATA_CONST,__const + 0x0dd8]  rebase   __TEXT,__text + 0x12f82
+[__DATA_CONST,__const + 0x0de0]  rebase   __TEXT,__text + 0x1293a
+[__DATA_CONST,__const + 0x0de8]  rebase   __TEXT,__text + 0x1307c
+[__DATA_CONST,__const + 0x0df0]  rebase   __TEXT,__text + 0x13086
+[__DATA_CONST,__const + 0x0df8]  rebase   __TEXT,__text + 0x12d26
+[__DATA_CONST,__const + 0x0e00]  rebase   __TEXT,__text + 0x12d86
+[__DATA_CONST,__const + 0x0e08]  rebase   __TEXT,__text + 0x12de6
+[__DATA_CONST,__const + 0x0e10]  rebase   __TEXT,__text + 0x12eae
+[__DATA_CONST,__const + 0x0e18]  rebase   __TEXT,__text + 0x12f52
+[__DATA_CONST,__const + 0x0e20]  rebase   __TEXT,__text + 0x13090
+[__DATA_CONST,__const + 0x0e28]  rebase   __TEXT,__text + 0x1309a
+[__DATA_CONST,__const + 0x0e38]  rebase   __DATA_CONST,__const + 0x0e58
+[__DATA_CONST,__const + 0x0e40]  bind     ___cxa_pure_virtual
+[__DATA_CONST,__const + 0x0e48]  bind     ___cxa_pure_virtual
+[__DATA_CONST,__const + 0x0e50]  rebase   __TEXT,__text + 0x1293a
+[__DATA_CONST,__const + 0x0e58]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0e60]  rebase   __TEXT,__const + 0x05d0
+[__DATA_CONST,__const + 0x0e68]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0e70]  bind     __ZTS5EList
+[__DATA_CONST,__const + 0x0e78]  rebase   __DATA_CONST,__const + 0x0e58
+[__DATA_CONST,__const + 0x0e80]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0e88]  rebase   __TEXT,__const + 0x05de
+[__DATA_CONST,__const + 0x0e90]  bind     __ZTI5EList
+[__DATA_CONST,__const + 0x0ea0]  rebase   __DATA_CONST,__const + 0x0f10
+[__DATA_CONST,__const + 0x0ea8]  rebase   __TEXT,__text + 0x129f8
+[__DATA_CONST,__const + 0x0eb0]  rebase   __TEXT,__text + 0x12a08
+[__DATA_CONST,__const + 0x0eb8]  rebase   __TEXT,__text + 0x12c34
+[__DATA_CONST,__const + 0x0ec0]  rebase   __TEXT,__text + 0x1304c
+[__DATA_CONST,__const + 0x0ec8]  rebase   __TEXT,__text + 0x1305a
+[__DATA_CONST,__const + 0x0ed0]  rebase   __TEXT,__text + 0x12a12
+[__DATA_CONST,__const + 0x0ed8]  rebase   __TEXT,__text + 0x12c5e
+[__DATA_CONST,__const + 0x0ee0]  rebase   __TEXT,__text + 0x12c4c
+[__DATA_CONST,__const + 0x0ee8]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0ef0]  bind     __ZTS9EIterator
+[__DATA_CONST,__const + 0x0ef8]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0f00]  bind     __ZTS9EListIter
+[__DATA_CONST,__const + 0x0f08]  bind     __ZTI9EIterator
+[__DATA_CONST,__const + 0x0f10]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0f18]  rebase   __TEXT,__const + 0x05ed
+[__DATA_CONST,__const + 0x0f20]  bind     __ZTI9EListIter
+[__DATA_CONST,__const + 0x0f28]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0f30]  rebase   __TEXT,__const + 0x0610
+[__DATA_CONST,__const + 0x0f38]  bind     __ZTI5EList
+[__DATA_CONST,__const + 0x0f48]  rebase   __DATA_CONST,__const + 0x0f90
+[__DATA_CONST,__const + 0x0f50]  rebase   __TEXT,__text + 0x12cb4
+[__DATA_CONST,__const + 0x0f58]  rebase   __TEXT,__text + 0x12cc4
+[__DATA_CONST,__const + 0x0f60]  rebase   __TEXT,__text + 0x12fc8
+[__DATA_CONST,__const + 0x0f68]  rebase   __TEXT,__text + 0x130c8
+[__DATA_CONST,__const + 0x0f70]  rebase   __TEXT,__text + 0x130d6
+[__DATA_CONST,__const + 0x0f78]  rebase   __TEXT,__text + 0x12cce
+[__DATA_CONST,__const + 0x0f80]  rebase   __TEXT,__text + 0x12ff2
+[__DATA_CONST,__const + 0x0f88]  rebase   __TEXT,__text + 0x12fe0
+[__DATA_CONST,__const + 0x0f90]  bind     __ZTVN10__cxxabiv120__si_class_type_infoE
+[__DATA_CONST,__const + 0x0f98]  rebase   __TEXT,__const + 0x0618
+[__DATA_CONST,__const + 0x0fa0]  bind     __ZTI9EListIter
+[__DATA_CONST,__const + 0x0fb0]  rebase   __DATA_CONST,__const + 0x0fe0
+[__DATA_CONST,__const + 0x0fb8]  rebase   __TEXT,__text + 0x132b4
+[__DATA_CONST,__const + 0x0fc0]  rebase   __TEXT,__text + 0x132be
+[__DATA_CONST,__const + 0x0fc8]  rebase   __TEXT,__text + 0x1330a
+[__DATA_CONST,__const + 0x0fd0]  rebase   __TEXT,__text + 0x13404
+[__DATA_CONST,__const + 0x0fd8]  rebase   __TEXT,__text + 0x13432
+[__DATA_CONST,__const + 0x0fe0]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x0fe8]  rebase   __TEXT,__const + 0x0625
+[__DATA_CONST,__const + 0x0ff8]  rebase   __DATA_CONST,__const + 0x1028
+[__DATA_CONST,__const + 0x1000]  rebase   __TEXT,__text + 0x139d4
+[__DATA_CONST,__const + 0x1008]  rebase   __TEXT,__text + 0x139da
+[__DATA_CONST,__const + 0x1010]  rebase   __TEXT,__text + 0x13a94
+[__DATA_CONST,__const + 0x1018]  rebase   __TEXT,__text + 0x13a9e
+[__DATA_CONST,__const + 0x1020]  rebase   __TEXT,__text + 0x13b02
+[__DATA_CONST,__const + 0x1028]  bind     __ZTVN10__cxxabiv117__class_type_infoE
+[__DATA_CONST,__const + 0x1030]  rebase   __TEXT,__const + 0x062f
+[__DATA_CONST,__got + 0x0000]  bind     __DefaultRuneLocale
+[__DATA_CONST,__got + 0x0008]  bind     __Unwind_Resume
+[__DATA_CONST,__got + 0x0010]  bind     __ZN11SynthThread18staticWordCallbackEiPv
+[__DATA_CONST,__got + 0x0018]  bind     __ZN11SynthThread19staticSynthCallbackEiPlPv
+[__DATA_CONST,__got + 0x0020]  bind     __ZN11SynthThread20staticKlattConstHookEP16KlattConstParamsPv
+[__DATA_CONST,__got + 0x0028]  bind     __ZN11SynthThread21staticPhonemeCallbackEijPv
+[__DATA_CONST,__got + 0x0030]  bind     __ZN11SynthThread22staticKlattDynamicHookEPfPv
+[__DATA_CONST,__got + 0x0038]  bind     __ZN11SynthThread23staticUserIndexCallbackEPv
+[__DATA_CONST,__got + 0x0040]  bind     __ZN11SynthThread23staticWordIndexCallbackEiPv
+[__DATA_CONST,__got + 0x0048]  bind     __ZN11SynthThread24staticSynthIndexCallbackEiPv
+[__DATA_CONST,__got + 0x0050]  bind     __ZN11SynthThread25staticDeviceIndexCallbackEiPv
+[__DATA_CONST,__got + 0x0058]  bind     __ZSt9terminatev
+[__DATA_CONST,__got + 0x0060]  bind     __ZdaPv
+[__DATA_CONST,__got + 0x0068]  bind     __ZdlPv
+[__DATA_CONST,__got + 0x0070]  bind     __Znam
+[__DATA_CONST,__got + 0x0078]  bind     __Znwm
+[__DATA_CONST,__got + 0x0080]  bind     ___cxa_atexit
+[__DATA_CONST,__got + 0x0088]  bind     ___cxa_begin_catch
+[__DATA_CONST,__got + 0x0090]  bind     ___cxa_end_catch
+[__DATA_CONST,__got + 0x0098]  bind     ___error
+[__DATA_CONST,__got + 0x00a0]  bind     ___gxx_personality_v0
+[__DATA_CONST,__got + 0x00a8]  bind     ___stack_chk_fail
+[__DATA_CONST,__got + 0x00b0]  bind     ___stack_chk_guard
+[__DATA_CONST,__got + 0x00b8]  bind     ___tolower
+[__DATA_CONST,__got + 0x00c0]  bind     _atoi
+[__DATA_CONST,__got + 0x00c8]  bind     _calloc
+[__DATA_CONST,__got + 0x00d0]  bind     _clock
+[__DATA_CONST,__got + 0x00d8]  bind     _div
+[__DATA_CONST,__got + 0x00e0]  bind     _dlclose
+[__DATA_CONST,__got + 0x00e8]  bind     _dlerror
+[__DATA_CONST,__got + 0x00f0]  bind     _dlopen
+[__DATA_CONST,__got + 0x00f8]  bind     _dlsym
+[__DATA_CONST,__got + 0x0100]  bind     _exp2
+[__DATA_CONST,__got + 0x0108]  bind     _fclose
+[__DATA_CONST,__got + 0x0110]  bind     _feof
+[__DATA_CONST,__got + 0x0118]  bind     _ferror
+[__DATA_CONST,__got + 0x0120]  bind     _fgets
+[__DATA_CONST,__got + 0x0128]  bind     _fopen
+[__DATA_CONST,__got + 0x0130]  bind     _fprintf
+[__DATA_CONST,__got + 0x0138]  bind     _fputc
+[__DATA_CONST,__got + 0x0140]  bind     _fread
+[__DATA_CONST,__got + 0x0148]  bind     _free
+[__DATA_CONST,__got + 0x0150]  bind     _fseek
+[__DATA_CONST,__got + 0x0158]  bind     _ftell
+[__DATA_CONST,__got + 0x0160]  bind     _ftime
+[__DATA_CONST,__got + 0x0168]  bind     _fwrite
+[__DATA_CONST,__got + 0x0170]  bind     _getcwd
+[__DATA_CONST,__got + 0x0178]  bind     _getenv
+[__DATA_CONST,__got + 0x0180]  bind     _isspace
+[__DATA_CONST,__got + 0x0188]  bind     _malloc
+[__DATA_CONST,__got + 0x0190]  bind     _memcpy
+[__DATA_CONST,__got + 0x0198]  bind     _memset
+[__DATA_CONST,__got + 0x01a0]  bind     _perror
+[__DATA_CONST,__got + 0x01a8]  bind     _pow
+[__DATA_CONST,__got + 0x01b0]  bind     _printf
+[__DATA_CONST,__got + 0x01b8]  bind     _pthread_attr_init
+[__DATA_CONST,__got + 0x01c0]  bind     _pthread_attr_setdetachstate
+[__DATA_CONST,__got + 0x01c8]  bind     _pthread_cond_broadcast
+[__DATA_CONST,__got + 0x01d0]  bind     _pthread_cond_destroy
+[__DATA_CONST,__got + 0x01d8]  bind     _pthread_cond_init
+[__DATA_CONST,__got + 0x01e0]  bind     _pthread_cond_signal
+[__DATA_CONST,__got + 0x01e8]  bind     _pthread_cond_timedwait
+[__DATA_CONST,__got + 0x01f0]  bind     _pthread_cond_wait
+[__DATA_CONST,__got + 0x01f8]  bind     _pthread_create
+[__DATA_CONST,__got + 0x0200]  bind     _pthread_equal
+[__DATA_CONST,__got + 0x0208]  bind     _pthread_exit
+[__DATA_CONST,__got + 0x0210]  bind     _pthread_join
+[__DATA_CONST,__got + 0x0218]  bind     _pthread_mutex_destroy
+[__DATA_CONST,__got + 0x0220]  bind     _pthread_mutex_init
+[__DATA_CONST,__got + 0x0228]  bind     _pthread_mutex_lock
+[__DATA_CONST,__got + 0x0230]  bind     _pthread_mutex_unlock
+[__DATA_CONST,__got + 0x0238]  bind     _pthread_self
+[__DATA_CONST,__got + 0x0240]  bind     _qsort
+[__DATA_CONST,__got + 0x0248]  bind     _rewind
+[__DATA_CONST,__got + 0x0250]  bind     _sprintf
+[__DATA_CONST,__got + 0x0258]  bind     _sscanf
+[__DATA_CONST,__got + 0x0260]  bind     _strcmp
+[__DATA_CONST,__got + 0x0268]  bind     _strcpy
+[__DATA_CONST,__got + 0x0270]  bind     _strlen
+[__DATA_CONST,__got + 0x0278]  bind     _strncat
+[__DATA_CONST,__got + 0x0280]  bind     _strncmp
+[__DATA_CONST,__got + 0x0288]  bind     _strncpy
+[__DATA_CONST,__got + 0x0290]  bind     _strtok
+[__DATA_CONST,__got + 0x0298]  bind     _time
+[__DATA_CONST,__got + 0x02a0]  bind     _vfprintf

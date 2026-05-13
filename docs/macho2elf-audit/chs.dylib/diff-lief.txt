@@ -1,5 +1,5 @@
---- docs/macho2elf-audit/chs.dylib/ground-truth.txt	2026-05-13 13:36:31.729154205 +0200
-+++ docs/macho2elf-audit/chs.dylib/lief.txt	2026-05-13 13:36:31.730108129 +0200
+--- docs/macho2elf-audit/chs.dylib/ground-truth.txt	2026-05-13 13:40:09.436284278 +0200
++++ docs/macho2elf-audit/chs.dylib/lief.txt	2026-05-13 13:40:09.437220882 +0200
 @@ -793,14 +793,9 @@
  [__DATA_CONST,__const + 0x0140]  rebase   __TEXT,__text + 0x9196e
  [__DATA_CONST,__const + 0x0148]  rebase   __TEXT,__text + 0x917a8
