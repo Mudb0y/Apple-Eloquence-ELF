@@ -19,7 +19,6 @@
 
 #include <errno.h>
 #include <limits.h>
-#include <signal.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,15 +70,6 @@ int module_config(const char *configfile) {
 }
 
 int module_init(char **msg) {
-    /* Ignore SIGPIPE: the audio path writes PCM to a pipe back to the
-     * speech-dispatcher daemon, and any backend stall (alsa underrun,
-     * pulse blocked, daemon restart) closes that pipe.  Without SIG_IGN
-     * the next write() kills the module process with SIGPIPE and
-     * speech-dispatcher falls back to its next-preferred output module.
-     * Particularly visible when EloquenceResampleRate is set high
-     * (the daemon falls behind faster). */
-    signal(SIGPIPE, SIG_IGN);
-
     for (int i = 0; i < N_VOICE_PRESETS; i++) {
         g_spd_rate[i]   = INT_MIN;
         g_spd_pitch[i]  = INT_MIN;
