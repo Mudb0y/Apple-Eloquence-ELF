@@ -42,11 +42,17 @@ The shipped binaries are built from the **tvOS 18.2 Simulator Runtime**.
 
 **Languages**: 10 working end-to-end on x86_64 (en-US, en-GB, es-ES,
 es-MX, fr-FR, fr-CA, de-DE, it-IT, pt-BR, fi-FI). The CJK modules
-(ja-JP, ko-KR, zh-CN, zh-TW) load but are currently gated out of the
-speech-dispatcher voice list pending stability fixes in the
-RomanizerManager / language-module-init path. The four romanizer
-helpers (`jpnrom`, `korrom`, `chsrom`, `chtrom`) ship alongside the
-primary modules but aren't standalone synthesizers.
+(ja-JP, ko-KR, zh-CN, zh-TW) are gated out for v1 and deferred to v2.
+Background investigation lives in `docs/cjk-investigation/` and the
+`docs/macho2elf-audit/` tree: the macho2elf converter handles every
+relocation kind correctly, but Apple's framework drives the engine
+via the modern `2`-suffixed ECI API (`eciNew2` / `eciAddText2` /
+`eciRegisterSampleBuffer2` / etc.) rather than the legacy IBM-
+compatible API sd_eloquence uses. The CJK language modules appear to
+require the modern API's initialization codepath; switching
+sd_eloquence to it is v2 work. The four romanizer helpers (`jpnrom`,
+`korrom`, `chsrom`, `chtrom`) ship alongside the primary modules but
+aren't standalone synthesizers.
 
 ## Quick start (release tarball)
 
