@@ -148,9 +148,15 @@ if(BUILD_SD_MODULE)
         # $ORIGIN RPATH so the release tarball can bundle libspeechd_module.so.0
         # next to sd_eloquence (Ubuntu noble doesn't package it; we ship our
         # own copy built from upstream speech-dispatcher 0.12.0).
+        # --no-as-needed,-lgcc_s pulls libgcc_s into NEEDED so eci.so's
+        # _Unwind_Resume resolves at dlopen time. On aarch64 the system
+        # libc++ doesn't re-export it; without this the engine fails to
+        # load (the binary's own code never references _Unwind_Resume so
+        # the linker would otherwise drop libgcc_s).
         target_link_options(sd_eloquence PRIVATE
             -rdynamic
-            "-Wl,-rpath,\$ORIGIN")
+            "-Wl,-rpath,\$ORIGIN"
+            "-Wl,--no-as-needed,-lgcc_s,--as-needed")
         if(SOXR_FOUND)
             target_compile_definitions(sd_eloquence PRIVATE HAVE_SOXR)
             target_include_directories(sd_eloquence PRIVATE ${SOXR_INCLUDE_DIRS})
@@ -178,6 +184,8 @@ if(BUILD_SD_MODULE)
                 sd_eloquence/src ${SOXR_INCLUDE_DIRS})
             target_link_libraries(render_resampler_previews PRIVATE
                 ${SOXR_LIBRARIES} dl)
+            target_link_options(render_resampler_previews PRIVATE
+                "-Wl,--no-as-needed,-lgcc_s,--as-needed")
             set_target_properties(render_resampler_previews PROPERTIES
                 RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
         endif()
