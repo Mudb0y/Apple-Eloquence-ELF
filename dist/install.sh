@@ -241,7 +241,7 @@ if command -v pkg-config >/dev/null 2>&1; then
 fi
 if [ -z "$MODULEBINDIR" ]; then
     MOD_LIB="$(ldconfig -p 2>/dev/null \
-        | awk '/libspeechd_module\.so/ {print $NF; exit}')"
+        | awk '/libspeechd_module\.so/ {print $NF; exit}')" || true
     if [ -n "$MOD_LIB" ]; then
         cand="$(dirname "$MOD_LIB")/speech-dispatcher-modules"
         [ -d "$cand" ] && MODULEBINDIR="$cand"

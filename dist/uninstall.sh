@@ -49,7 +49,7 @@ if command -v pkg-config >/dev/null 2>&1; then
     [ -n "$pc" ] && MODULEBINDIR_CANDIDATES+=("$pc")
 fi
 MOD_LIB="$(ldconfig -p 2>/dev/null \
-    | awk '/libspeechd_module\.so/ {print $NF; exit}')"
+    | awk '/libspeechd_module\.so/ {print $NF; exit}')" || true
 [ -n "$MOD_LIB" ] && MODULEBINDIR_CANDIDATES+=("$(dirname "$MOD_LIB")/speech-dispatcher-modules")
 MODULEBINDIR_CANDIDATES+=(\
     "${PREFIX}/lib/$(uname -m)-linux-gnu/speech-dispatcher-modules" \
