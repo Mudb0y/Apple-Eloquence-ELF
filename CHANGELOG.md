@@ -5,6 +5,21 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] — 2026-05-13
+
+### Fixed
+
+- **SIGPIPE crash on `EloquenceResampleRate` enabled.** The module
+  writes PCM to a pipe back to the speech-dispatcher daemon. When
+  `EloquenceResampleRate` is set high (e.g. 48000), the data rate
+  is 4-5x the pass-through rate; any backend stall closes the pipe,
+  the next write hits `SIGPIPE`, the module process dies, and
+  speech-dispatcher falls back to its next-preferred output module
+  (typically espeak-ng).  Symptom was a brief burst of correctly
+  resampled audio followed by an immediate failover. Fix: ignore
+  `SIGPIPE` in `module_init` so a pipe stall becomes a benign
+  `EPIPE` return on the write rather than a process kill.
+
 ## [1.1.0] — 2026-05-13
 
 ### Added
