@@ -30,14 +30,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # aarch64 is dropped from release builds until the converter and
+        # the C++ runtime symbol surface are sorted out for arm64 -- the
+        # binaries build but synthesis itself segfaults on real arm64
+        # hardware.  Add the aarch64 entry back when those land.
         include:
           - arch: x86_64
             lipo_arch: x86_64
             runner: ubuntu-24.04
-            cc: gcc
-          - arch: aarch64
-            lipo_arch: arm64    # Mach-O fat-binary slice name (Apple's name)
-            runner: ubuntu-24.04-arm
             cc: gcc
     runs-on: ${{ matrix.runner }}
     steps:
@@ -246,17 +246,13 @@ jobs:
           Source / issues: https://github.com/Mudb0y/Apple-Eloquence-ELF
           EOF
 
-          (cd "${STAGE}" && \
-              find . -type f ! -name SHA256SUMS -print0 \
-              | sort -z \
-              | xargs -0 sha256sum > SHA256SUMS)
-
           # gzip rather than zstd so the tarball extracts with stock
           # tar on every distro (minimal images don't ship zstd).
+          # No external .sha256 -- GitHub's Releases page already shows
+          # SHA256 next to every asset.
           TARBALL="${NAME}.tar.gz"
           tar -C stage -czf "${TARBALL}" "${NAME}"
-          sha256sum "${TARBALL}" > "${TARBALL}.sha256"
-          ls -la "${TARBALL}" "${TARBALL}.sha256"
+          ls -la "${TARBALL}"
 
           echo "name=${NAME}"       >> "$GITHUB_OUTPUT"
           echo "tarball=${TARBALL}" >> "$GITHUB_OUTPUT"
@@ -265,9 +261,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tarball-${{ matrix.arch }}
-          path: |
-            ${{ steps.stage.outputs.tarball }}
-            ${{ steps.stage.outputs.tarball }}.sha256
+          path: ${{ steps.stage.outputs.tarball }}
           retention-days: 7
 
   release:
@@ -288,8 +282,7 @@ jobs:
       - name: Assemble release assets
         run: |
           mkdir -p release
-          find artifacts -type f \( -name '*.tar.gz' -o -name '*.sha256' \) \
-              -exec cp {} release/ \;
+          find artifacts -type f -name '*.tar.gz' -exec cp {} release/ \;
           ls -la release/
 
       - name: Extract CHANGELOG section for this tag

@@ -45,12 +45,15 @@ ELF `.so` files exposing the standard ECI C API.
 
 ## Project status
 
-| Architecture | Builds | Runtime |
-|---|---|---|
-| x86_64 Linux | ✅ | ✅ tested end-to-end with sd_eloquence + Orca |
-| aarch64 Linux | ✅ | ⚠️ build-verified only |
+| Architecture | Status |
+|---|---|
+| x86_64 Linux | ✅ tested end-to-end with sd_eloquence + Orca |
+| aarch64 Linux | ❌ converter and C++ runtime gaps; not shipped, see below |
 
 Shipped binaries are built from the tvOS 18.2 Simulator Runtime.
+Release tarballs are x86_64-only until the aarch64 converter and the
+arm64 C++ runtime symbol surface are sorted out — the binaries
+currently build cleanly but synthesis itself segfaults on real arm64.
 
 Working languages on x86_64: en-US, en-GB, es-ES, es-MX, fr-FR, fr-CA,
 de-DE, it-IT, pt-BR, fi-FI. CJK (ja-JP, ko-KR, zh-CN, zh-TW) is gated

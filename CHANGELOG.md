@@ -5,6 +5,42 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] — 2026-05-14
+
+### Fixed
+
+- **Orca rate/pitch/volume sliders had no effect.** The module
+  tracked rate/pitch/volume per voice slot and used `INT_MIN`
+  sentinels (= "use preset default") whenever `SET VOICE_TYPE`,
+  `SET LANGUAGE`, or `SET SYNTHESIS_VOICE` arrived from
+  speech-dispatcher.  Since speech-dispatcher sends those commands
+  alongside `SET RATE` in arbitrary order per utterance, any rate
+  that was just set got wiped before the speak fired -- every
+  single time.  Rate/pitch/volume are now session-wide globals (per
+  the SSIP protocol's intent); every voice activation re-applies
+  the current session values so sliders persist across voice and
+  language changes.
+
+### Added
+
+- **`EloquenceUtteranceTailMs`** (default 25, range 0..200).  The
+  trailing-silence pad that absorbs the pulse/alsa stream-drain
+  trim at end-of-utterance is now tunable.  Lower values feel
+  snappier when Orca chains utterances back-to-back; higher values
+  fully protect the speech but add an audible gap.  `0` disables
+  the pad entirely.
+
+### Changed
+
+- **Release tarballs are x86_64-only.**  aarch64 binaries built
+  successfully but synthesis segfaults on real arm64 hardware
+  (deeper converter and C++ runtime gaps).  The matrix entry is
+  dropped from `release.yml` until those are fixed; the README's
+  project-status table reflects this.
+- Per-asset `*.sha256` files are no longer generated.  The GitHub
+  Releases page already shows SHA256 next to every downloaded
+  asset, so the external files were redundant noise.
+
 ## [1.1.2] — 2026-05-13
 
 Patch release that supersedes [1.1.1] -- if you're on 1.1.1 you want
