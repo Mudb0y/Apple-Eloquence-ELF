@@ -31,10 +31,14 @@ platforms. The dylibs depend only on `libSystem.B.dylib` and
 `libc++.1.dylib`, which makes them tractable to retarget.
 
 > Eloquence originated at Eloquent Technologies, Inc. (ETI).
-> Speechworks (later ScanSoft, Nuance, Microsoft) acquired ETI in
-> 2003. IBM had its own ECI-licensed fork shipped as ViaVoice /
-> IBMTTS; the mainline engine — including what Apple ships — descends
-> from the ETI tree.
+> SpeechWorks acquired ETI in 2000; ScanSoft acquired SpeechWorks in
+> 2003 and renamed itself Nuance Communications in 2005. Nuance spun
+> off its automotive AI division as Cerence in 2019, taking the
+> Eloquence / Vocalizer TTS stacks with it. Microsoft's 2022
+> acquisition of Nuance did not include those TTS engines, so
+> Eloquence's current owner is Cerence, not Microsoft. IBM had its
+> own ECI-licensed fork shipped as ViaVoice / IBMTTS; the mainline
+> engine — including what Apple ships — descends from the ETI tree.
 
 `macho2elf.py` is the converter: a Python + LIEF tool that produces
 ELF `.so` files exposing the standard ECI C API.
@@ -171,7 +175,8 @@ convert locally; see `docs/01-extraction.md`.
 
 ## Acknowledgements
 
-- ETI / Speechworks / ScanSoft / Nuance — the engine.
+- ETI / SpeechWorks / ScanSoft / Nuance / Cerence — successive
+  custodians of the engine.
 - IBM ViaVoice TTS / IBMTTS, whose contributions to the mainline ECI
   codebase persist in this build.
 - LevelStar, for keeping a working Linux ECI distribution alive in
