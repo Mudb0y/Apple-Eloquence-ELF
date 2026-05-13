@@ -29,8 +29,8 @@ Version=6.1
 ```
 
 The `Path=` line is the absolute path to the language module. Update it
-to point at your installed `enu.so` (or `jpn.so` for Japanese, `chs.so`
-for Chinese Simplified, etc.).
+to point at your installed module of choice (`enu.so`, `eng.so`,
+`deu.so`, `fra.so`, etc. — see "Language modules available" below).
 
 The engine has fully-tuned built-in voice and phoneme defaults that
 produce intelligible speech without further configuration.
@@ -54,14 +54,22 @@ is not. Use short section names.
 
 The tvOS 18.2 set ships 19 language dylibs:
 
-**Standalone synthesizers** (use as `Path=...so`):
+**Standalone synthesizers — v1 supported** (use as `Path=...so`):
 - `enu.so` US English, `eng.so` UK English
 - `deu.so` German
 - `fra.so` French (FR), `frc.so` French (Canada)
 - `esp.so` Spanish (Spain), `esm.so` Spanish (Mexico/LatAm)
 - `ita.so` Italian, `fin.so` Finnish, `ptb.so` Portuguese (Brazil)
+
+**Standalone synthesizers — v1 gated (CJK)**:
 - `jpn.so` Japanese, `kor.so` Korean
 - `chs.so` Chinese Simplified, `cht.so` Chinese Traditional
+
+These dylibs convert and load, but `sd_eloquence` rejects them at
+language-select time pending v2 work on the 2-suffixed ECI API. If
+you're driving `eci.so` directly via dlopen (not via sd_eloquence),
+they may work for short utterances but will crash on process exit —
+see `docs/cjk-investigation/` for the full story.
 
 **Romanization helper modules** (`*rom.so`): auxiliary transliterators
 used internally by the engine when consuming already-romanized text.

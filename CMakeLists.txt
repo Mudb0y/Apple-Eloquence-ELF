@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(apple-eloquence-elf
-    VERSION 0.1.0
+    VERSION 1.0.0
     DESCRIPTION "Convert Apple's bundled ETI Eloquence Mach-O dylibs to Linux ELF; speech-dispatcher integration."
     LANGUAGES C)
 
@@ -100,26 +100,6 @@ if(BUILD_SD_MODULE)
             endif()
         endif()
 
-        # Old monolith, kept building under a different target name during the
-        # rewrite. Will be deleted when the new sd_eloquence becomes the default.
-        add_executable(sd_eloquence_old
-            sd_eloquence/src/old/sd_eloquence.c
-            sd_eloquence/src/old/eci_runtime.c)
-        target_include_directories(sd_eloquence_old PRIVATE
-            sd_eloquence/src/old
-            ${SPEECHD_INCLUDE_DIR}
-            ${SPEECHD_INCLUDE_DIR}/speech-dispatcher)
-        target_link_libraries(sd_eloquence_old PRIVATE
-            ${SPEECHD_MODULE_LIB}
-            pthread
-            dl)
-        if(SOXR_FOUND)
-            target_compile_definitions(sd_eloquence_old PRIVATE HAVE_SOXR)
-            target_include_directories(sd_eloquence_old PRIVATE ${SOXR_INCLUDE_DIRS})
-            target_link_libraries(sd_eloquence_old PRIVATE ${SOXR_LIBRARIES})
-        endif()
-
-        # New module (replaces sd_eloquence_old once feature-complete).
         add_executable(sd_eloquence
             sd_eloquence/src/module.c
             sd_eloquence/src/eci/runtime.c
@@ -176,8 +156,6 @@ if(BUILD_SD_MODULE)
         #            daemon actually finds it.
         #   config:  ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules/eloquence.conf
         #            -- with prefix=/usr -> /etc/speech-dispatcher/modules.
-        # The old sd_eloquence_old target is still buildable for comparison
-        # but no longer installable; src/old/ gets deleted in the cleanup phase.
 
         # Unit tests for the new sd_eloquence module. These don't need eci.so.
         add_executable(test_voices

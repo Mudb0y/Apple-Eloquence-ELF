@@ -151,9 +151,13 @@ register a complete language. They need to be configured as secondary
 language modules alongside their primary (e.g., `chs.so` + `chsrom.so`),
 which the public ECI API doesn't seem to surface cleanly.
 
-For now: use the primary CJK synthesizers (`chs.so`, `cht.so`, `jpn.so`,
-`kor.so`) directly. They can accept native CJK text and synthesize it
-without the `*rom` helpers in basic usage.
+**v1 status:** CJK is gated in `sd_eloquence` — see
+`docs/cjk-investigation/2026-05-13-phase3-api-divergence.md` for why
+(the romanizer initialization path needs the modern 2-suffixed ECI
+API that v2 will introduce). For dlopen-it-yourself flows, the
+primary CJK synthesizers (`chs.so`, `cht.so`, `jpn.so`, `kor.so`)
+can accept native CJK text and synthesize short utterances, but will
+crash at process exit; v1 doesn't expose them through the daemon.
 
 ## Build errors
 
