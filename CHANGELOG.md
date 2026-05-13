@@ -5,6 +5,77 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-05-13
+
+A focused config-surface pass driven by a user-facing brainstorm of
+what we want exposed in `eloquence.conf` vs. left at sensible
+defaults.  Two of these are net-new working features (RateBoost,
+PauseMode); the rest are voice-tuning and dictionary controls that
+make existing engine knobs reachable from config without recompiling.
+
+### Added
+
+- **Active-voice param overrides.**  Five new keys layer over the
+  Apple voice presets so users can tune the active voice's character
+  without recompiling.  Each is 0..100; unset keeps the preset's own
+  value.
+    - `EloquenceHeadSize`
+    - `EloquenceRoughness`
+    - `EloquenceBreathiness`
+    - `EloquencePitchBaseline`
+    - `EloquencePitchFluctuation`
+- **`EloquenceLoadAbbrDict`** (default 0): opt-in toggle for the
+  abbreviation dictionary specifically.  Subordinate to
+  `EloquenceUseDictionaries`.  Off by default because Eloquence's
+  abbreviation expansion is opinionated and surprising in
+  screen-reader contexts.
+- **`EloquenceRateBoost`** (default 0): scales the SSML-driven rate
+  value by 1.6 before it reaches the engine, extending the perceived
+  top speed past the natural `eciSpeed` range.  Mirrors NVDA-IBMTTS-
+  Driver's `rateBoost`.  Only fires on the SSML prosody path; the
+  per-voice baseline speed and `module_set("rate", …)` are
+  unaffected.
+- **`EloquencePauseMode`** (default 2): NVDA-IBMTTS-Driver's
+  punctuation-pause control.
+    - `0` -- engine's natural long pauses everywhere.
+    - `1` -- a single short `​`p1` at the very end of each utterance.
+    - `2` -- NVDA's regex rewrite injects `​`p1` after every
+      punctuation pause site so the engine emits a short one-unit
+      pause instead of its longer natural one.
+  Implementation lives in `synth/pause_mode.{c,h}` with a focused
+  unit test (`tests/test_pause_mode.c`) that verifies NVDA's exact
+  regex semantics.
+
+### Removed
+
+- `EloquenceSendParams`: the IBMTTS-specific workaround that prepended
+  ``​`vv<vol> `vs<spd>`` to every utterance.  Apple's Eloquence 6.1
+  doesn't have the param-reset bug ibmeci 6.7 had, so the prefix was
+  pure overhead with no behavioural benefit.  Hard-removed: setting
+  the key in `eloquence.conf` now logs an "ignored config" warning
+  under `Debug 1` (existing fall-through) and has no effect.
+
+### Changed
+
+- `eloquence.conf` reorganised: the rate-related keys are now grouped
+  under a "Audio rate" header with a short signal-flow note
+  (engine → optional libsoxr → speech-dispatcher).  The Apple "Higher
+  sample rate" comparison sentence is removed -- true but misleading
+  given the two stages are independent.
+- The dictionary docs in `eloquence.conf` now name the real file
+  basenames the engine looks for (`$LANG.main.dic` / `$LANG.root.dic`
+  / `$LANG.abbr.dic`) -- the previous four-file list (`.dic/.abr/
+  .phr/.rul`) didn't match what `engine_load_dictionary` actually
+  reads.
+
+### Internal
+
+- `voice_activate` gains a trailing `const EloqConfig *cfg` parameter
+  (NULL-safe) so it can apply the override layer.  All call sites
+  updated.
+- `EciEngine` gains a `load_abbr_dict` field; `module.c` propagates
+  from `g_cfg`.
+
 ## [1.0.3] — 2026-05-13
 
 A "what the config file claims matches what the code actually does"
