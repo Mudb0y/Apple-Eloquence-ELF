@@ -17,6 +17,7 @@ int main(void) {
     assert(c.default_voice_slot == 0);
     assert(c.default_language == eciGeneralAmericanEnglish);
     assert(c.use_dictionaries == 1);
+    assert(c.load_abbr_dict   == 0);
     assert(c.backquote_tags == 0);
     assert(c.voice_head_size         == ELOQ_VOICE_PARAM_UNSET);
     assert(c.voice_roughness         == ELOQ_VOICE_PARAM_UNSET);
@@ -39,6 +40,14 @@ int main(void) {
     assert(config_apply_kv(&c, "EloquenceDefaultVoice", "Nobody") == -1);
     assert(config_apply_kv(&c, "EloquenceDefaultLanguage", "xx-XX") == -1);
     assert(config_apply_kv(&c, "Nonsense", "yes") == -1);
+
+    /* AbbrDict toggle. */
+    config_defaults(&c);
+    assert(c.load_abbr_dict == 0);
+    assert(config_apply_kv(&c, "EloquenceLoadAbbrDict", "1") == 0);
+    assert(c.load_abbr_dict == 1);
+    assert(config_apply_kv(&c, "EloquenceLoadAbbrDict", "0") == 0);
+    assert(c.load_abbr_dict == 0);
 
     /* Voice param overrides parse + range-check. */
     config_defaults(&c);

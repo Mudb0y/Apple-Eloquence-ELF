@@ -121,6 +121,7 @@ int module_init(char **msg) {
 
     /* Wire user-dictionary loading. */
     g_engine.use_dictionaries = g_cfg.use_dictionaries;
+    g_engine.load_abbr_dict   = g_cfg.load_abbr_dict;
     {
         const char *dd = config_effective_dict_dir(&g_cfg);
         strncpy(g_engine.dict_dir, dd, sizeof(g_engine.dict_dir) - 1);

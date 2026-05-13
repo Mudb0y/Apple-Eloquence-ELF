@@ -141,6 +141,11 @@ int engine_load_dictionary(EciEngine *e, int dialect) {
         { "abbr.dic", eciAbbvDict },
     };
     for (size_t i = 0; i < sizeof(files)/sizeof(files[0]); i++) {
+        /* Skip the abbreviation dictionary unless explicitly opted in --
+         * Eloquence's abbr expansion is opinionated and surprising for
+         * screen-reader text, so we keep it off by default. */
+        if (files[i].vol == eciAbbvDict && !e->load_abbr_dict)
+            continue;
         snprintf(path, sizeof(path), "%s/%s%s", e->dict_dir, L->langid, files[i].suffix);
         if (access(path, R_OK) == 0) {
             if (e->api.LoadDict(e->h, d, files[i].vol, path) == DictNoError)

@@ -31,6 +31,7 @@ typedef struct {
 
     /* NVDA-style toggles */
     int  use_dictionaries;           /* default 1 */
+    int  load_abbr_dict;             /* default 0 (opt-in for abbreviations) */
     int  phrase_prediction;          /* default 0 */
     int  backquote_tags;             /* default 0 (security) */
 

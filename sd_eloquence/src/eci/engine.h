@@ -20,6 +20,7 @@ typedef struct {
     int      current_dialect;
     int      current_voice_slot;
     int          use_dictionaries;
+    int          load_abbr_dict;       /* gate the abbr.dic row specifically */
     char         dict_dir[ELOQ_PATH_MAX];
     ECIDictHand  dicts[N_LANGS];   /* one per language, lazily loaded */
 } EciEngine;
