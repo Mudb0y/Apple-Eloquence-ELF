@@ -28,7 +28,6 @@ typedef struct {
     /* NVDA-style toggles */
     int  use_dictionaries;           /* default 1 */
     int  phrase_prediction;          /* default 0 */
-    int  send_params;                /* default 0 */
     int  backquote_tags;             /* default 0 (security) */
 } EloqConfig;
 

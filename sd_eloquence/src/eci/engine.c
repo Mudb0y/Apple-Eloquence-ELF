@@ -59,8 +59,8 @@ int engine_open(EciEngine *e,
     /* Enable annotation parsing so backquote control tags ("`vv82", "`vs55",
      * "`pp1", "`p<N>", "`l<dialect>", "`ts1", etc.) are interpreted as
      * directives rather than spoken literally. NVDA's _ibmeci.py does the
-     * same; without these, the prefix injected by send_params/phrase_prediction
-     * gets pronounced as "backquote vv eight two ...".
+     * same; without this, the prefix injected by phrase_prediction
+     * gets pronounced as "backquote p p one ...".
      *
      * eciSynthMode  1 = TTS general text  (vs. 0 = screen-reader mode)
      * eciInputType  1 = phonetic/annotated  (despite the name, this is what

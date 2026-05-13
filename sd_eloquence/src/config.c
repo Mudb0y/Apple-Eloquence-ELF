@@ -32,7 +32,6 @@ void config_defaults(EloqConfig *c) {
     c->resample_steep   = 0;
     c->use_dictionaries  = 1;
     c->phrase_prediction = 0;
-    c->send_params       = 0;
     c->backquote_tags    = 0;
 }
 
@@ -110,7 +109,6 @@ int config_apply_kv(EloqConfig *c, const char *key, const char *val) {
     else if (!strcasecmp(key, "EloquenceResampleSteep"))   c->resample_steep   = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquenceUseDictionaries"))  c->use_dictionaries  = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquencePhrasePrediction")) c->phrase_prediction = atoi(val) ? 1 : 0;
-    else if (!strcasecmp(key, "EloquenceSendParams"))       c->send_params       = atoi(val) ? 1 : 0;
     else if (!strcasecmp(key, "EloquenceBackquoteTags"))    c->backquote_tags    = atoi(val) ? 1 : 0;
     else return -1;  /* unknown key */
 

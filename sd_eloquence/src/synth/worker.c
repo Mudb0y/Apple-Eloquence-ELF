@@ -162,18 +162,9 @@ static void exec_job(SynthWorker *w, synth_job *j) {
     int dialect_top = -1, voice_top = -1, mode_top = -1;
     int current_dialect = w->engine->current_dialect;
 
-    /* Optional pre-utterance backquote prefix from EloquenceSendParams /
-     * EloquencePhrasePrediction. */
-    char prefix[64] = "";
-    if (w->cfg->send_params) {
-        int vol = w->engine->api.GetVoiceParam(w->engine->h, ECI_ACTIVE_SLOT, eciVolume);
-        int spd = w->engine->api.GetVoiceParam(w->engine->h, ECI_ACTIVE_SLOT, eciSpeed);
-        snprintf(prefix, sizeof(prefix), "`vv%d `vs%d ", vol, spd);
-    }
+    /* Optional pre-utterance phrase-prediction annotation. */
     if (w->cfg->phrase_prediction)
-        strncat(prefix, "`pp1 ", sizeof(prefix) - strlen(prefix) - 1);
-    if (prefix[0])
-        w->engine->api.AddText(w->engine->h, prefix);
+        w->engine->api.AddText(w->engine->h, "`pp1 ");
 
     for (size_t i = 0; i < j->n_frames; i++) {
         if (atomic_load(&w->stop_requested)) break;
