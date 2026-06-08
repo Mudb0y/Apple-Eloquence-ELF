@@ -62,12 +62,33 @@ DARWIN_TO_LINUX = {
 # asm trampoline (emitted in stubs.c) that rebuilds a stack-only va_list and
 # forwards to the v* variant. x86_64's variadic ABI already matches glibc, so
 # this rename is arm64-only.  Maps: darwin name (underscore-stripped) -> shim.
+#
+# Two flavours of mismatch, both bridged in VARIADIC_TRAMPOLINES_ARM64:
+#  - "variadic" (the call IS variadic, e.g. sprintf(fmt, ...)): the args sit on
+#    the caller's stack; the trampoline builds a va_list pointing there.
+#  - "va_list" (the function TAKES a va_list, e.g. vfprintf(fp, fmt, ap)): the
+#    engine already ran va_start, and on Apple arm64 a va_list is a bare char*
+#    pointing at the stack args. glibc's va_list is a 5-field struct, so the
+#    forwarded list is misread. The shim wraps that char* into a struct.
 VARIADIC_SHIMS = {
-    "printf":   "m2e_va_printf",
-    "fprintf":  "m2e_va_fprintf",
-    "sprintf":  "m2e_va_sprintf",
-    "snprintf": "m2e_va_snprintf",
-    "sscanf":   "m2e_va_sscanf",
+    # variadic call-boundary
+    "printf":         "m2e_va_printf",
+    "fprintf":        "m2e_va_fprintf",
+    "sprintf":        "m2e_va_sprintf",
+    "snprintf":       "m2e_va_snprintf",
+    "sscanf":         "m2e_va_sscanf",
+    "__sprintf_chk":  "m2e_va_sprintf_chk",
+    # takes an (Apple) va_list
+    "vfprintf":       "m2e_vl_vfprintf",
+    "__vsprintf_chk": "m2e_vl_vsprintf_chk",
+}
+
+# Bionic (Android libc) differs from glibc for a few accessors; these override
+# DARWIN_TO_LINUX on android-* targets. Bionic exposes the errno slot as
+# __errno() (glibc uses __errno_location()). stdin/stdout/stderr, tolower,
+# toupper, and our _DefaultRuneLocale stub are all fine as-is on Bionic.
+BIONIC_RENAMES = {
+    "__error": "__errno",   # Apple ___error -> Bionic __errno
 }
 
 # ----------------------------------------------------------------------------
@@ -187,15 +208,20 @@ def strip_underscore(name: str) -> str:
     return name
 
 
-def rename_import(macho_name: str, arch: str = None) -> str:
-    """Strip leading underscore and apply Darwin->Linux rename if needed.
+def rename_import(macho_name: str, target: str = None) -> str:
+    """Strip leading underscore and apply Darwin->{glibc,Bionic} renames.
 
-    On arm64, libc variadic functions are additionally redirected to our
-    va_list-rebuilding trampolines (see VARIADIC_SHIMS).
+    `target` is an ARCH_CONFIG key ("x86_64", "arm64", "android-arm64").
+    On any arm64 target, libc variadic functions are redirected to our
+    va_list-rebuilding trampolines (see VARIADIC_SHIMS). On Android targets,
+    Bionic-specific renames (e.g. __errno_location -> __errno) take precedence
+    over the glibc defaults in DARWIN_TO_LINUX.
     """
     stripped = strip_underscore(macho_name)
-    if arch == "arm64" and stripped in VARIADIC_SHIMS:
+    if target and target.endswith("arm64") and stripped in VARIADIC_SHIMS:
         return VARIADIC_SHIMS[stripped]
+    if target and target.startswith("android") and stripped in BIONIC_RENAMES:
+        return BIONIC_RENAMES[stripped]
     return DARWIN_TO_LINUX.get(stripped, stripped)
 
 
@@ -232,7 +258,7 @@ def collect_exports(binary: lief.MachO.Binary) -> list:
     return exports
 
 
-def collect_bindings_per_section(binary: lief.MachO.Binary, arch: str = None) -> tuple:
+def collect_bindings_per_section(binary: lief.MachO.Binary, target: str = None) -> tuple:
     """Walk all bindings (legacy dyld_info AND chained-fixup formats).
 
     Returns:
@@ -262,13 +288,13 @@ def collect_bindings_per_section(binary: lief.MachO.Binary, arch: str = None) ->
         if seg is None:
             continue
         offset = b.address - base
-        linux_name = rename_import(b.symbol.name, arch)
+        linux_name = rename_import(b.symbol.name, target)
         by_section.setdefault((seg, sect), []).append((offset, linux_name))
         imports.add(linux_name)
 
     # Also include any imports that may have no binding site
     for sym in binary.imported_symbols:
-        imports.add(rename_import(sym.name, arch))
+        imports.add(rename_import(sym.name, target))
 
     for k in by_section:
         by_section[k].sort(key=lambda x: x[0])
@@ -724,6 +750,13 @@ def emit_linker_script(binary, sections, lds_path, arch_cfg=None):
     # with zero padding. Emit them here, before the gap. .bss is NOBITS so it
     # never occupies file space; placing it low keeps rwdata's memsz small
     # enough that it can't overlap auxtext.
+    # Explicitly place the orphan data sections from stubs.o (e.g. .data holds
+    # __stack_chk_guard). Without this, lld (the NDK/Android linker) assigns
+    # them an address that collides with our pinned .m2e_* sections; bfd happens
+    # to place them safely, but being explicit fixes both. They sit here in
+    # :rwdata, above all pinned sections and contiguous with the dynamic tables.
+    add("    .data               : { *(.data) *(.data.*) } :rwdata")
+    add("    .data.rel.ro        : { *(.data.rel.ro) *(.data.rel.ro.*) } :rwdata")
     add("    .eh_frame           : { *(.eh_frame) } :rwdata")
     add("    .eh_frame_hdr       : { *(.eh_frame_hdr) } :rwdata")
     add("    .bss                : { *(.bss) *(COMMON) } :rwdata")
@@ -748,12 +781,13 @@ def emit_linker_script(binary, sections, lds_path, arch_cfg=None):
         f.write("\n".join(lines))
 
 
-def emit_runtime_stubs(stubs_path, arch: str = None):
+def emit_runtime_stubs(stubs_path, target: str = None):
     """Emit C stubs for Darwin-specific symbols we need to provide.
 
     Includes _DefaultRuneLocale (a stub for Darwin's ctype table), the stack
-    canary, __maskrune, and — on arm64 — the variadic trampolines that bridge
-    Apple's stack-only variadic ABI to glibc's AAPCS64 register-based one.
+    canary, __maskrune, and — on any arm64 target — the variadic trampolines
+    that bridge Apple's stack-only variadic ABI to the AAPCS64 register-based
+    one (glibc or Bionic) plus the __chkstk_darwin stub.
     """
     content = r"""// macho2elf runtime stubs — Darwin-specific symbols with no Linux equivalent.
 
@@ -808,7 +842,7 @@ unsigned long __maskrune(int c, unsigned long mask) {
 }
 
 """
-    if arch == "arm64":
+    if target and target.endswith("arm64"):
         content += VARIADIC_TRAMPOLINES_ARM64
     with open(stubs_path, "w") as f:
         f.write(content)
@@ -835,16 +869,19 @@ unsigned long __maskrune(int c, unsigned long mask) {
 #   +24 int   __gr_offs;   0  -> no GP regs available, use __stack
 #   +28 int   __vr_offs;   0  -> no FP regs available, use __stack
 #
-# The va_list pointer is the argument right after the function's named args:
-# printf(fmt,...) -> vprintf(fmt, ap)            ap in x1
-# sprintf/fprintf/sscanf(a,b,...) -> v*(a,b,ap)  ap in x2
-# snprintf(s,n,fmt,...) -> vsnprintf(s,n,fmt,ap) ap in x3
+# VAREG is the register holding the va_list argument — i.e. the one right after
+# the function's named args:
+# printf(fmt,...) -> vprintf(fmt, ap)                       ap in x1
+# sprintf/fprintf/sscanf(a,b,...) -> v*(a,b,ap)             ap in x2
+# snprintf(s,n,fmt,...) -> vsnprintf(s,n,fmt,ap)            ap in x3
+# __sprintf_chk(s,flag,slen,fmt,...) -> __vsprintf_chk(...) ap in x4
 VARIADIC_TRAMPOLINES_ARM64 = r"""
 // ---- arm64 variadic ABI trampolines (see comment in macho2elf.py) --------
-// Build the 32-byte va_list at [sp+16], point __stack at the caller's variadic
-// block (= the SP on entry = sp+48 after our frame), zero the register-area
-// offsets so va_arg reads everything from the stack, and place &va_list into
-// the register named by VAREG (the ap argument of the v* function).
+// M2E_VA_TRAMPOLINE: the call itself is variadic, so the args sit on the
+// caller's stack (Apple puts ALL variadic args there). Build the 32-byte
+// va_list at [sp+16] with __stack = caller SP (= sp+48 after our frame) and the
+// register-area offsets zeroed so va_arg reads everything from the stack, then
+// place &va_list into VAREG and tail into the v* variant.
 #define M2E_VA_TRAMPOLINE(NAME, VFUNC, VAREG) \
 "   .global " #NAME "\n" \
 "   .type " #NAME ", %function\n" \
@@ -864,14 +901,39 @@ VARIADIC_TRAMPOLINES_ARM64 = r"""
 "   ret\n" \
 "   .size " #NAME ", .-" #NAME "\n"
 
+// M2E_VL_SHIM: the function TAKES a va_list. On Apple arm64 a va_list is a bare
+// char* pointing straight at the stacked args; glibc's is a 5-field struct. So
+// the incoming VAREG already points at the args — wrap it into a struct (same
+// stack-only form) and replace VAREG with &struct before calling the real fn.
+#define M2E_VL_SHIM(NAME, VFUNC, VAREG) \
+"   .global " #NAME "\n" \
+"   .type " #NAME ", %function\n" \
+#NAME ":\n" \
+"   sub  sp, sp, #48\n" \
+"   stp  x29, x30, [sp]\n" \
+"   mov  x29, sp\n" \
+"   str  " #VAREG ", [sp, #16]\n" \
+"   stp  xzr, xzr, [sp, #24]\n" \
+"   str  wzr, [sp, #40]\n" \
+"   str  wzr, [sp, #44]\n" \
+"   add  " #VAREG ", sp, #16\n" \
+"   bl   " #VFUNC "\n" \
+"   ldp  x29, x30, [sp]\n" \
+"   add  sp, sp, #48\n" \
+"   ret\n" \
+"   .size " #NAME ", .-" #NAME "\n"
+
 __asm__(
 "   .text\n"
 "   .balign 4\n"
-M2E_VA_TRAMPOLINE(m2e_va_printf,   vprintf,   x1)
-M2E_VA_TRAMPOLINE(m2e_va_sprintf,  vsprintf,  x2)
-M2E_VA_TRAMPOLINE(m2e_va_fprintf,  vfprintf,  x2)
-M2E_VA_TRAMPOLINE(m2e_va_sscanf,   vsscanf,   x2)
-M2E_VA_TRAMPOLINE(m2e_va_snprintf, vsnprintf, x3)
+M2E_VA_TRAMPOLINE(m2e_va_printf,      vprintf,        x1)
+M2E_VA_TRAMPOLINE(m2e_va_sprintf,     vsprintf,       x2)
+M2E_VA_TRAMPOLINE(m2e_va_fprintf,     vfprintf,       x2)
+M2E_VA_TRAMPOLINE(m2e_va_sscanf,      vsscanf,        x2)
+M2E_VA_TRAMPOLINE(m2e_va_snprintf,    vsnprintf,      x3)
+M2E_VA_TRAMPOLINE(m2e_va_sprintf_chk, __vsprintf_chk, x4)
+M2E_VL_SHIM(m2e_vl_vfprintf,      vfprintf,       x2)
+M2E_VL_SHIM(m2e_vl_vsprintf_chk,  __vsprintf_chk, x4)
 
 // __chkstk_darwin (Apple ___chkstk_darwin, underscore-stripped) — Apple's
 // arm64 large-frame stack-probe, emitted in prologues that allocate big
@@ -886,6 +948,7 @@ M2E_VA_TRAMPOLINE(m2e_va_snprintf, vsnprintf, x3)
 "   .size __chkstk_darwin, .-__chkstk_darwin\n"
 );
 #undef M2E_VA_TRAMPOLINE
+#undef M2E_VL_SHIM
 """
 
 
@@ -923,6 +986,31 @@ ARCH_CONFIG = {
         # Apple arm64 dylibs use 16KB segment alignment; honor that.
         "page_size":  0x4000,
     },
+    # Android/arm64 (Bionic). Same CPU/ABI as linux arm64 — the high8 rebase
+    # fix, variadic trampolines, and __chkstk_darwin stub all apply unchanged
+    # (target ends in "arm64"). The differences are all OS/libc:
+    #   * NDK clang toolchain + Bionic sysroot (pass the sysroot via --cc-args
+    #     or a wrapper; --cc selects the compiler).
+    #   * Bionic has NO symbol versioning, folds pthread+libdl into libc, and
+    #     uses libc++_shared.so as the C++ runtime (ship it with the app).
+    #   * __errno_location -> __errno (see BIONIC_RENAMES).
+    # NOTE: prototype — builds against the NDK; not yet device-tested. Bionic's
+    # __vsprintf_chk availability should be confirmed (fall back to plain
+    # vsprintf in the _chk shims if absent).
+    "android-arm64": {
+        "elf_format": "elf64-littleaarch64",
+        "elf_arch":   "aarch64",
+        # NDK clang. The API-level suffix picks the Bionic sysroot; override
+        # with --cc to point at your NDK's aarch64-linux-android<API>-clang.
+        "gcc":        "aarch64-linux-android24-clang",
+        "link_libs":  ["-Wl,--unresolved-symbols=ignore-all",
+                       "-lc", "-lm", "-ldl",
+                       "-Wl,--no-as-needed",
+                       "{STUB}libc++_shared.so",
+                       "-Wl,--as-needed"],
+        "stub_libs":  ["libc++_shared.so"],
+        "page_size":  0x4000,
+    },
 }
 
 
@@ -944,6 +1032,9 @@ def main():
     ap.add_argument("--cc", default=None,
                     help="Override the C compiler to link with (defaults are 'gcc' for "
                          "x86_64 and 'aarch64-linux-gnu-gcc' for arm64).")
+    ap.add_argument("--os", default="linux", choices=["linux", "android"],
+                    help="Target OS/libc. 'linux' (glibc, default) or 'android' "
+                         "(Bionic, arm64 only — needs an NDK clang via --cc).")
     ap.add_argument("--no-link", action="store_true", help="Stop after generating asm/lds")
     ap.add_argument("--no-strip", action="store_true",
                     help="Keep the non-dynamic .symtab (local .m2e_* labels). By default it "
@@ -976,8 +1067,17 @@ def main():
         sys.exit(1)
     binary = fat.at(0)
     arch = detect_arch(binary)
-    arch_cfg = ARCH_CONFIG[arch]
+    # The ARCH_CONFIG key combines OS + CPU. Linux uses the bare CPU name for
+    # back-compat ("x86_64", "arm64"); Android prefixes it ("android-arm64").
+    target = arch if args.os == "linux" else f"{args.os}-{arch}"
+    if target not in ARCH_CONFIG:
+        print(f"ERROR: no config for target '{target}' "
+              f"(os={args.os}, arch={arch}). Supported: {', '.join(sorted(ARCH_CONFIG))}.",
+              file=sys.stderr)
+        sys.exit(1)
+    arch_cfg = ARCH_CONFIG[target]
     print(f"[macho2elf] arch:     {arch}")
+    print(f"[macho2elf] target:   {target}")
 
     sections = extract_sections(binary, sections_dir)
     print(f"[macho2elf] extracted {sum(1 for v in sections.values() if v['file']):d} non-empty sections")
@@ -985,7 +1085,7 @@ def main():
     exports = collect_exports(binary)
     print(f"[macho2elf] exports: {len(exports)}")
 
-    imports, bindings_by_section = collect_bindings_per_section(binary, arch)
+    imports, bindings_by_section = collect_bindings_per_section(binary, target)
     total_bindings = sum(len(v) for v in bindings_by_section.values())
     print(f"[macho2elf] imports: {len(imports)}, total binding sites: {total_bindings}")
     for (seg, sect), bs in bindings_by_section.items():
@@ -1001,7 +1101,7 @@ def main():
     print(f"[macho2elf] linker script: {lds_path}")
 
     stubs_path = workdir / "stubs.c"
-    emit_runtime_stubs(stubs_path, arch)
+    emit_runtime_stubs(stubs_path, target)
     print(f"[macho2elf] runtime stubs: {stubs_path}")
 
     if args.no_link:
