@@ -220,8 +220,19 @@ def rename_import(macho_name: str, target: str = None) -> str:
     stripped = strip_underscore(macho_name)
     if target and target.endswith("arm64") and stripped in VARIADIC_SHIMS:
         return VARIADIC_SHIMS[stripped]
-    if target and target.startswith("android") and stripped in BIONIC_RENAMES:
-        return BIONIC_RENAMES[stripped]
+    if target and target.startswith("android"):
+        if stripped in BIONIC_RENAMES:
+            return BIONIC_RENAMES[stripped]
+        # The NDK's libc++ renames its inline namespace from std::__1 to
+        # std::__ndk1 (so an app's bundled libc++ can't clash with the
+        # platform's). Apple built the engine against std::__1. The ABI is
+        # otherwise identical and substitution refs are positional, so a textual
+        # St3__1 -> St6__ndk1 rewrite of the mangled name binds these imports
+        # straight to libc++_shared.so — functions, vtables, VTTs, type-infos,
+        # and locale facet ids alike. (Specific to NDKs that use __ndk1, which
+        # r27 does; if a future NDK reverts to __1 this rewrite becomes wrong.)
+        if "St3__1" in stripped:
+            return stripped.replace("St3__1", "St6__ndk1")
     return DARWIN_TO_LINUX.get(stripped, stripped)
 
 
@@ -759,18 +770,26 @@ def emit_linker_script(binary, sections, lds_path, arch_cfg=None):
     add("    .data.rel.ro        : { *(.data.rel.ro) *(.data.rel.ro.*) } :rwdata")
     add("    .eh_frame           : { *(.eh_frame) } :rwdata")
     add("    .eh_frame_hdr       : { *(.eh_frame_hdr) } :rwdata")
-    add("    .bss                : { *(.bss) *(COMMON) } :rwdata")
+    add("    .bss                : { *(.bss) *(.bss.*) *(COMMON) } :rwdata")
     # Place auto-generated text sections (from stubs.c) in a SEPARATE PT_LOAD
     # segment (auxtext) at a high vaddr so the main text segment doesn't need
     # to span all the way out here. The vaddr gap costs nothing on disk: a
     # distinct PT_LOAD gets its own file offset, packed right after rwdata.
+    #
+    # The wildcards must catch *function-sections* (.text.*, .gcc_except_table.*
+    # etc.): -lunwind / clang_rt on Android are built with -ffunction-sections,
+    # so they contribute .text._Unwind_RaiseException and friends. Without the
+    # broad match those land as orphans on top of the pinned .m2e_* sections and
+    # lld errors on the overlap. (bfd/glibc never hit this — nothing was linked
+    # that way — but the broad form is correct for both.)
     add("    . = ALIGN(0x100000);")
     add("    . = . + 0x100000;")
     add("    .plt                : { *(.plt) } :auxtext")
     add("    .plt.got            : { *(.plt.got) } :auxtext")
     add("    .plt.sec            : { *(.plt.sec) } :auxtext")
-    add("    .text               : { *(.text) } :auxtext")
-    add("    .rodata             : { *(.rodata*) } :auxtext")
+    add("    .text               : { *(.text) *(.text.*) } :auxtext")
+    add("    .rodata             : { *(.rodata) *(.rodata.*) } :auxtext")
+    add("    .gcc_except_table   : { *(.gcc_except_table) *(.gcc_except_table.*) } :auxtext")
 
     add("")
     add("    .note.GNU-stack     : { *(.note.GNU-stack) } :gnustack")
@@ -844,8 +863,39 @@ unsigned long __maskrune(int c, unsigned long mask) {
 """
     if target and target.endswith("arm64"):
         content += VARIADIC_TRAMPOLINES_ARM64
+    if target and target.startswith("android"):
+        content += BIONIC_COMPAT_STUBS
     with open(stubs_path, "w") as f:
         f.write(content)
+
+
+# libc functions glibc exports but Bionic dropped (or only inlines), so the
+# converted .so's out-of-line calls would be unresolved on Android. Emitted
+# only for android-* targets; glibc provides both natively on Linux.
+BIONIC_COMPAT_STUBS = r"""
+// ---- Bionic compat shims (Android) ---------------------------------------
+#include <time.h>
+#include <string.h>
+
+// Bionic inlines bzero in <strings.h> and exports no out-of-line symbol.
+void bzero(void *s, size_t n) { memset(s, 0, n); }
+
+// Bionic removed the obsolete ftime(3). Layout matches Darwin's <sys/timeb.h>
+// (time_t time; unsigned short millitm; short timezone; short dstflag), which
+// is the ABI the engine was compiled against.
+struct m2e_timeb { long time; unsigned short millitm; short timezone; short dstflag; };
+int ftime(struct m2e_timeb *tp) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    if (tp) {
+        tp->time     = (long)ts.tv_sec;
+        tp->millitm  = (unsigned short)(ts.tv_nsec / 1000000);
+        tp->timezone = 0;
+        tp->dstflag  = 0;
+    }
+    return 0;
+}
+"""
 
 
 # arm64 variadic ABI bridge. Apple passes every variadic argument on the stack;
@@ -1003,11 +1053,16 @@ ARCH_CONFIG = {
         # NDK clang. The API-level suffix picks the Bionic sysroot; override
         # with --cc to point at your NDK's aarch64-linux-android<API>-clang.
         "gcc":        "aarch64-linux-android24-clang",
+        # -lunwind: Bionic only exports _Unwind_Resume from libc.so at API 34+;
+        # link the NDK's static libunwind so the .so is self-contained on older
+        # devices (this is what ordinary NDK C++ libs do). bzero/ftime, which
+        # Bionic dropped, are provided by BIONIC_COMPAT_STUBS in stubs.c.
         "link_libs":  ["-Wl,--unresolved-symbols=ignore-all",
                        "-lc", "-lm", "-ldl",
                        "-Wl,--no-as-needed",
                        "{STUB}libc++_shared.so",
-                       "-Wl,--as-needed"],
+                       "-Wl,--as-needed",
+                       "-lunwind"],
         "stub_libs":  ["libc++_shared.so"],
         "page_size":  0x4000,
     },

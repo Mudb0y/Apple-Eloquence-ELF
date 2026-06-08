@@ -5,6 +5,40 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] — 2026-06-09
+
+### Added
+
+- **Android (`--os android`) is now symbol-complete: all 19 modules link with
+  zero unresolved imports against the NDK's Bionic + libc++.** A full
+  import-vs-Bionic-export audit surfaced four real gaps beyond the 1.2.1
+  prototype, all now closed:
+  - **libc++ inline-namespace mismatch (the big one).** Apple built the engine
+    against `std::__1`; the NDK's libc++ renames its inline namespace to
+    `std::__ndk1`, so the engine's 26 iostream/locale/string imports (mangled
+    `_ZNSt3__1…`) didn't resolve. The ABI is otherwise identical and
+    substitution refs are positional, so `rename_import` rewrites
+    `St3__1` → `St6__ndk1` on Android targets — binding functions, vtables,
+    VTTs, type-infos, and facet ids straight to `libc++_shared.so`.
+  - **`_Unwind_Resume`** — Bionic only exports it from libc.so at API 34+; the
+    Android link now pulls the NDK's static `libunwind` so the `.so` is
+    self-contained on older devices.
+  - **`bzero` / `ftime`** — dropped from Bionic (inlined / obsolete); provided
+    as small `BIONIC_COMPAT_STUBS` in `stubs.c` (Android-gated).
+
+### Fixed
+
+- **Linker script now catches function-sections (`.text.*`,
+  `.gcc_except_table.*`, `.bss.*`).** `libunwind`/`clang_rt` are built with
+  `-ffunction-sections`, so they contribute `.text._Unwind_RaiseException` &c.;
+  without the broad wildcards lld placed them as orphans overlapping the pinned
+  `.m2e_*` sections. Harmless for the existing glibc/bfd builds (verified
+  byte-identical synthesis on Linux arm64 + x86_64), required for Android.
+
+Android remains **not device-tested and not in CI** — symbol resolution is now
+proven, but on-device runtime (Bionic linker, file sandboxing) is the next
+step, along with the JNI / `TextToSpeechService` integration.
+
 ## [1.2.1] — 2026-06-09
 
 ### Fixed
