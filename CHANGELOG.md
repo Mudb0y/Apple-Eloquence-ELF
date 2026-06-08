@@ -5,6 +5,20 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`android/` — experimental Android TextToSpeechService scaffold.** A
+  buildable skeleton that exposes the converted engine as a system TTS engine:
+  a JNI bridge (`eloquence_jni.c`, compiles clean against NDK r27c), a Kotlin
+  `EloquenceTtsService` + `EloquenceNative`, manifest/Gradle/CMake, and
+  `stage-libs.sh` which converts all 19 modules with `--os android` and lays
+  them out under `jniLibs/arm64-v8a/`. Validated end-to-end at build level
+  (staging converts all 19; JNI links); **not yet run on a device/emulator** —
+  that and the prosody/voice tuning are the next steps. Does not touch the
+  shipped Linux artifacts. See `android/README.md`.
+
 ## [1.2.2] — 2026-06-09
 
 ### Added

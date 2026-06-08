@@ -1,0 +1,5 @@
+# Staged engine libraries are generated from Apple's dylibs by
+# android/stage-libs.sh — same legal posture as prebuilt/*.so: not tracked.
+# This .gitignore keeps the directory present so Gradle's jniLibs path exists.
+*.so
+!.gitignore
