@@ -5,6 +5,32 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.4] — 2026-06-08
+
+### Fixed
+
+- **Converted `.so` files were ~7x larger than they needed to be.**
+  The generated linker script assigned `.eh_frame`,
+  `.eh_frame_hdr`, and `.bss` to the `rwdata` `PT_LOAD` segment but
+  emitted them *after* the big `auxtext` vaddr push (`. = ALIGN(0x100000);
+  . = . + 0x100000;`).  Because `.eh_frame`/`.eh_frame_hdr` are
+  `PROGBITS`, the RW segment's file image was forced to span from
+  `~0x21000` all the way to `~0x200000`, so the linker wrote ~1.8 MB
+  of zero padding into every output `.so`.  These sections now sit
+  contiguous with the dynamic tables, *before* the push; the
+  `auxtext` segment is a separate `PT_LOAD`, so its high vaddr costs
+  nothing on disk.  `eci.so` drops 2.0 MB -> 308 KB; `enu.so` drops
+  4.3 MB -> 2.3 MB.  No symbols are lost and exports are unchanged.
+
+### Changed
+
+- **Output `.so` files are now stripped by default** (`-Wl,-s` at
+  link time).  Engine exports live in `.dynsym`; the non-dynamic
+  `.symtab` of local `.m2e_*` labels is dead weight at runtime (tens
+  of KB to ~100 KB per module).  Pass `--no-strip` to `macho2elf.py`
+  to keep it.  Combined with the `.eh_frame` fix, `eci.so` is 265 KB
+  (8.1x smaller) -- smaller than the source Mach-O slice.
+
 ## [1.1.3] — 2026-05-14
 
 ### Fixed
