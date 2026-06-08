@@ -162,7 +162,7 @@ structure. The converter is arch-aware (`ARCH_CONFIG` dict at top of
 `macho2elf.py`) and emits the right `OUTPUT_FORMAT`, page size, and
 toolchain commands.
 
-But there are arm64-specific gotchas:
+But there are arm64-specific gotchas, each handled by the converter:
 1. **Page alignment**: Apple's arm64 dylibs use 16KB segments
    (`-z max-page-size=0x4000`). x86_64 uses 4KB.
 2. **Comment syntax**: arm64 GAS uses `//` for line comments (`#` is for
@@ -171,13 +171,30 @@ But there are arm64-specific gotchas:
 3. **libc++ availability**: aarch64 cross-toolchain sysroots don't ship
    libc++. We generate empty stub .so files at link time so DT_NEEDED
    gets recorded; ld.so resolves real symbols at load on the target.
+   The stubs are linked under `--no-as-needed` — otherwise, exporting no
+   symbols, they'd be dropped from DT_NEEDED and the `.so` would have no
+   libc++ dependency at all (its C++ symbols, including `_Unwind_Resume`
+   via libc++abi → libgcc_s, would be unresolved and `dlopen` would fail).
 4. **`--unresolved-symbols=ignore-all`**: for arm64 we tell the linker
    not to fail on unresolved C++ vtable/typeinfo references — they'll
    resolve at load against the target's libc++.
+5. **high8 tagged-pointer rebases**: arm64 chained-fixup rebases may set a
+   `high8` tag in the pointer's top byte (top-byte-ignore tagged pointers).
+   LIEF reports it in bits 56..63 of `r.target`; the converter strips it for
+   section lookup and folds it back into the emitted addend. Missing this
+   dropped the rebase and left raw fixup bytes (garbage pointers) in the slot.
+6. **Variadic ABI**: Apple passes *all* variadic args on the stack; AAPCS64
+   passes the first ones in registers. Calls into libc variadic functions
+   (`sprintf`, `printf`, `fprintf`, `sscanf`, …) are redirected to asm
+   trampolines in `stubs.c` that rebuild a stack-only `va_list` and forward to
+   the `v*` variant. See `VARIADIC_SHIMS` / `VARIADIC_TRAMPOLINES_ARM64`.
+7. **`__chkstk_darwin`**: Apple's large-frame stack probe, emitted in arm64
+   prologues. Provided as a register-preserving no-op stub (Linux grows the
+   thread stack on demand).
 
-The arm64 output builds correctly but runtime testing under qemu-user
-is unreliable (qemu's emulation of glibc's complex C++ init has known
-issues). See `docs/05-troubleshooting.md`.
+With these in place, arm64 output synthesizes the same audio as x86_64
+(verified under qemu-user: identical sample counts, deviation ~0.01% of peak
+from floating-point rounding). See `docs/05-troubleshooting.md`.
 
 ## Important subtleties
 

@@ -54,6 +54,22 @@ DARWIN_TO_LINUX = {
     "__stdinp":          "stdin",
 }
 
+# Apple's arm64 calling convention passes ALL variadic arguments on the stack;
+# Linux AAPCS64 passes the first integer/FP variadic args in x2..x7 / v0..v7.
+# So a Darwin dylib calling a libc variadic function (sprintf, printf, ...)
+# lays its args out where glibc's implementation never looks -> it reads
+# register garbage instead. On arm64 we redirect each such import to a tiny
+# asm trampoline (emitted in stubs.c) that rebuilds a stack-only va_list and
+# forwards to the v* variant. x86_64's variadic ABI already matches glibc, so
+# this rename is arm64-only.  Maps: darwin name (underscore-stripped) -> shim.
+VARIADIC_SHIMS = {
+    "printf":   "m2e_va_printf",
+    "fprintf":  "m2e_va_fprintf",
+    "sprintf":  "m2e_va_sprintf",
+    "snprintf": "m2e_va_snprintf",
+    "sscanf":   "m2e_va_sscanf",
+}
+
 # ----------------------------------------------------------------------------
 # Mach-O section -> ELF section mapping
 # ----------------------------------------------------------------------------
@@ -141,7 +157,9 @@ def collect_relocation_events(binary):
                 break
         if site_seg is None:
             continue
-        tgt = r.target
+        # Strip the arm64 high8 tag byte (top byte of the pointer) before
+        # locating the target section; see the matching note in emit_assembly.
+        tgt = r.target & 0x00FFFFFFFFFFFFFF
         tgt_seg = tgt_sect = None
         tgt_off = None
         for s in binary.sections:
@@ -169,9 +187,15 @@ def strip_underscore(name: str) -> str:
     return name
 
 
-def rename_import(macho_name: str) -> str:
-    """Strip leading underscore and apply Darwin->Linux rename if needed."""
+def rename_import(macho_name: str, arch: str = None) -> str:
+    """Strip leading underscore and apply Darwin->Linux rename if needed.
+
+    On arm64, libc variadic functions are additionally redirected to our
+    va_list-rebuilding trampolines (see VARIADIC_SHIMS).
+    """
     stripped = strip_underscore(macho_name)
+    if arch == "arm64" and stripped in VARIADIC_SHIMS:
+        return VARIADIC_SHIMS[stripped]
     return DARWIN_TO_LINUX.get(stripped, stripped)
 
 
@@ -208,7 +232,7 @@ def collect_exports(binary: lief.MachO.Binary) -> list:
     return exports
 
 
-def collect_bindings_per_section(binary: lief.MachO.Binary) -> tuple:
+def collect_bindings_per_section(binary: lief.MachO.Binary, arch: str = None) -> tuple:
     """Walk all bindings (legacy dyld_info AND chained-fixup formats).
 
     Returns:
@@ -238,13 +262,13 @@ def collect_bindings_per_section(binary: lief.MachO.Binary) -> tuple:
         if seg is None:
             continue
         offset = b.address - base
-        linux_name = rename_import(b.symbol.name)
+        linux_name = rename_import(b.symbol.name, arch)
         by_section.setdefault((seg, sect), []).append((offset, linux_name))
         imports.add(linux_name)
 
     # Also include any imports that may have no binding site
     for sym in binary.imported_symbols:
-        imports.add(rename_import(sym.name))
+        imports.add(rename_import(sym.name, arch))
 
     for k in by_section:
         by_section[k].sort(key=lambda x: x[0])
@@ -399,7 +423,16 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
         if site_seg is None:
             rebases_dropped += 1
             continue
-        tgt = r.target
+        # arm64 chained-fixup rebases can carry a "high8" tag in the top byte
+        # of the pointer (an arm64 top-byte-ignore tagged pointer; LIEF folds
+        # high8 into bits 56..63 of r.target). Strip it to locate the target
+        # section, but fold it back into the emitted addend so the runtime
+        # pointer keeps its original tag. x86_64 never sets high8, so this is
+        # a no-op there. Without the strip, the tagged target is out of range,
+        # the lookup fails, and the rebase is silently dropped -- leaving the
+        # raw chained-fixup bytes in the slot (garbage pointer at runtime).
+        tgt_tag = r.target & 0xFF00000000000000
+        tgt = r.target & 0x00FFFFFFFFFFFFFF
         tgt_seg = tgt_sect = None
         tgt_off = None
         for s in binary.sections:
@@ -415,7 +448,7 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
             rebases_dropped += 1
             continue
         events_by_section.setdefault((site_seg, site_sect), []).append(
-            (site_off, "rebase", (tgt_label, tgt_off)))
+            (site_off, "rebase", (tgt_label, tgt_off + tgt_tag)))
         rebases_emitted += 1
     sym_relocs_emitted = 0
 
@@ -715,11 +748,12 @@ def emit_linker_script(binary, sections, lds_path, arch_cfg=None):
         f.write("\n".join(lines))
 
 
-def emit_runtime_stubs(stubs_path):
+def emit_runtime_stubs(stubs_path, arch: str = None):
     """Emit C stubs for Darwin-specific symbols we need to provide.
 
-    Currently just _DefaultRuneLocale — a stub struct that mimics enough of
-    Darwin's _RuneLocale layout to keep inlined ctype checks happy.
+    Includes _DefaultRuneLocale (a stub for Darwin's ctype table), the stack
+    canary, __maskrune, and — on arm64 — the variadic trampolines that bridge
+    Apple's stack-only variadic ABI to glibc's AAPCS64 register-based one.
     """
     content = r"""// macho2elf runtime stubs — Darwin-specific symbols with no Linux equivalent.
 
@@ -774,8 +808,85 @@ unsigned long __maskrune(int c, unsigned long mask) {
 }
 
 """
+    if arch == "arm64":
+        content += VARIADIC_TRAMPOLINES_ARM64
     with open(stubs_path, "w") as f:
         f.write(content)
+
+
+# arm64 variadic ABI bridge. Apple passes every variadic argument on the stack;
+# AAPCS64 (glibc) passes the first 8 GP / 8 FP variadic args in x2..x7 / v0..v7
+# and only spills the rest to the stack. A Darwin dylib therefore stores its
+# variadic args where glibc never reads them.
+#
+# Each trampoline below receives the call with Apple layout (named args in the
+# usual registers, ALL variadic args contiguous on the stack starting at the
+# incoming SP) and builds an AAPCS64 va_list whose register save areas are
+# marked empty (__gr_offs = __vr_offs = 0) and whose __stack field points at the
+# caller's variadic block. With both offsets non-negative, glibc's va_arg pulls
+# EVERY argument — integer, pointer, and floating point alike — straight from
+# that stack block, exactly matching Apple's layout. It then tail-calls the v*
+# variant of the libc function.
+#
+# AAPCS64 va_list layout (sys/_types/struct __va_list):
+#   +0  void *__stack;     next stack arg
+#   +8  void *__gr_top;    (unused here; __gr_offs >= 0)
+#   +16 void *__vr_top;    (unused here; __vr_offs >= 0)
+#   +24 int   __gr_offs;   0  -> no GP regs available, use __stack
+#   +28 int   __vr_offs;   0  -> no FP regs available, use __stack
+#
+# The va_list pointer is the argument right after the function's named args:
+# printf(fmt,...) -> vprintf(fmt, ap)            ap in x1
+# sprintf/fprintf/sscanf(a,b,...) -> v*(a,b,ap)  ap in x2
+# snprintf(s,n,fmt,...) -> vsnprintf(s,n,fmt,ap) ap in x3
+VARIADIC_TRAMPOLINES_ARM64 = r"""
+// ---- arm64 variadic ABI trampolines (see comment in macho2elf.py) --------
+// Build the 32-byte va_list at [sp+16], point __stack at the caller's variadic
+// block (= the SP on entry = sp+48 after our frame), zero the register-area
+// offsets so va_arg reads everything from the stack, and place &va_list into
+// the register named by VAREG (the ap argument of the v* function).
+#define M2E_VA_TRAMPOLINE(NAME, VFUNC, VAREG) \
+"   .global " #NAME "\n" \
+"   .type " #NAME ", %function\n" \
+#NAME ":\n" \
+"   sub  sp, sp, #48\n" \
+"   stp  x29, x30, [sp]\n" \
+"   mov  x29, sp\n" \
+"   add  x9, sp, #48\n" \
+"   str  x9, [sp, #16]\n" \
+"   stp  xzr, xzr, [sp, #24]\n" \
+"   str  wzr, [sp, #40]\n" \
+"   str  wzr, [sp, #44]\n" \
+"   add  " #VAREG ", sp, #16\n" \
+"   bl   " #VFUNC "\n" \
+"   ldp  x29, x30, [sp]\n" \
+"   add  sp, sp, #48\n" \
+"   ret\n" \
+"   .size " #NAME ", .-" #NAME "\n"
+
+__asm__(
+"   .text\n"
+"   .balign 4\n"
+M2E_VA_TRAMPOLINE(m2e_va_printf,   vprintf,   x1)
+M2E_VA_TRAMPOLINE(m2e_va_sprintf,  vsprintf,  x2)
+M2E_VA_TRAMPOLINE(m2e_va_fprintf,  vfprintf,  x2)
+M2E_VA_TRAMPOLINE(m2e_va_sscanf,   vsscanf,   x2)
+M2E_VA_TRAMPOLINE(m2e_va_snprintf, vsnprintf, x3)
+
+// __chkstk_darwin (Apple ___chkstk_darwin, underscore-stripped) — Apple's
+// arm64 large-frame stack-probe, emitted in prologues that allocate big
+// frames. It exists to fault guard pages in order; on Linux the kernel grows
+// the thread stack on demand, so the probe is unnecessary. A bare `ret`
+// satisfies the import and, crucially, clobbers no register (the caller passes
+// the frame size in x15 and still needs it for its own `sub sp, sp, x15`).
+"   .global __chkstk_darwin\n"
+"   .type __chkstk_darwin, %function\n"
+"__chkstk_darwin:\n"
+"   ret\n"
+"   .size __chkstk_darwin, .-__chkstk_darwin\n"
+);
+#undef M2E_VA_TRAMPOLINE
+"""
 
 
 ARCH_CONFIG = {
@@ -792,12 +903,21 @@ ARCH_CONFIG = {
         "elf_format": "elf64-littleaarch64",
         "elf_arch":   "aarch64",
         "gcc":        "aarch64-linux-gnu-gcc",
-        # aarch64 sysroot lacks libc++ — generate empty stub .so files at
-        # build time so the linker can satisfy DT_NEEDED; ld.so resolves real
-        # symbols at load time using the target system's libc++.
+        # aarch64 sysroot may lack libc++ — generate empty stub .so files at
+        # build time so the linker can satisfy DT_NEEDED; ld.so resolves the
+        # real symbols at load time using the target system's libc++.
+        #
+        # The stubs MUST be linked under --no-as-needed: they export no symbols,
+        # so the default --as-needed would drop them from DT_NEEDED entirely.
+        # Then the converted .so would have no libc++ dependency at all, and at
+        # runtime its C++ symbols (operator new, __cxa_*, _Unwind_Resume via
+        # libc++abi -> libgcc_s) would be unresolved -> dlopen fails. Forcing
+        # the soname into DT_NEEDED makes ld.so pull the real libc++ chain.
         "link_libs":  ["-Wl,--unresolved-symbols=ignore-all",
                        "-lc", "-lm", "-lpthread", "-ldl",
-                       "{STUB}libc++.so.1", "{STUB}libc++abi.so.1"],
+                       "-Wl,--no-as-needed",
+                       "{STUB}libc++.so.1", "{STUB}libc++abi.so.1",
+                       "-Wl,--as-needed"],
         # Stub libs to generate (soname -> file). Generated at build time.
         "stub_libs":  ["libc++.so.1", "libc++abi.so.1"],
         # Apple arm64 dylibs use 16KB segment alignment; honor that.
@@ -865,7 +985,7 @@ def main():
     exports = collect_exports(binary)
     print(f"[macho2elf] exports: {len(exports)}")
 
-    imports, bindings_by_section = collect_bindings_per_section(binary)
+    imports, bindings_by_section = collect_bindings_per_section(binary, arch)
     total_bindings = sum(len(v) for v in bindings_by_section.values())
     print(f"[macho2elf] imports: {len(imports)}, total binding sites: {total_bindings}")
     for (seg, sect), bs in bindings_by_section.items():
@@ -881,7 +1001,7 @@ def main():
     print(f"[macho2elf] linker script: {lds_path}")
 
     stubs_path = workdir / "stubs.c"
-    emit_runtime_stubs(stubs_path)
+    emit_runtime_stubs(stubs_path, arch)
     print(f"[macho2elf] runtime stubs: {stubs_path}")
 
     if args.no_link:

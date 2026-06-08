@@ -220,7 +220,11 @@ def walk_chain(start_vm_off, ptr_format, page_size,
                 next_skip=next_skip,
             ))
         else:
-            target_va = slot & 0xFFFFFFFFFFFF
+            # PTR_64 / PTR_64_OFFSET rebase: target is bits 0..35 (36 bits).
+            # Bits 36..43 are the "high8" tag (top byte of the runtime
+            # pointer, e.g. arm64 top-byte-ignore tags). Masking 48 bits would
+            # fold high8 into the address and push tagged targets out of range.
+            target_va = slot & 0xFFFFFFFFF
             seg, sect, target_off = vm_to_section(target_va, section_map)
             result.fixups.append(ChainedRebase(
                 file_offset=file_off, raw_value=slot,

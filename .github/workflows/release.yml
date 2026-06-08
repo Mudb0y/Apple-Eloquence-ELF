@@ -30,14 +30,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # aarch64 is dropped from release builds until the converter and
-        # the C++ runtime symbol surface are sorted out for arm64 -- the
-        # binaries build but synthesis itself segfaults on real arm64
-        # hardware.  Add the aarch64 entry back when those land.
+        # Both arches ship. The arm64 converter gaps that used to make
+        # synthesis segfault on real hardware are fixed (high8-tagged rebases,
+        # the Apple->AAPCS64 variadic ABI bridge, __chkstk_darwin, and the
+        # libc++ DT_NEEDED chain); arm64 output now produces byte-near-identical
+        # audio to x86_64. Built natively on each arch's runner.
         include:
           - arch: x86_64
             lipo_arch: x86_64
             runner: ubuntu-24.04
+            cc: gcc
+          - arch: aarch64
+            lipo_arch: arm64    # Mach-O fat-binary slice name (Apple's name)
+            runner: ubuntu-24.04-arm
             cc: gcc
     runs-on: ${{ matrix.runner }}
     steps:
@@ -199,22 +204,18 @@ jobs:
           # ini, synthesizes a fixed pangram at 11025 Hz, then runs that
           # through sd_eloquence's libsoxr wrapper with each combination.
           #
-          # Only runs on x86_64: the aarch64-converted eci.so has runtime
-          # issues that match the README's "build-verified only" caveat
-          # for aarch64.  The aarch64 tarball ships without previews;
-          # install.sh's preview-install block no-ops when the source
-          # dir is absent.
-          if [ "${{ matrix.arch }}" = "x86_64" ]; then
-              mkdir -p "${STAGE}/share/eloquence/resampler-previews"
-              mkdir -p preview-work
-              cp "${STAGE}/lib/eci.so" "${STAGE}/lib/enu.so" preview-work/
-              cat > preview-work/eci.ini <<'EOI'
+          # Rendered on both arches now that arm64 synthesis works. Each runs
+          # natively on its own runner, so render_resampler_previews exercises
+          # the arch-native eci.so/enu.so.
+          mkdir -p "${STAGE}/share/eloquence/resampler-previews"
+          mkdir -p preview-work
+          cp "${STAGE}/lib/eci.so" "${STAGE}/lib/enu.so" preview-work/
+          cat > preview-work/eci.ini <<'EOI'
           [1.0]
           Path=./enu.so
           Version=6.1
           EOI
-              ./build/render_resampler_previews preview-work "${STAGE}/share/eloquence/resampler-previews"
-          fi
+          ./build/render_resampler_previews preview-work "${STAGE}/share/eloquence/resampler-previews"
 
           cat > "${STAGE}/README.txt" <<EOF
           apple-eloquence-elf ${{ steps.ver.outputs.version }} (${{ matrix.arch }})

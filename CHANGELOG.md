@@ -5,6 +5,51 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-06-08
+
+### Added
+
+- **aarch64/arm64 is a shipped, working target again.** Synthesis on real
+  arm64 used to segfault; three distinct converter/runtime gaps were the
+  cause, all fixed here. arm64 output now synthesizes the same waveform as
+  x86_64 (verified end-to-end under qemu — identical sample counts, max
+  deviation ~0.01% of peak, i.e. sub-LSB floating-point rounding). The
+  aarch64 entry is restored to the release matrix and resampler previews now
+  render on both arches.
+
+### Fixed
+
+- **arm64 high8 tagged-pointer rebases were silently dropped.** Apple's arm64
+  chained-fixup rebases can carry a `high8` tag in the top byte of the pointer
+  (a top-byte-ignore tagged pointer); LIEF surfaces it in bits 56..63 of
+  `r.target`. The converter mapped the *tagged* value to a section, found it
+  out of range, and skipped the rebase — leaving raw chained-fixup bytes in the
+  slot (garbage pointers, e.g. `eciVersion` returned addresses instead of
+  `6.1.0.0`). On eci alone, 30 rebases were dropped. The tag is now stripped
+  for section lookup and folded back into the emitted addend so the pointer
+  keeps its tag. x86_64 never sets high8, so it was unaffected. All 19 modules
+  now convert with **0 dropped rebases** (`tools/audit_relocs.py` confirms
+  ground-truth == converter), and `tools/dump_chained_fixups.py` uses the
+  correct 36-bit target mask.
+- **arm64 variadic libc calls passed garbage.** Apple's arm64 ABI passes *all*
+  variadic arguments on the stack; Linux AAPCS64 passes the first integer/FP
+  variadic args in `x2..x7`/`v0..v7`. So every `sprintf`/`printf`/`fprintf`/
+  `sscanf` call from the engine laid its args where glibc never reads them. The
+  converter now redirects those imports (arm64 only) to tiny asm trampolines in
+  `stubs.c` that rebuild a stack-only `va_list` (`__gr_offs = __vr_offs = 0`)
+  and forward to the `v*` variant — correct for integer, pointer, and FP args.
+- **arm64 `__chkstk_darwin` was unresolved.** Apple emits this stack-probe in
+  large-frame prologues (arm64 only). The converted language modules failed to
+  load (`undefined symbol: __chkstk_darwin`). A register-preserving no-op stub
+  (Linux grows the thread stack on demand) is now provided in `stubs.c`.
+- **arm64 `.so` files carried no libc++ dependency.** The empty link-time stub
+  libs were dropped by `--as-needed`, so the converted `.so` had no
+  `DT_NEEDED` for libc++ — its C++ symbols (`operator new`, `__cxa_*`,
+  `_Unwind_Resume` via libc++abi → libgcc_s) were unresolved and `dlopen`
+  failed without a manual preload. The stubs are now linked under
+  `--no-as-needed` so the soname is recorded and ld.so pulls the real libc++
+  chain at load time. (x86_64 already linked the real libc++.)
+
 ## [1.1.4] — 2026-06-08
 
 ### Fixed
