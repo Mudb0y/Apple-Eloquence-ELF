@@ -5,6 +5,41 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] — 2026-06-09
+
+### Fixed
+
+- **arm64 variadic fix was incomplete — fortified and `va_list`-taking libc
+  calls still passed garbage.** 1.2.0 bridged the plain variadic functions
+  (`sprintf`/`printf`/`fprintf`/`sscanf`) but missed two related cases the
+  engine also imports: the FORTIFY variant `__sprintf_chk` (variadic), and
+  functions that *take* a `va_list` — `vfprintf` and `__vsprintf_chk`. On
+  Apple arm64 a `va_list` is a bare `char*` to the stacked args, whereas
+  AAPCS64's is a 5-field struct, so a forwarded list is misread just like a
+  register/stack mismatch. Added the `_chk` variadic trampoline plus a second
+  shim family (`M2E_VL_SHIM`) that wraps an incoming Apple `va_list` into an
+  AAPCS64 struct. All three new shims are unit-tested (integer/string/pointer
+  args round-trip correctly). These paths weren't exercised by the simple
+  smoke phrases, so 1.2.0 audio was unaffected — but they were latent crashes.
+- **Orphan `.data` from `stubs.o` is now explicitly placed in the linker
+  script.** It holds `__stack_chk_guard`; without explicit placement the LLVM
+  linker (lld) assigns it an address that overlaps the pinned `.m2e_*`
+  sections. GNU bfd happened to place it safely, so Linux builds were fine,
+  but being explicit fixes both linkers (and is required for the Android path,
+  which uses lld).
+
+### Added
+
+- **Experimental `--os android` target (arm64/Bionic).** `macho2elf.py` can now
+  emit Android-arm64 `.so` files: same CPU/ABI fixes as Linux arm64 (they all
+  key off the `arm64` suffix), plus Bionic specifics — NDK clang, unversioned
+  imports, `libc.so`/`libm.so`/`libdl.so`/`libc++_shared.so` `DT_NEEDED`, and
+  `__errno_location` → `__errno`. Verified to build a correct Bionic ELF
+  against NDK r27c (zero `@GLIBC` symbols, correct `NEEDED`). **Not yet
+  device-tested and not built in CI** — the converted libs are usable from an
+  Android app via JNI, but the integration layer (a `TextToSpeechService`) is
+  out of scope here. See `ARCH_CONFIG["android-arm64"]`.
+
 ## [1.2.0] — 2026-06-08
 
 ### Added
