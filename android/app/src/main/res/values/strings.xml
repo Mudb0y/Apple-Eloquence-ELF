@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: MIT -->
+<resources>
+    <string name="app_name">Eloquence TTS</string>
+    <string name="engine_label">Apple Eloquence (ETI)</string>
+</resources>

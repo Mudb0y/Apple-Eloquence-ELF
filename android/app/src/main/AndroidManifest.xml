@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: MIT -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:label="@string/app_name"
+        android:allowBackup="true">
+
+        <!-- The TextToSpeechService. The system enumerates engines by the
+             TTS_SERVICE intent filter; the meta-data points at the engine
+             descriptor. -->
+        <service
+            android:name=".EloquenceTtsService"
+            android:label="@string/engine_label"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TTS_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.speech.tts"
+                android:resource="@xml/tts_engine" />
+        </service>
+
+    </application>
+</manifest>
