@@ -683,10 +683,21 @@ def emit_linker_script(binary, sections, lds_path, arch_cfg=None):
     add("    .note.gnu.build-id  : { *(.note.gnu.build-id) } :rwdata")
     add("    .got                : { *(.got) } :rwdata")
     add("    .got.plt            : { *(.got.plt) } :rwdata")
-    # Place auto-generated text sections (from stubs.c) AFTER all rwdata in
-    # a SEPARATE PT_LOAD segment (auxtext) so the main text segment doesn't
-    # need to span all the way out here. Big gap to make sure rwdata's
-    # memsize (which includes .bss zero-fill) doesn't overlap us.
+    # Keep ALL file-backed rwdata sections contiguous with the dynamic tables
+    # above. .eh_frame/.eh_frame_hdr are PROGBITS, so if they were placed
+    # AFTER the big auxtext gap below they'd live in :rwdata at a ~2MB vaddr
+    # while the rest of :rwdata sits at ~0x21000 — forcing the RW PT_LOAD's
+    # file image (p_filesz) to span the whole gap and bloating the .so ~7x
+    # with zero padding. Emit them here, before the gap. .bss is NOBITS so it
+    # never occupies file space; placing it low keeps rwdata's memsz small
+    # enough that it can't overlap auxtext.
+    add("    .eh_frame           : { *(.eh_frame) } :rwdata")
+    add("    .eh_frame_hdr       : { *(.eh_frame_hdr) } :rwdata")
+    add("    .bss                : { *(.bss) *(COMMON) } :rwdata")
+    # Place auto-generated text sections (from stubs.c) in a SEPARATE PT_LOAD
+    # segment (auxtext) at a high vaddr so the main text segment doesn't need
+    # to span all the way out here. The vaddr gap costs nothing on disk: a
+    # distinct PT_LOAD gets its own file offset, packed right after rwdata.
     add("    . = ALIGN(0x100000);")
     add("    . = . + 0x100000;")
     add("    .plt                : { *(.plt) } :auxtext")
@@ -694,9 +705,6 @@ def emit_linker_script(binary, sections, lds_path, arch_cfg=None):
     add("    .plt.sec            : { *(.plt.sec) } :auxtext")
     add("    .text               : { *(.text) } :auxtext")
     add("    .rodata             : { *(.rodata*) } :auxtext")
-    add("    .eh_frame           : { *(.eh_frame) } :rwdata")
-    add("    .eh_frame_hdr       : { *(.eh_frame_hdr) } :rwdata")
-    add("    .bss                : { *(.bss) *(COMMON) } :rwdata")
 
     add("")
     add("    .note.GNU-stack     : { *(.note.GNU-stack) } :gnustack")
@@ -817,6 +825,10 @@ def main():
                     help="Override the C compiler to link with (defaults are 'gcc' for "
                          "x86_64 and 'aarch64-linux-gnu-gcc' for arm64).")
     ap.add_argument("--no-link", action="store_true", help="Stop after generating asm/lds")
+    ap.add_argument("--no-strip", action="store_true",
+                    help="Keep the non-dynamic .symtab (local .m2e_* labels). By default it "
+                         "is stripped: exports live in .dynsym, so the local symbol table is "
+                         "dead weight at runtime (tens of KB to ~100KB).")
     args = ap.parse_args()
 
     input_path = Path(args.input).resolve()
@@ -924,6 +936,7 @@ def main():
         f"-Wl,-soname,{output_path.name}",
         "-Wl,-z,noexecstack",
         f"-Wl,-z,max-page-size={arch_cfg['page_size']:#x}",
+        *([] if args.no_strip else ["-Wl,-s"]),
         "-T", str(lds_path),
         str(stub_o), str(stubs_o),
         *link_libs,
