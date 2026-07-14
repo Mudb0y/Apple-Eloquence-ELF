@@ -49,9 +49,15 @@ if(BUILD_SD_MODULE)
         # speech-dispatcher exposes a `modulebindir` pkg-config variable that
         # tells us where the daemon looks for module binaries on this system
         # (typically /usr/lib/speech-dispatcher/speech-dispatcher-modules).
-        # Always use that instead of guessing -- different distros put it in
-        # different places.
-        pkg_get_variable(SPEECHD_MODULEBINDIR speech-dispatcher modulebindir)
+        # Use that instead of guessing -- different distros put it in
+        # different places -- unless the packager overrides it with
+        # -DSPEECHD_MODULEBINDIR=... (needed on store-based distros like
+        # NixOS or Guix, where the pkg-config value points into
+        # speech-dispatcher's own read-only install and the module must go
+        # in this package's prefix instead).
+        if(NOT SPEECHD_MODULEBINDIR)
+            pkg_get_variable(SPEECHD_MODULEBINDIR speech-dispatcher modulebindir)
+        endif()
         if(NOT SPEECHD_MODULEBINDIR)
             message(FATAL_ERROR
                 "speech-dispatcher's pkg-config doesn't expose modulebindir. "
@@ -337,8 +343,16 @@ if(INSTALL_PREBUILT_DYLIBS)
     # Generate the multi-section eci.ini at install time so it respects
     # --prefix and DESTDIR (the Path= entries reference the final
     # location; the file itself is written to DESTDIR-prefixed staging).
+    # CMAKE_INSTALL_LIBDIR may be an absolute path (Nix and Guix pass it
+    # that way); only prepend the install prefix when it is relative,
+    # mirroring how GNUInstallDirs computes CMAKE_INSTALL_FULL_LIBDIR.
+    if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+        set(_ECI_DATA_DIR_CODE "${CMAKE_INSTALL_LIBDIR}/eloquence")
+    else()
+        set(_ECI_DATA_DIR_CODE "\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/eloquence")
+    endif()
     install(CODE "
-        set(DATA_DIR \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/eloquence\")
+        set(DATA_DIR \"${_ECI_DATA_DIR_CODE}\")
         set(STAGED \"\$ENV{DESTDIR}\${DATA_DIR}\")
         set(INI \"\${STAGED}/eci.ini\")
         message(STATUS \"Generating \${INI}\")
