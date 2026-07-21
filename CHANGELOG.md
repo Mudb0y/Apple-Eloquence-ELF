@@ -53,6 +53,26 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   separately heap-allocated, reallocating the entry array never invalidates a
   name already returned by `marks_resolve`. The 400-mark test now reports all
   400 marks. This restores caret/word tracking on long reads.
+- **Dictionary configuration had no effect; the engine's abbreviation
+  expansion could not be turned off.** The module never set the engine's
+  `eciDictionary` parameter (ECI param 3: 0 = internal + user abbreviation
+  dictionaries used, the engine default; 1 = not used), so its built-in
+  abbreviation rewriting (currency, units, "Dr.", etc.) was always on and
+  `EloquenceLoadAbbrDict` — which only gated loading a user `abbr.dic` file —
+  couldn't disable it. `engine_load_dictionary` (`sd_eloquence/src/eci/engine.c`)
+  now sets `eciDictionary` from `load_abbr_dict` at init and on every language
+  switch, independent of the main/root pronunciation dictionaries (which are a
+  separate ECI system and load regardless). Verified against the engine:
+  `eciGetParam(eciDictionary)` follows the setting and the parameter changes
+  synthesis output. **Behavior change:** abbreviation expansion is now OFF by
+  default (the documented intent); set `EloquenceLoadAbbrDict 1` to restore it.
+- **Documented dictionary filenames were wrong.** `eloquence.conf` described the
+  files as `$LANG.main.dic` (e.g. `enu.main.dic`), but the loader builds
+  `<langid><kind>.dic` with no separator (`enumain.dic`), matching the NVDA
+  IBMTTS / eloquence_threshold convention — so files named per the old docs never
+  loaded. The comments now show the real names (`enumain.dic`, `enuroot.dic`,
+  `enuabbr.dic`) and clarify that main/root pronunciation dictionaries are
+  independent of the abbreviation toggle.
 
 ## [1.2.3] — 2026-06-09
 

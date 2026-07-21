@@ -111,6 +111,18 @@ char *engine_version(EciEngine *e) {
 }
 
 int engine_load_dictionary(EciEngine *e, int dialect) {
+    /* Abbreviation expansion is the eciDictionary synthesis-state parameter:
+     * 0 = the internal AND user abbreviation dictionaries are used (engine
+     * default), 1 = neither is used.  It is INDEPENDENT of the main/root
+     * pronunciation dictionaries loaded below (those apply regardless).  The
+     * engine never had this set, so its built-in abbreviation expansion
+     * (currency, units, "Dr." etc.) was always on and could not be turned off
+     * from config.  Drive it from load_abbr_dict -- and do so before the
+     * use_dictionaries gate, since it governs the engine's built-in behaviour,
+     * not the loading of any user file.  Re-applied on every language switch
+     * because a dialect change can reset synthesis-state params. */
+    e->api.SetParam(e->h, eciDictionary, e->load_abbr_dict ? 0 : 1);
+
     if (!e->use_dictionaries) return 0;
     const LangEntry *L = lang_by_dialect(dialect);
     if (!L) return 0;
