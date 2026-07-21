@@ -26,7 +26,19 @@ synth_job *synth_job_new(size_t frames_cap, size_t arena_cap) {
 
 synth_frame *synth_job_push_frame(synth_job *j) {
     if (!j) return NULL;
-    if (j->n_frames >= j->frames_cap) return NULL;
+    /* Grow on demand.  The initial frames_cap is only a hint: a long
+     * utterance carrying word-level <mark>s (speech-dispatcher emits two
+     * frames per marked word) can far exceed it, and a hard cap here would
+     * silently drop every frame -- text included -- past the limit. Callers
+     * fill the returned frame immediately and never hold a frame pointer
+     * across another push, so reallocating the array here is safe. */
+    if (j->n_frames >= j->frames_cap) {
+        size_t newcap = j->frames_cap ? j->frames_cap * 2 : 16;
+        synth_frame *nf = realloc(j->frames, newcap * sizeof(synth_frame));
+        if (!nf) return NULL;
+        j->frames = nf;
+        j->frames_cap = newcap;
+    }
     synth_frame *f = &j->frames[j->n_frames++];
     memset(f, 0, sizeof(*f));
     return f;

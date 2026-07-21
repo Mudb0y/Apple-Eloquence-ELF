@@ -14,16 +14,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MARKS_MAX        256
+#define MARKS_MAX        256          /* initial table size; grows on demand */
 #define END_STRING_ID    0xFFFFu     /* reserved low-16 sentinel for end-of-string */
 
 /* Initialize / reset the global marks table. Call once at module init. */
 void marks_init(void);
 
-/* Register a mark name and return its 32-bit id. Returns 0 if the table is
- * full (caller logs and synthesizes without the mark). NULL name = unregister
- * everything for this job_seq. The 16-bit per-job idx range is 0..0xFFFE;
- * we reserve 0xFFFF for END_STRING. */
+/* Register a mark name and return its 32-bit id. The table grows on demand;
+ * returns 0 only on allocation failure or if a single job exhausts the 16-bit
+ * per-job index range 0..0xFFFE (caller then synthesizes without the mark).
+ * NULL name = unregister everything for this job_seq. 0xFFFF is reserved for
+ * END_STRING. */
 uint32_t marks_register(const char *name, uint32_t job_seq);
 
 /* Look up a mark by id. Returns NULL if not in the table or already consumed.

@@ -20,7 +20,14 @@ typedef struct {
     bool     consumed;
 } MarkEntry;
 
-static MarkEntry g_table[MARKS_MAX];
+/* Grows on demand from MARKS_MAX; a single long utterance carrying word-level
+ * <mark>s registers all its marks before any is consumed, so the live count
+ * can far exceed the initial size.  A hard cap here dropped marks past the
+ * limit (breaking caret/word tracking on long reads).  All access is under
+ * g_lock, and mark names are separately heap-allocated, so realloc'ing this
+ * array never invalidates a name pointer already returned by marks_resolve. */
+static MarkEntry *g_table = NULL;
+static size_t     g_cap   = 0;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint16_t g_next_idx_per_job[65536];   /* tracks per-job counter (small) */
 /* In practice only a handful of jobs are in flight; using a 64K array is
@@ -30,9 +37,15 @@ static uint16_t g_next_idx_per_job[65536];   /* tracks per-job counter (small) *
 
 void marks_init(void) {
     pthread_mutex_lock(&g_lock);
-    for (int i = 0; i < MARKS_MAX; i++) {
+    for (size_t i = 0; i < g_cap; i++) {
         free(g_table[i].name);
-        memset(&g_table[i], 0, sizeof(g_table[i]));
+        g_table[i].name = NULL;
+    }
+    if (!g_table) {
+        MarkEntry *t = calloc(MARKS_MAX, sizeof(*t));
+        if (t) { g_table = t; g_cap = MARKS_MAX; }
+    } else {
+        memset(g_table, 0, g_cap * sizeof(*g_table));
     }
     memset(g_next_idx_per_job, 0, sizeof(g_next_idx_per_job));
     pthread_mutex_unlock(&g_lock);
@@ -46,15 +59,24 @@ uint32_t marks_register(const char *name, uint32_t job_seq) {
         pthread_mutex_unlock(&g_lock);
         return 0;
     }
-    /* Find a free slot. */
-    int slot = -1;
-    for (int i = 0; i < MARKS_MAX; i++) {
-        if (!g_table[i].in_use) { slot = i; break; }
-        if (g_table[i].consumed) { slot = i; break; }
+    /* Find a free (or already-consumed, reusable) slot. */
+    size_t slot = g_cap;
+    for (size_t i = 0; i < g_cap; i++) {
+        if (!g_table[i].in_use || g_table[i].consumed) { slot = i; break; }
     }
-    if (slot < 0) {
-        pthread_mutex_unlock(&g_lock);
-        return 0;
+    if (slot == g_cap) {
+        /* All slots live: grow the table.  Safe under the lock; names live on
+         * the heap, so moving the entry array leaves resolved names valid. */
+        size_t ncap = g_cap ? g_cap * 2 : MARKS_MAX;
+        MarkEntry *nt = realloc(g_table, ncap * sizeof(*nt));
+        if (!nt) {
+            pthread_mutex_unlock(&g_lock);
+            return 0;
+        }
+        memset(nt + g_cap, 0, (ncap - g_cap) * sizeof(*nt));
+        slot = g_cap;
+        g_table = nt;
+        g_cap   = ncap;
     }
     g_next_idx_per_job[job_seq & 0xFFFF] = idx + 1;
     free(g_table[slot].name);
@@ -70,7 +92,7 @@ uint32_t marks_register(const char *name, uint32_t job_seq) {
 
 const char *marks_resolve(uint32_t id) {
     pthread_mutex_lock(&g_lock);
-    for (int i = 0; i < MARKS_MAX; i++) {
+    for (size_t i = 0; i < g_cap; i++) {
         if (g_table[i].in_use && !g_table[i].consumed && g_table[i].id == id) {
             const char *name = g_table[i].name;
             g_table[i].consumed = true;
@@ -84,7 +106,7 @@ const char *marks_resolve(uint32_t id) {
 
 void marks_release_job(uint32_t job_seq) {
     pthread_mutex_lock(&g_lock);
-    for (int i = 0; i < MARKS_MAX; i++) {
+    for (size_t i = 0; i < g_cap; i++) {
         if (g_table[i].in_use && g_table[i].job_seq == job_seq) {
             free(g_table[i].name);
             memset(&g_table[i], 0, sizeof(g_table[i]));

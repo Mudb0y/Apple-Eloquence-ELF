@@ -34,6 +34,26 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   cause not yet pinned (needs single-stepping the stripped engine). arm64
   remains the validated, shipped target.
 
+### Fixed
+
+- **Long utterances were truncated once a job exceeded 256 frames ("text past a
+  certain amount is eaten on one huge chunk").** A `synth_job` held a fixed
+  `FRAMES_CAP = 256` frames and `synth_job_push_frame` returned NULL past that,
+  silently dropping every later frame — text included. speech-dispatcher emits
+  word-level `<mark>`s and each marked word costs two frames (mark + text), so a
+  long read hit the cap at ~128 words and the rest went unspoken. The frame
+  array now grows on demand (`sd_eloquence/src/synth/job.c`); the initial cap is
+  just a hint. Verified against the engine: a 400-marked-word utterance that
+  previously produced 128 marks and 208 s of audio now speaks all 400 words
+  (818 s, matching the mark-free baseline). Plain text without marks was never
+  affected (one frame regardless of length).
+- **Index marks past 256 were dropped for the same reason** — a hard
+  `MARKS_MAX = 256` global table (`sd_eloquence/src/synth/marks.c`). The table
+  now grows on demand; since every access is under its lock and mark names are
+  separately heap-allocated, reallocating the entry array never invalidates a
+  name already returned by `marks_resolve`. The 400-mark test now reports all
+  400 marks. This restores caret/word tracking on long reads.
+
 ## [1.2.3] — 2026-06-09
 
 ### Fixed
