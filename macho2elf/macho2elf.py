@@ -396,6 +396,37 @@ def load_substitutions(path):
     return subs
 
 
+def load_exposures(path):
+    """Read an exposure list: symbol <TAB> address [<TAB> type] per line.
+
+    Hybrid replacements routinely need to name things the dylib keeps private.
+    A ported C++ constructor must store the same vtable pointer the original
+    stored, but vtables are local symbols -- in eci.dylib only _ZTI10ETImessage
+    is exported, not _ZTV10ETImessage -- and 98 of 839 functions are not exported
+    either. Without a way to name an internal address, a faithful port of
+    anything touching internal data is impossible.
+
+    So this emits a global symbol at any address you choose. It changes nothing
+    about the image: a symbol is metadata, the bytes are untouched.
+
+    type defaults to @object; use @function for code.
+    """
+    out = []
+    for lineno, line in enumerate(Path(path).read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t") if "\t" in line else line.split()
+        if len(parts) not in (2, 3):
+            print(f"ERROR: {path}:{lineno}: expected 'symbol<TAB>addr[<TAB>type]',"
+                  f" got {line!r}", file=sys.stderr)
+            sys.exit(1)
+        name, addr = parts[0], int(parts[1], 0)
+        typ = parts[2] if len(parts) == 3 else "@object"
+        out.append(dict(name=name, addr=addr, type=typ))
+    return out
+
+
 def emit_progbits_with_events(add, elf_name, flags, sect_type,
                                start_label, blob_filename, total_size,
                                events, default_export_type):
@@ -421,6 +452,11 @@ def emit_progbits_with_events(add, elf_name, flags, sect_type,
             name = data
             add(f".globl {name}")
             add(f".type {name}, {default_export_type}")
+            add(f"{name}:")
+        elif kind == "xlabel":
+            name, typ = data
+            add(f".globl {name}")
+            add(f".type {name}, {typ}")
             add(f"{name}:")
         elif kind == "symref":
             sym = data
@@ -467,7 +503,8 @@ def emit_nobits_with_events(add, elf_name, flags, start_label, total_size,
 
 
 def emit_assembly(binary, exports, imports, bindings_by_section,
-                  sections, sections_dir, asm_path, substitutions=None):
+                  sections, sections_dir, asm_path, substitutions=None,
+                  exposures=None):
     """Emit the assembly stub. Exports go INSIDE their containing sections so
     symbols are section-relative and ld puts them in .dynsym."""
     lines = []
@@ -513,6 +550,22 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
                 events_by_section.setdefault((s.segment_name, s.name), []).append(
                     (off, "label", name))
                 break
+
+    # Exposed internal addresses: a global symbol, no byte changes.
+    for exp in (exposures or []):
+        placed = False
+        for sec in binary.sections:
+            if sec.virtual_address <= exp["addr"] < sec.virtual_address + sec.size:
+                events_by_section.setdefault(
+                    (sec.segment_name, sec.name), []).append(
+                        (exp["addr"] - sec.virtual_address, "xlabel",
+                         (exp["name"], exp["type"])))
+                placed = True
+                break
+        if not placed:
+            print(f"ERROR: exposure {exp['name']} address {exp['addr']:#x} is in "
+                  f"no section of this slice.", file=sys.stderr)
+            sys.exit(1)
 
     # Hybrid substitutions: overwrite the function in place with a trampoline.
     for sub in substitutions:
@@ -599,7 +652,7 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
     # Sort and deduplicate (in case binding+rebase land on same slot — bindings win)
     for k in events_by_section:
         # Stable sort: order is (offset, kind_priority). Label first, then symref over rebase.
-        prio = {"label": 0, "subst": 1, "symref": 2, "rebase": 3}
+        prio = {"label": 0, "xlabel": 0, "subst": 1, "symref": 2, "rebase": 3}
         events_by_section[k].sort(key=lambda e: (e[0], prio.get(e[1], 9)))
         # Dedup: if multiple events at same offset & kind, keep first
         seen = set()
@@ -1252,6 +1305,12 @@ def main():
                          "jump to a reloq_-prefixed implementation. FILE has one "
                          "'name<TAB>address<TAB>size' per line. Requires the "
                          "implementations via --extra-object.")
+    ap.add_argument("--expose", default=None, metavar="FILE",
+                    help="Emit a global symbol at chosen internal addresses so "
+                         "hybrid replacements can name private vtables, tables "
+                         "and non-exported functions. FILE has one "
+                         "'symbol<TAB>address[<TAB>type]' per line; type "
+                         "defaults to @object.")
     ap.add_argument("--extra-object", action="append", default=[], metavar="OBJ",
                     help="Additional object or archive to link in; repeatable. "
                          "Used to supply --substitute implementations.")
@@ -1311,6 +1370,11 @@ def main():
     for (seg, sect), bs in bindings_by_section.items():
         print(f"    {seg},{sect}: {len(bs)} bindings")
 
+    exposures = load_exposures(args.expose) if args.expose else []
+    if exposures:
+        print(f"[macho2elf] exposing {len(exposures)} internal address(es)")
+        for e in exposures:
+            print(f"    {e['addr']:#x} -> {e['name']} ({e['type']})")
     substitutions = load_substitutions(args.substitute) if args.substitute else []
     if substitutions:
         print(f"[macho2elf] hybrid: substituting {len(substitutions)} function(s)")
@@ -1326,7 +1390,8 @@ def main():
     asm_path = workdir / "stub.s"
     emitted, skipped = emit_assembly(binary, exports, imports, bindings_by_section,
                                       sections, sections_dir, asm_path,
-                                      substitutions=substitutions)
+                                      substitutions=substitutions,
+                                      exposures=exposures)
     print(f"[macho2elf] assembly: {asm_path}  ({emitted} exports emitted, {skipped} skipped)")
 
     lds_path = workdir / "link.lds"

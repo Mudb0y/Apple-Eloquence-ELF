@@ -53,6 +53,26 @@ replacement can live wherever the linker puts it without range concerns.
 The original symbol keeps its address and its name, so baked call sites,
 function pointers and vtable entries all reach the replacement unchanged.
 
+## Naming what the dylib keeps private: `--expose`
+
+A replacement usually needs to reference something the dylib does not export. A
+ported C++ constructor must store the same vtable pointer the original stored,
+but vtables are local symbols — in `eci.dylib` only `_ZTI10ETImessage` is
+exported, not `_ZTV10ETImessage`. 98 of that module's 839 functions are also
+unexported. Without a way to name an internal address, faithfully porting
+anything that touches internal data is impossible.
+
+    --expose exposures.tsv
+
+with one `symbol<TAB>address[<TAB>type]` per line; `type` defaults to `@object`,
+use `@function` for code. This emits a global symbol at that address and changes
+nothing else — a symbol is metadata, the bytes are untouched.
+
+The replacement then declares it `extern` and uses it. For the case above,
+exposing the vtable object at its address lets the constructor store
+`address + 0x10`, matching the Itanium convention of pointing past
+offset-to-top and typeinfo.
+
 ## Constraints
 
 - A function must be at least 6 bytes. Shorter ones are refused rather than
