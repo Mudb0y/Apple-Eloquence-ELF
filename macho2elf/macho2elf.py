@@ -331,6 +331,102 @@ def is_executable_section(seg, sect):
     return seg == "__TEXT" and sect in ("__text", "__stubs")
 
 
+# ----------------------------------------------------------------------------
+# Hybrid build: per-function substitution
+# ----------------------------------------------------------------------------
+#
+# To decompile an engine one function at a time you need a build where a chosen
+# function runs YOUR C while everything around it is still the original machine
+# code, so the whole engine works and its audio can be compared. That is what
+# --substitute does.
+#
+# The obvious approach -- omit the function's bytes and let the linker resolve
+# calls to a replacement -- cannot work: the call sites are baked into the
+# original instruction stream as fixed displacements, and every RIP-relative
+# reference in the image depends on nothing moving. So layout must be preserved
+# exactly.
+#
+# Instead we overwrite the function IN PLACE with a 6-byte indirect jump to the
+# replacement, and fill the remaining bytes with 0xCC so that any accidental
+# fallthrough traps loudly instead of executing whatever was left behind:
+#
+#     ff 25 <rel32>        jmp *slot(%rip)
+#     cc cc cc ...         int3 padding
+#
+# An indirect jump through a slot, rather than a direct 5-byte jmp rel32, so the
+# replacement can live anywhere the linker puts it without range concerns.
+#
+# The replacement symbol for function `foo` is `reloq_foo`, supplied by an object
+# file passed with --extra-object. The original symbol keeps its address and its
+# name, so callers, function pointers and vtables all still work.
+#
+# No function in the Eloquence modules is smaller than 6 bytes (checked across
+# all 3,144 in the English path), but a shorter one cannot be substituted and is
+# refused rather than silently corrupted.
+
+TRAMPOLINE_BYTES = 6
+SUBST_PREFIX = "reloq_"
+
+
+def load_substitutions(path):
+    """Read a substitution list: name <TAB> address <TAB> size per line.
+
+    The caller supplies sizes because the converter has no function-boundary
+    information -- Mach-O exports give addresses but not extents. Reloquence
+    generates this file from analysis/symbols/<module>.tsv, which is derived from
+    LC_FUNCTION_STARTS and therefore authoritative.
+    """
+    subs = []
+    for lineno, line in enumerate(Path(path).read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t") if "\t" in line else line.split()
+        if len(parts) != 3:
+            print(f"ERROR: {path}:{lineno}: expected 'name<TAB>addr<TAB>size', "
+                  f"got {line!r}", file=sys.stderr)
+            sys.exit(1)
+        name, addr, size = parts[0], int(parts[1], 0), int(parts[2], 0)
+        if size < TRAMPOLINE_BYTES:
+            print(f"ERROR: {path}:{lineno}: {name} is {size} bytes; a "
+                  f"substitution trampoline needs {TRAMPOLINE_BYTES}. Refusing "
+                  f"rather than corrupting adjacent code.", file=sys.stderr)
+            sys.exit(1)
+        subs.append(dict(name=name, addr=addr, size=size))
+    return subs
+
+
+def load_exposures(path):
+    """Read an exposure list: symbol <TAB> address [<TAB> type] per line.
+
+    Hybrid replacements routinely need to name things the dylib keeps private.
+    A ported C++ constructor must store the same vtable pointer the original
+    stored, but vtables are local symbols -- in eci.dylib only _ZTI10ETImessage
+    is exported, not _ZTV10ETImessage -- and 98 of 839 functions are not exported
+    either. Without a way to name an internal address, a faithful port of
+    anything touching internal data is impossible.
+
+    So this emits a global symbol at any address you choose. It changes nothing
+    about the image: a symbol is metadata, the bytes are untouched.
+
+    type defaults to @object; use @function for code.
+    """
+    out = []
+    for lineno, line in enumerate(Path(path).read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t") if "\t" in line else line.split()
+        if len(parts) not in (2, 3):
+            print(f"ERROR: {path}:{lineno}: expected 'symbol<TAB>addr[<TAB>type]',"
+                  f" got {line!r}", file=sys.stderr)
+            sys.exit(1)
+        name, addr = parts[0], int(parts[1], 0)
+        typ = parts[2] if len(parts) == 3 else "@object"
+        out.append(dict(name=name, addr=addr, type=typ))
+    return out
+
+
 def emit_progbits_with_events(add, elf_name, flags, sect_type,
                                start_label, blob_filename, total_size,
                                events, default_export_type):
@@ -340,6 +436,8 @@ def emit_progbits_with_events(add, elf_name, flags, sect_type,
       kind="label", data=name     -> .globl/.type/label (no byte consumed)
       kind="symref", data=sym     -> .quad sym (replaces 8 bytes)
       kind="rebase", data=(L,off) -> .quad L + off (replaces 8 bytes)
+      kind="subst",  data=(slot,n) -> 6-byte jmp *slot(%rip) + int3 padding,
+                                      replacing all n bytes of the function
     """
     add(f".section {elf_name}, {flags}, {sect_type}")
     add(f".balign 1")
@@ -355,6 +453,11 @@ def emit_progbits_with_events(add, elf_name, flags, sect_type,
             add(f".globl {name}")
             add(f".type {name}, {default_export_type}")
             add(f"{name}:")
+        elif kind == "xlabel":
+            name, typ = data
+            add(f".globl {name}")
+            add(f".type {name}, {typ}")
+            add(f"{name}:")
         elif kind == "symref":
             sym = data
             if sym:
@@ -366,6 +469,12 @@ def emit_progbits_with_events(add, elf_name, flags, sect_type,
             target_label, target_off = data
             add(f".quad {target_label} + {target_off:#x}")
             cursor = off + 8
+        elif kind == "subst":
+            slot, nbytes = data
+            add(f"    jmp *{slot}(%rip)")
+            if nbytes > TRAMPOLINE_BYTES:
+                add(f"    .fill {nbytes - TRAMPOLINE_BYTES:#x}, 1, 0xcc")
+            cursor = off + nbytes
 
     if cursor < total_size:
         add(f'.incbin "{blob_filename}", {cursor:#x}, {total_size - cursor:#x}')
@@ -394,7 +503,8 @@ def emit_nobits_with_events(add, elf_name, flags, start_label, total_size,
 
 
 def emit_assembly(binary, exports, imports, bindings_by_section,
-                  sections, sections_dir, asm_path):
+                  sections, sections_dir, asm_path, substitutions=None,
+                  exposures=None):
     """Emit the assembly stub. Exports go INSIDE their containing sections so
     symbols are section-relative and ld puts them in .dynsym."""
     lines = []
@@ -413,6 +523,17 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
         add(f".extern {imp}")
     add("")
 
+    substitutions = substitutions or []
+    if substitutions:
+        add("/* === HYBRID SUBSTITUTIONS === */")
+        add(f"/* {len(substitutions)} functions replaced in place by a 6-byte")
+        add("   indirect jump to a reloq_-prefixed implementation. The original")
+        add("   address and symbol are preserved, so baked call sites, function")
+        add("   pointers and vtables all still reach the replacement. */")
+        for sub in substitutions:
+            add(f".extern {SUBST_PREFIX}{sub['name']}")
+        add("")
+
     # Build per-section event lists from exports + bindings + rebases
     events_by_section = {}  # (seg, sect) -> [(offset, kind, data), ...]
 
@@ -429,6 +550,45 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
                 events_by_section.setdefault((s.segment_name, s.name), []).append(
                     (off, "label", name))
                 break
+
+    # Exposed internal addresses: a global symbol, no byte changes.
+    for exp in (exposures or []):
+        placed = False
+        for sec in binary.sections:
+            if sec.virtual_address <= exp["addr"] < sec.virtual_address + sec.size:
+                events_by_section.setdefault(
+                    (sec.segment_name, sec.name), []).append(
+                        (exp["addr"] - sec.virtual_address, "xlabel",
+                         (exp["name"], exp["type"])))
+                placed = True
+                break
+        if not placed:
+            print(f"ERROR: exposure {exp['name']} address {exp['addr']:#x} is in "
+                  f"no section of this slice.", file=sys.stderr)
+            sys.exit(1)
+
+    # Hybrid substitutions: overwrite the function in place with a trampoline.
+    for sub in substitutions:
+        placed = False
+        for sec in binary.sections:
+            if sec.virtual_address <= sub["addr"] < sec.virtual_address + sec.size:
+                off = sub["addr"] - sec.virtual_address
+                if off + sub["size"] > sec.size:
+                    print(f"ERROR: substitution {sub['name']} at "
+                          f"{sub['addr']:#x} size {sub['size']} runs past the end "
+                          f"of {sec.segment_name},{sec.name}", file=sys.stderr)
+                    sys.exit(1)
+                sub["slot"] = f".reloq_slot_{sub['name']}_{sub['addr']:x}"
+                events_by_section.setdefault(
+                    (sec.segment_name, sec.name), []).append(
+                        (off, "subst", (sub["slot"], sub["size"])))
+                placed = True
+                break
+        if not placed:
+            print(f"ERROR: substitution {sub['name']} address {sub['addr']:#x} "
+                  f"is in no section of this slice. Wrong module, or an address "
+                  f"from the other architecture?", file=sys.stderr)
+            sys.exit(1)
 
     # Rebases (internal pointers — need R_X86_64_RELATIVE at load time)
     # Build (seg, sect) -> elf_section_label map
@@ -492,7 +652,7 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
     # Sort and deduplicate (in case binding+rebase land on same slot — bindings win)
     for k in events_by_section:
         # Stable sort: order is (offset, kind_priority). Label first, then symref over rebase.
-        prio = {"label": 0, "symref": 1, "rebase": 2}
+        prio = {"label": 0, "xlabel": 0, "subst": 1, "symref": 2, "rebase": 3}
         events_by_section[k].sort(key=lambda e: (e[0], prio.get(e[1], 9)))
         # Dedup: if multiple events at same offset & kind, keep first
         seen = set()
@@ -523,6 +683,20 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
             add, elf_name, flags, sect_type,
             f"{elf_name}_start", meta["file"].name, meta["size"],
             events, export_type)
+        add("")
+
+    # --- hybrid substitution slots ---------------------------------------
+    # One 8-byte slot per substituted function, holding the address of the
+    # replacement. Writable and relocated at load time (R_X86_64_64 -> the
+    # linker emits a dynamic relocation), which is why the trampoline jumps
+    # indirectly rather than to a fixed displacement.
+    if substitutions:
+        add('/* === hybrid substitution slots === */')
+        add('.section .reloq_slots, "aw", @progbits')
+        add(".balign 8")
+        for sub in substitutions:
+            add(f"{sub['slot']}:")
+            add(f"    .quad {SUBST_PREFIX}{sub['name']}")
         add("")
 
     # --- __DATA_CONST,__got (pure symbol table, no raw bytes) ------------
@@ -1126,6 +1300,20 @@ def main():
     ap.add_argument("--os", default="linux", choices=["linux", "android"],
                     help="Target OS/libc. 'linux' (glibc, default) or 'android' "
                          "(Bionic, arm64 only — needs an NDK clang via --cc).")
+    ap.add_argument("--substitute", default=None, metavar="FILE",
+                    help="Hybrid build: replace listed functions in place with a "
+                         "jump to a reloq_-prefixed implementation. FILE has one "
+                         "'name<TAB>address<TAB>size' per line. Requires the "
+                         "implementations via --extra-object.")
+    ap.add_argument("--expose", default=None, metavar="FILE",
+                    help="Emit a global symbol at chosen internal addresses so "
+                         "hybrid replacements can name private vtables, tables "
+                         "and non-exported functions. FILE has one "
+                         "'symbol<TAB>address[<TAB>type]' per line; type "
+                         "defaults to @object.")
+    ap.add_argument("--extra-object", action="append", default=[], metavar="OBJ",
+                    help="Additional object or archive to link in; repeatable. "
+                         "Used to supply --substitute implementations.")
     ap.add_argument("--no-link", action="store_true", help="Stop after generating asm/lds")
     ap.add_argument("--no-strip", action="store_true",
                     help="Keep the non-dynamic .symtab (local .m2e_* labels). By default it "
@@ -1182,9 +1370,28 @@ def main():
     for (seg, sect), bs in bindings_by_section.items():
         print(f"    {seg},{sect}: {len(bs)} bindings")
 
+    exposures = load_exposures(args.expose) if args.expose else []
+    if exposures:
+        print(f"[macho2elf] exposing {len(exposures)} internal address(es)")
+        for e in exposures:
+            print(f"    {e['addr']:#x} -> {e['name']} ({e['type']})")
+    substitutions = load_substitutions(args.substitute) if args.substitute else []
+    if substitutions:
+        print(f"[macho2elf] hybrid: substituting {len(substitutions)} function(s)")
+        for sub in substitutions:
+            print(f"    {sub['name']} @ {sub['addr']:#x} ({sub['size']} bytes) "
+                  f"-> {SUBST_PREFIX}{sub['name']}")
+        if not args.extra_object:
+            print("ERROR: --substitute needs --extra-object supplying the "
+                  f"{SUBST_PREFIX}* implementations, or the link will fail with "
+                  "undefined symbols.", file=sys.stderr)
+            sys.exit(1)
+
     asm_path = workdir / "stub.s"
     emitted, skipped = emit_assembly(binary, exports, imports, bindings_by_section,
-                                      sections, sections_dir, asm_path)
+                                      sections, sections_dir, asm_path,
+                                      substitutions=substitutions,
+                                      exposures=exposures)
     print(f"[macho2elf] assembly: {asm_path}  ({emitted} exports emitted, {skipped} skipped)")
 
     lds_path = workdir / "link.lds"
@@ -1250,6 +1457,7 @@ def main():
         *([] if args.no_strip else ["-Wl,-s"]),
         "-T", str(lds_path),
         str(stub_o), str(stubs_o),
+        *[str(Path(o).resolve()) for o in args.extra_object],
         *link_libs,
         "-o", str(output_path),
     ]
