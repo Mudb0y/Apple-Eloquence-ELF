@@ -482,21 +482,43 @@ def emit_progbits_with_events(add, elf_name, flags, sect_type,
 
 def emit_nobits_with_events(add, elf_name, flags, start_label, total_size,
                              events, default_export_type):
-    """Emit a NOBITS section with label events (no byte payloads)."""
+    """Emit a NOBITS section with label events (no byte payloads).
+
+    Both label kinds are emitted: "label" for an export and "xlabel" for an
+    --expose entry. This used to accept "label" only, so an exposure whose
+    address lands in __bss or __common was dropped without a word. That is a
+    silent failure of the worst shape: the C referring to the exposed symbol
+    still compiles, the link still succeeds, and the symbol resolves to
+    nothing at dlopen time, so the engine loads and renders no samples with
+    no crash and no message.
+
+    Payload events (symref, rebase, subst) genuinely cannot be emitted in a
+    section with no file contents, but they are announced rather than
+    dropped in silence, because a payload event here means something else is
+    wrong upstream.
+    """
     add(f".section {elf_name}, {flags}, @nobits")
     add(f".balign 1")
     add(f"{start_label}:")
 
     cursor = 0
     for off, kind, data in events:
-        if kind != "label":
+        if kind not in ("label", "xlabel"):
+            add(f"/* WARNING: {kind} event at {off:#x} cannot be emitted in a"
+                f" nobits section; dropped */")
+            print(f"WARNING: {elf_name}: {kind} event at offset {off:#x} "
+                  f"dropped -- a nobits section has no contents to place it in.",
+                  file=sys.stderr)
             continue
         if off > cursor:
             add(f".zero {off - cursor:#x}")
             cursor = off
-        name = data
+        if kind == "label":
+            name, typ = data, default_export_type
+        else:
+            name, typ = data
         add(f".globl {name}")
-        add(f".type {name}, {default_export_type}")
+        add(f".type {name}, {typ}")
         add(f"{name}:")
     if cursor < total_size:
         add(f".zero {total_size - cursor:#x}")
@@ -804,6 +826,31 @@ def emit_assembly(binary, exports, imports, bindings_by_section,
                 add(f".quad {tgt_label} + {tgt_inner:#x}  /* init #{init_idx} */")
             add("")
             break
+
+    # --- Every exposure must actually be in the output --------------------
+    # Checking the effect, not the premise. An exposure is placed by address
+    # into whatever section contains it, and several sections never reach an
+    # emitter: a nobits section used to drop label events that were not plain
+    # exports, __DATA_CONST,__got is emitted by its own merge loop which knows
+    # only symrefs and rebases, and any section absent from SECTION_LAYOUT or
+    # with no extracted file is skipped entirely. In every one of those cases
+    # the address lookup above succeeds, so nothing complains, and the missing
+    # symbol only shows up as an engine that loads and produces silence.
+    #
+    # So scan the emitted text for each exposed name and fail loudly here
+    # rather than at dlopen time in someone else's project.
+    emitted_globals = {ln.split(None, 1)[1].strip()
+                       for ln in lines if ln.startswith(".globl ")}
+    missing = [e for e in (exposures or []) if e["name"] not in emitted_globals]
+    if missing:
+        for e in missing:
+            sec = next((f"{s.segment_name},{s.name}" for s in binary.sections
+                        if s.virtual_address <= e["addr"]
+                        < s.virtual_address + s.size), "no section")
+            print(f"ERROR: exposure {e['name']} at {e['addr']:#x} ({sec}) was "
+                  f"placed but never emitted; the section it lands in has no "
+                  f"emitter for it.", file=sys.stderr)
+        sys.exit(1)
 
     # --- Tally -----------------------------------------------------------
     total_labels = sum(1 for evs in events_by_section.values() for e in evs if e[1] == "label")
