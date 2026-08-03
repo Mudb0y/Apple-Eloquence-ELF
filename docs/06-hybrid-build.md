@@ -30,6 +30,19 @@ signature, compiled into an object passed via `--extra-object` (repeatable).
 `--substitute` without `--extra-object` is refused, since the link would only
 fail later with undefined symbols.
 
+The name column is **not** looked up in the dylib: the address places the
+trampoline, and the name only forms `reloq_<name>` and the slot label. So the
+caller may put any label it likes there, and a caller substituting several
+same-named functions must, because otherwise every one of those addresses
+resolves to a single `reloq_` definition and all but one silently receives
+another's body. Reloquence hit this with four distinct `freeDeltaStackTo` bodies
+and three `clearDeltaStackBack` in one module -- the latter genuinely not
+interchangeable, each tail-jumping to a different `freeDeltaStackTo` -- and
+settled on `<name>_<address in hex>` for any name duplicated in the module (its
+`docs/decisions.md` amendment 12.27). Nothing here had to change for that, which
+is why it is worth recording: the freedom is deliberate, so do not "fix" this
+column by resolving it against the symbol table.
+
 ## How it works, and why not the obvious way
 
 The obvious approach — omit the function's bytes and let the linker point calls
