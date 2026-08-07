@@ -16,6 +16,13 @@ set(CMAKE_INSTALL_DOCDIR "${CMAKE_INSTALL_DATADIR}/doc/eloquence" CACHE PATH
     "Documentation install dir (overrides the GNUInstallDirs default to match the rest of the install layout)"
     FORCE)
 
+# Where the ECI runtime lands: eci.so, the language .so files, and the
+# install-generated eci.ini. On Debian/Ubuntu multiarch this is
+# /usr/lib/<triplet>/eloquence, NOT /usr/lib/eloquence. Both the
+# sd_eloquence conf and the prebuilt-ELF install need it, so derive it
+# once here rather than letting the two drift apart.
+set(ELOQUENCE_DATA_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/eloquence")
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter)
@@ -143,6 +150,10 @@ if(BUILD_SD_MODULE)
             ${SPEECHD_INCLUDE_DIR}/speech-dispatcher
             ${LIBXML2_INCLUDE_DIRS})
         target_compile_definitions(sd_eloquence PRIVATE -DPCRE2_CODE_UNIT_WIDTH=8)
+        # Keep the built-in fallback in sync with where the runtime installs,
+        # so a conf that omits EloquenceDataDir still resolves.
+        target_compile_definitions(sd_eloquence PRIVATE
+            ELOQUENCE_DEFAULT_DATA_DIR="${ELOQUENCE_DATA_DIR}")
         target_link_libraries(sd_eloquence PRIVATE
             ${SPEECHD_MODULE_LIB}
             ${LIBXML2_LIBRARIES}
@@ -273,7 +284,24 @@ if(BUILD_SD_MODULE)
         endif()
         add_test(NAME test_filters COMMAND test_filters)
 
-        install(FILES sd_eloquence/eloquence.conf
+        # The checked-in conf hardcodes EloquenceDataDir /usr/lib/eloquence.
+        # That is right for the release tarball -- dist/install.sh installs
+        # there and copies the template verbatim -- but wrong for a CMake
+        # install, which honors CMAKE_INSTALL_LIBDIR and so puts the runtime
+        # under /usr/lib/<triplet>/eloquence on any multiarch distro. Rewrite
+        # the directive on the way in so the installed conf points at the
+        # files we actually installed. Patching a copy (rather than adding an
+        # @VAR@ placeholder to the template) keeps the checked-in file
+        # directly usable, which is what the tarball path depends on.
+        file(READ ${CMAKE_CURRENT_SOURCE_DIR}/sd_eloquence/eloquence.conf
+            _eloquence_conf)
+        string(REGEX REPLACE "\nEloquenceDataDir[ \t]+[^\n]*"
+            "\nEloquenceDataDir ${ELOQUENCE_DATA_DIR}"
+            _eloquence_conf "${_eloquence_conf}")
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/eloquence.conf "${_eloquence_conf}")
+        unset(_eloquence_conf)
+
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/eloquence.conf
             DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/speech-dispatcher/modules)
 
         if(SOXR_FOUND)
@@ -335,9 +363,8 @@ if(INSTALL_PREBUILT_DYLIBS)
             "or disable this option.")
     endif()
 
-    set(_ELOQUENCE_DATA_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/eloquence)
     install(DIRECTORY prebuilt/${_PREBUILT_ARCH}/
-        DESTINATION ${_ELOQUENCE_DATA_DIR}
+        DESTINATION ${ELOQUENCE_DATA_DIR}
         FILES_MATCHING PATTERN "*.so")
 
     # Generate the multi-section eci.ini at install time. DATA_DIR is only

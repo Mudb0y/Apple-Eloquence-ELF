@@ -18,10 +18,18 @@
 #include <string.h>
 #include <strings.h>
 
+/* Set by CMake to ${CMAKE_INSTALL_FULL_LIBDIR}/eloquence, which is where the
+ * build actually installs the runtime -- /usr/lib/<triplet>/eloquence on a
+ * multiarch distro. The literal below is only the fallback for builds that
+ * don't define it, and matches the layout the release tarball installs. */
+#ifndef ELOQUENCE_DEFAULT_DATA_DIR
+#define ELOQUENCE_DEFAULT_DATA_DIR "/usr/lib/eloquence"
+#endif
+
 void config_defaults(EloqConfig *c) {
     memset(c, 0, sizeof(*c));
     c->debug = 0;
-    strcpy(c->data_dir, "/usr/lib/eloquence");
+    snprintf(c->data_dir, sizeof(c->data_dir), "%s", ELOQUENCE_DEFAULT_DATA_DIR);
     c->dict_dir[0] = 0;
     c->default_sample_rate = 1;
     c->default_voice_slot  = 0;
