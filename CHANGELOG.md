@@ -5,10 +5,42 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.3.0] — 2026-09-30
+
+### Changed
+
+- **Abbreviation expansion is now off by default.** The engine's built-in
+  abbreviation rewriting (currency, units, "Dr." and so on) used to be always
+  on, because the module never set `eciDictionary`. `EloquenceLoadAbbrDict` now
+  controls it, and its default of 0 is what `eloquence.conf` always documented.
+  Set `EloquenceLoadAbbrDict 1` to get the old behavior back. Details under
+  Fixed.
 
 ### Added
 
+- **Hybrid builds: `macho2elf --substitute` runs chosen functions as your own C
+  while the rest of the engine stays original machine code**, so a decompiled
+  function can be proven against the real engine's audio one at a time. Each
+  listed function is overwritten in place with a 6-byte indirect jump through a
+  `.reloq_slots` entry, padded with `0xCC` so a fallthrough traps. The original
+  symbol keeps its address and name, so baked call sites, function pointers and
+  vtables all reach the replacement `reloq_<name>` supplied via
+  `--extra-object`. Functions under 6 bytes, addresses from the wrong slice, and
+  `--substitute` without `--extra-object` are refused up front. Verified against
+  a 67-artefact fidelity corpus with a layout control (substituting an unused
+  function leaves every artefact identical) and a reachability control
+  (substituting `eciAddText` with a no-op silences 65 of 67). See
+  `docs/06-hybrid-build.md`.
+- **`macho2elf --expose` names internal addresses** so a replacement can
+  reference what the dylib does not export: vtables are local (`eci.dylib`
+  exports `_ZTI10ETImessage` but not `_ZTV10ETImessage`), and 98 of its 839
+  functions are unexported. It takes `symbol<TAB>address[<TAB>type]` lines and
+  emits a global symbol at each address without changing any bytes. Exposures
+  into zero-fill sections (`__bss`, `__common`) work. The converter checks that
+  every exposed name reached the output and exits non-zero if one did not; an
+  exposure into `__DATA_CONST,__got` is the one known placement that still
+  cannot be emitted, and it fails the build rather than producing an engine
+  that loads and renders silence.
 - **Experimental `android-x86_64` converter target** (`--os android` on an
   x86_64 slice). Simpler than arm64 — x86_64 Android uses the SysV ABI, so no
   variadic/`__chkstk` shims; only the Bionic bits apply (libc++ `__ndk1`
@@ -73,6 +105,23 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   loaded. The comments now show the real names (`enumain.dic`, `enuroot.dic`,
   `enuabbr.dic`) and clarify that main/root pronunciation dictionaries are
   independent of the abbreviation toggle.
+- **The engine crashed on first synthesis when installed under a long
+  prefix.** The ECI engine copies each `Path=`/`Path_Rom=` entry from `eci.ini`
+  into a bounded internal buffer; long absolute paths overflowed it and
+  overwrote an adjacent function pointer (the Klatt const-params hook), so the
+  first synthesis jumped through path-string bytes and segfaulted. Init, voice
+  listing and SSIP all still succeeded, so speech-dispatcher silently fell back
+  to another module and the fault sounded like "Eloquence speaks with espeak's
+  voices". The CMake-generated `eci.ini` now uses `./`-relative entries
+  (sd_eloquence already `chdir()`s to the data dir before `eciNewEx`), so the
+  strings stay short wherever the libraries are installed. Installs to
+  `/usr/lib/eloquence`, including the release tarballs, were never affected.
+- **Installs under Nix/Guix-style store prefixes.** `SPEECHD_MODULEBINDIR` can
+  now be overridden with `-D`: pkg-config's value points into
+  speech-dispatcher's own read-only store path, which this package cannot
+  install into, and it remains the default when no override is given. An
+  absolute `CMAKE_INSTALL_LIBDIR`, as Nix and Guix pass it, no longer produces
+  a doubled `$prefix/$prefix/...` staging path for the generated `eci.ini`.
 
 ## [1.2.3] — 2026-06-09
 
