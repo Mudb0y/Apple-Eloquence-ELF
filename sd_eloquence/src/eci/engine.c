@@ -89,8 +89,16 @@ int engine_switch_language(EciEngine *e, int dialect) {
     e->api.Synchronize(e->h);
     /* SetParam sometimes returns -1 but the engine synthesizes in the new
      * dialect anyway; we trust that path because Delete+NewEx crashes
-     * Apple's build on the second reload of a language .so. */
+     * Apple's build on the second reload of a language .so. So don't trust
+     * the return value: confirm with GetParam (same semantic as the
+     * test_ini_switch regression test). If the engine refused -- unpatched
+     * engine, eci.ini section dropped -- leave current_dialect alone:
+     * module_set skips the switch when it already equals current_dialect,
+     * so caching a refused switch turns every later SET LANGUAGE for that
+     * dialect into a silent no-op until restart. */
     e->api.SetParam(e->h, eciLanguageDialect, dialect);
+    if (e->api.GetParam(e->h, eciLanguageDialect) != dialect)
+        return -1;
     e->current_dialect = dialect;
     engine_load_dictionary(e, dialect);
     return 0;

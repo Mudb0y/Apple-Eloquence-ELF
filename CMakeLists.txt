@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(apple-eloquence-elf
-    VERSION 1.3.0
+    VERSION 1.4.0
     DESCRIPTION "Convert Apple's bundled ETI Eloquence Mach-O dylibs to Linux ELF; speech-dispatcher integration."
     LANGUAGES C)
 
@@ -215,6 +215,20 @@ if(BUILD_SD_MODULE)
             sd_eloquence/src/eci/languages.c)
         target_include_directories(test_languages PRIVATE sd_eloquence/src)
         add_test(NAME test_languages COMMAND test_languages)
+
+        # Engine-level regression test for the ini-parser section-skipping
+        # bug (tools/patch_ini_parser.py). Needs real artefacts: set
+        # ECI_SO / ECI_INI_DIR to the converted engine + an eci.ini; without
+        # them the test skips (code 77). Directory layout note: the engine
+        # reads eci.ini from the process cwd, so ECI_INI_DIR must contain it
+        # alongside the language .so files.
+        add_executable(test_ini_switch
+            sd_eloquence/tests/test_ini_switch.c
+            sd_eloquence/src/eci/languages.c)
+        target_include_directories(test_ini_switch PRIVATE sd_eloquence/src)
+        target_link_libraries(test_ini_switch PRIVATE ${CMAKE_DL_LIBS})
+        add_test(NAME test_ini_switch COMMAND test_ini_switch)
+        set_tests_properties(test_ini_switch PROPERTIES SKIP_RETURN_CODE 77)
 
         add_executable(test_config
             sd_eloquence/tests/test_config.c

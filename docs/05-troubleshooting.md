@@ -42,6 +42,35 @@ page size. Most commonly caused by:
 
 ## Runtime crashes
 
+### Languages fall back to en-US (dialect switch refused)
+
+**Symptom:** some languages (every other one — e.g. es-MX, en-GB, fr-CA,
+it-IT) speak with the default dialect, or `eciSetParam(eciLanguageDialect)`
+returns -1. es-ES, fr-FR, de-DE, pt-BR and fi-FI work; the rest don't.
+
+**Cause:** a bug in Apple's engine, not in the conversion. The language
+table built from `eci.ini` at startup registers only every other section:
+`IniFileReader::goEndSection` scans forward until a blank line and swallows
+the next section header+body in its path, and since `getString` leaves the
+cursor at the current section's trailing blank line, `getNextSection`
+drops exactly one section per call. `eciSetParam(eciLanguageDialect)`
+checks that table and refuses the switch with -1 when the entry is missing;
+`sd_eloquence` (correctly) trusts the dialect anyway, so you hear en-US.
+
+**Fix (converted engines since 1.4.0):** the release pipeline patches
+`eci.so` (`tools/patch_ini_parser.py`) to skip the faulty `goEndSection`
+call inside `getNextSection`; with the patch a normal one-section-per-
+language `eci.ini` works for all dialects.
+
+**Workaround (stock/unpatched engine):** list every section twice in
+`eci.ini` — with the skip eating one copy, each language still registers.
+Do NOT double the CJK sections (chs/cht/jpn/kor): a doubled romanizer
+entry segfaults the engine. Also keep each section block followed by a
+blank line, as the install step generates.
+
+The `test_ini_switch` regression test (needs `ECI_SO` + `ECI_INI_DIR`)
+fails on any engine or ini where dialect switching is broken.
+
 ### `*** stack smashing detected ***` inside eciNew
 
 The ETI Eloquence engine has internal fixed-size stack buffers that
