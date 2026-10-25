@@ -5,6 +5,24 @@ All notable changes to apple-eloquence-elf are recorded here.
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/),
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-10-25
+
+### Fixed
+
+- **Dialect switching now works for every language on a patched engine.**
+  Apple's engine registers only every other `eci.ini` section when building
+  its language table (`IniFileReader::goEndSection` swallows the next section
+  header while scanning for a blank line), so `eciSetParam(eciLanguageDialect)`
+  refused the switch for half the languages (es-MX, en-GB, fr-CA, it-IT among
+  them) and speech silently fell back to en-US. The conversion pipeline now
+  patches that call out of the shipped `eci.so` (`tools/patch_ini_parser.py`,
+  pattern-verified; it refuses anything it doesn't recognize), and
+  `engine_switch_language` logs an explicit warning if the engine ever refuses
+  a switch again. New `test_ini_switch` regression test covers all 10
+  non-CJK dialects against real engine artefacts. Stock (unpatched) engines
+  can still be worked around by listing every `eci.ini` section twice — see
+  `docs/05-troubleshooting.md`.
+
 ## [1.3.0] — 2026-09-30
 
 ### Changed

@@ -142,6 +142,13 @@ jobs:
                   -o "elfs/${base}.so" \
                   --workdir "build/${base}_work"
           done
+          # Apple's engine drops every other eci.ini section when building the
+          # language table (IniFileReader::goEndSection swallows the next
+          # section header), which makes eciSetParam(eciLanguageDialect) fail
+          # for half the languages. The converted engine ships with that call
+          # patched out; the script refuses to touch a binary whose bytes
+          # don't match, so a re-layout upstream turns the release red here.
+          ./venv/bin/python3 tools/patch_ini_parser.py elfs/eci.so
           ls -la elfs/
 
       - name: Stage tarball
@@ -165,6 +172,10 @@ jobs:
           chmod +x "${STAGE}/install.sh" "${STAGE}/uninstall.sh"
 
           # Path= entries reference /usr/lib/eloquence (install.sh's default).
+          # One section per language is correct and complete ONLY on a patched
+          # engine (see tools/patch_ini_parser.py); the unpatched engine
+          # registers every other section, so each language must be listed
+          # twice as a workaround on stock eci.so builds.
           python3 - "${STAGE}/eci.ini" <<'PY'
           import sys, pathlib
           DATA_DIR = "/usr/lib/eloquence"
