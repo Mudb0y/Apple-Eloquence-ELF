@@ -68,6 +68,19 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`cmake --install` produced a non-working module on multiarch distros.** The
+  prebuilt ELFs install to `${CMAKE_INSTALL_FULL_LIBDIR}/eloquence`, which is
+  `/usr/lib/<triplet>/eloquence` on Debian/Ubuntu, but `eloquence.conf` was
+  installed verbatim with `EloquenceDataDir /usr/lib/eloquence` and
+  `config_defaults` hardcoded the same literal — so the module looked for
+  `eci.so` in a directory the build never wrote to and failed at startup.
+  Reproduced on Ubuntu 26.04 (`/usr/lib/x86_64-linux-gnu/eloquence`). CMake now
+  rewrites the `EloquenceDataDir` line into a build-dir copy of the conf, and
+  passes the same path as `ELOQUENCE_DEFAULT_DATA_DIR` so the compiled-in
+  fallback agrees. The checked-in template still reads `/usr/lib/eloquence`
+  verbatim, which is what `dist/install.sh` and the release tarball rely on, so
+  the tarball path is unchanged. Building with `-DCMAKE_INSTALL_LIBDIR=lib`
+  reproduces the old (correct-for-tarball) layout.
 - **Long utterances were truncated once a job exceeded 256 frames ("text past a
   certain amount is eaten on one huge chunk").** A `synth_job` held a fixed
   `FRAMES_CAP = 256` frames and `synth_job_push_frame` returned NULL past that,
